@@ -1,0 +1,27 @@
+digraph ingress {
+ip_table_0 [ shape=record, style="filled", fillcolor=cornsilk, label="ip_table_0\l\l
+M:\l
+ vrf_0\l
+ p.ipv4.src\l
+ p.ipv4.dst\l
+ p.ipv4.proto\l
+\lW:\l
+ ig_intr_md_for_dprsr.drop_ctl\l
+ ig_intr_md_for_dprsr.drop_ctl.$valid\l
+ ig_md.Group_id\l
+ "];
+port_table_0 [ shape=record, style="filled", fillcolor=cornsilk, label="port_table_0\l\l
+M:\l
+ ig_md.Group_id\l
+ p.udp.sport\l
+ p.udp.dport\l
+\lW:\l
+ ig_intr_md_for_tm.ucast_egress_port\l
+ ig_intr_md_for_tm.ucast_egress_port.$valid\l
+ ig_intr_md_for_dprsr.drop_ctl\l
+ ig_intr_md_for_dprsr.drop_ctl.$valid\l
+ "];
+    PARSER -> ip_table_0
+    ip_table_0 -> port_table_0
+    port_table_0 -> DEPARSER
+}

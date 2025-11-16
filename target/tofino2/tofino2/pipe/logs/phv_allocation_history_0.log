@@ -1,0 +1,530 @@
+Allocation history of config default_alloc_config
+1: TRYING to allocate SUPERCLUSTER Uid: 333
+    slice lists:	
+        [ ingress::ig_intr_md_for_dprsr.mirror_type.$valid<1> meta pov mocha [0:0]
+          ingress::ig_intr_md_for_dprsr.drop_ctl.$valid<1> meta pov [0:0]
+          ingress::ig_intr_md_for_tm.ucast_egress_port.$valid<1> meta pov [0:0]
+          ingress::p.ethernet.$valid<1> pov mocha [0:0]
+          ingress::p.ipv4.$valid<1> pov mocha [0:0]
+          ingress::p.tcp.$valid<1> pov mocha [0:0]
+          ingress::p.udp.$valid<1> pov mocha [0:0] ]
+    rotational clusters:	
+        [[ingress::ig_intr_md_for_dprsr.mirror_type.$valid<1> meta pov mocha [0:0]]]
+        [[ingress::ig_intr_md_for_dprsr.drop_ctl.$valid<1> meta pov [0:0]]]
+        [[ingress::ig_intr_md_for_tm.ucast_egress_port.$valid<1> meta pov [0:0]]]
+        [[ingress::p.ethernet.$valid<1> pov mocha [0:0]]]
+        [[ingress::p.ipv4.$valid<1> pov mocha [0:0]]]
+        [[ingress::p.tcp.$valid<1> pov mocha [0:0]]]
+        [[ingress::p.udp.$valid<1> pov mocha [0:0]]]
+Successfully Allocated
+By slicing into the following superclusters:
+SUPERCLUSTER Uid: 409
+    slice lists:	
+        [ ingress::ig_intr_md_for_dprsr.mirror_type.$valid<1> meta pov mocha [0:0]
+          ingress::ig_intr_md_for_dprsr.drop_ctl.$valid<1> meta pov [0:0]
+          ingress::ig_intr_md_for_tm.ucast_egress_port.$valid<1> meta pov [0:0]
+          ingress::p.ethernet.$valid<1> pov mocha [0:0]
+          ingress::p.ipv4.$valid<1> pov mocha [0:0]
+          ingress::p.tcp.$valid<1> pov mocha [0:0]
+          ingress::p.udp.$valid<1> pov mocha [0:0] ]
+    rotational clusters:	
+        [[ingress::ig_intr_md_for_dprsr.mirror_type.$valid<1> meta pov mocha [0:0]]]
+        [[ingress::ig_intr_md_for_dprsr.drop_ctl.$valid<1> meta pov [0:0]]]
+        [[ingress::ig_intr_md_for_tm.ucast_egress_port.$valid<1> meta pov [0:0]]]
+        [[ingress::p.ethernet.$valid<1> pov mocha [0:0]]]
+        [[ingress::p.ipv4.$valid<1> pov mocha [0:0]]]
+        [[ingress::p.tcp.$valid<1> pov mocha [0:0]]]
+        [[ingress::p.udp.$valid<1> pov mocha [0:0]]]
+
+Best Score: {mocha_on_phv_bits: 5, wasted_pov_bits: 1, [n_set_gress: 1, n_set_parser_group_gress: 1, n_inc_containers: 1, n_inc_small_containers: 1, ], }
+Allocation Decisions:
+allocate: B1[0:0] <- ingress::ig_intr_md_for_dprsr.mirror_type.$valid<1> meta pov mocha [0:0] @[-1r,2w]
+allocate: B1[1:1] <- ingress::ig_intr_md_for_dprsr.drop_ctl.$valid<1> meta pov [0:0] @[-1r,2w]
+allocate: B1[2:2] <- ingress::ig_intr_md_for_tm.ucast_egress_port.$valid<1> meta pov [0:0] @[-1r,2w]
+allocate: B1[3:3] <- ingress::p.ethernet.$valid<1> pov mocha [0:0] @[-1r,2w]
+allocate: B1[4:4] <- ingress::p.ipv4.$valid<1> pov mocha [0:0] @[-1r,2w]
+allocate: B1[5:5] <- ingress::p.tcp.$valid<1> pov mocha [0:0] @[-1r,2w]
+allocate: B1[6:6] <- ingress::p.udp.$valid<1> pov mocha [0:0] @[-1r,2w]
+2: TRYING to allocate SUPERCLUSTER Uid: 375
+    slice lists:	
+        [ egress::eg_intr_md_for_dprsr.mirror_io_select.$valid<1> meta pov mocha [0:0]
+          egress::eg_intr_md.egress_port.$valid<1> meta pov mocha [0:0]
+          egress::p.ethernet.$valid<1> pov mocha [0:0]
+          egress::p.ipv4.$valid<1> pov mocha [0:0] ]
+    rotational clusters:	
+        [[egress::eg_intr_md_for_dprsr.mirror_io_select.$valid<1> meta pov mocha [0:0]]]
+        [[egress::eg_intr_md.egress_port.$valid<1> meta pov mocha [0:0]]]
+        [[egress::p.ethernet.$valid<1> pov mocha [0:0]]]
+        [[egress::p.ipv4.$valid<1> pov mocha [0:0]]]
+Successfully Allocated
+By slicing into the following superclusters:
+SUPERCLUSTER Uid: 414
+    slice lists:	
+        [ egress::eg_intr_md_for_dprsr.mirror_io_select.$valid<1> meta pov mocha [0:0]
+          egress::eg_intr_md.egress_port.$valid<1> meta pov mocha [0:0]
+          egress::p.ethernet.$valid<1> pov mocha [0:0]
+          egress::p.ipv4.$valid<1> pov mocha [0:0] ]
+    rotational clusters:	
+        [[egress::eg_intr_md_for_dprsr.mirror_io_select.$valid<1> meta pov mocha [0:0]]]
+        [[egress::eg_intr_md.egress_port.$valid<1> meta pov mocha [0:0]]]
+        [[egress::p.ethernet.$valid<1> pov mocha [0:0]]]
+        [[egress::p.ipv4.$valid<1> pov mocha [0:0]]]
+
+Best Score: {wasted_pov_bits: 4, M[n_set_gress: 1, n_set_parser_group_gress: 1, n_set_deparser_group_gress: 1, n_inc_containers: 1, ], }
+Allocation Decisions:
+allocate: MB0[0:0] <- egress::eg_intr_md_for_dprsr.mirror_io_select.$valid<1> meta pov mocha [0:0] @[-1r,2w]
+allocate: MB0[1:1] <- egress::eg_intr_md.egress_port.$valid<1> meta pov mocha [0:0] @[-1r,2w]
+allocate: MB0[2:2] <- egress::p.ethernet.$valid<1> pov mocha [0:0] @[-1r,2w]
+allocate: MB0[3:3] <- egress::p.ipv4.$valid<1> pov mocha [0:0] @[-1r,2w]
+3: TRYING to allocate SUPERCLUSTER Uid: 358
+    slice lists:	[ ]
+    rotational clusters:	
+        [[ingress::ig_intr_md_for_dprsr.mirror_type<4> meta intrinsic solitary no_split deparsed_bottom_bits mocha [0:3]]]
+Successfully Allocated
+By slicing into the following superclusters:
+SUPERCLUSTER Uid: 415
+    slice lists:	[ ]
+    rotational clusters:	
+        [[ingress::ig_intr_md_for_dprsr.mirror_type<4> meta intrinsic solitary no_split deparsed_bottom_bits mocha [0:3]]]
+
+Best Score: {M[n_set_gress: 1, n_set_deparser_group_gress: 1, n_inc_containers: 1, n_wasted_bits: 4, ], }
+Allocation Decisions:
+allocate: MB4[0:3] <- ingress::ig_intr_md_for_dprsr.mirror_type<4> meta intrinsic solitary no_split deparsed_bottom_bits mocha [0:3] @[-1r,2w]
+4: TRYING to allocate SUPERCLUSTER Uid: 383
+    slice lists:	
+        [ egress::eg_intr_md.egress_port<9> ^0 ^bit[0..15] intrinsic no_split deparsed_bottom_bits deparsed_to_tm mocha [0:8]
+          egress::eg_intr_md._pad0<7> intrinsic deparsed_to_tm mocha [0:6] ]
+    rotational clusters:	
+        [[egress::eg_intr_md.egress_port<9> ^0 ^bit[0..15] intrinsic no_split deparsed_bottom_bits deparsed_to_tm mocha [0:8]]]
+        [[egress::eg_intr_md._pad0<7> intrinsic deparsed_to_tm mocha [0:6]]]
+Successfully Allocated
+By slicing into the following superclusters:
+SUPERCLUSTER Uid: 420
+    slice lists:	
+        [ egress::eg_intr_md.egress_port<9> ^0 ^bit[0..15] intrinsic no_split deparsed_bottom_bits deparsed_to_tm mocha [0:8]
+          egress::eg_intr_md._pad0<7> intrinsic deparsed_to_tm mocha [0:6] ]
+    rotational clusters:	
+        [[egress::eg_intr_md.egress_port<9> ^0 ^bit[0..15] intrinsic no_split deparsed_bottom_bits deparsed_to_tm mocha [0:8]]]
+        [[egress::eg_intr_md._pad0<7> intrinsic deparsed_to_tm mocha [0:6]]]
+
+Best Score: {M[n_set_gress: 1, n_set_parser_group_gress: 1, n_set_deparser_group_gress: 1, n_inc_containers: 1, ], }
+Allocation Decisions:
+allocate: MH0[0:8] <- egress::eg_intr_md.egress_port<9> ^0 ^bit[0..15] intrinsic no_split deparsed_bottom_bits deparsed_to_tm mocha [0:8] @[-1r,2w]
+5: TRYING to allocate SUPERCLUSTER Uid: 364
+    slice lists:	
+        [ ingress::ig_intr_md_for_tm.ucast_egress_port<9> ^0 meta intrinsic no_split deparsed_bottom_bits deparsed_to_tm mocha [0:8] ]
+    rotational clusters:	
+        [[ingress::ig_intr_md_for_tm.ucast_egress_port<9> ^0 meta intrinsic no_split deparsed_bottom_bits deparsed_to_tm mocha [0:8]]]
+Successfully Allocated
+By slicing into the following superclusters:
+SUPERCLUSTER Uid: 425
+    slice lists:	
+        [ ingress::ig_intr_md_for_tm.ucast_egress_port<9> ^0 meta intrinsic no_split deparsed_bottom_bits deparsed_to_tm mocha [0:8] ]
+    rotational clusters:	
+        [[ingress::ig_intr_md_for_tm.ucast_egress_port<9> ^0 meta intrinsic no_split deparsed_bottom_bits deparsed_to_tm mocha [0:8]]]
+
+Best Score: {M[n_set_gress: 1, n_set_deparser_group_gress: 1, n_inc_containers: 1, ], }
+Allocation Decisions:
+allocate: MH4[0:8] <- ingress::ig_intr_md_for_tm.ucast_egress_port<9> ^0 meta intrinsic no_split deparsed_bottom_bits deparsed_to_tm mocha [0:8] @[-1r,2w]
+6: TRYING to allocate SUPERCLUSTER Uid: 357
+    slice lists:	[ ]
+    rotational clusters:	
+        [[ingress::ig_intr_md_for_dprsr.drop_ctl<3> meta intrinsic no_split deparsed_to_tm mocha [0:2]]]
+Successfully Allocated
+By slicing into the following superclusters:
+SUPERCLUSTER Uid: 426
+    slice lists:	[ ]
+    rotational clusters:	
+        [[ingress::ig_intr_md_for_dprsr.drop_ctl<3> meta intrinsic no_split deparsed_to_tm mocha [0:2]]]
+
+Best Score: {M[n_set_gress: 1, n_inc_containers: 1, ], }
+Allocation Decisions:
+allocate: MB5[0:2] <- ingress::ig_intr_md_for_dprsr.drop_ctl<3> meta intrinsic no_split deparsed_to_tm mocha [0:2] @[-1r,2w]
+7: TRYING to allocate SUPERCLUSTER Uid: 370
+    slice lists:	[ ]
+    rotational clusters:	
+        [[egress::eg_intr_md_for_dprsr.mirror_io_select<1> meta intrinsic no_split deparsed_to_tm mocha [0:0]]]
+Successfully Allocated
+By slicing into the following superclusters:
+SUPERCLUSTER Uid: 427
+    slice lists:	[ ]
+    rotational clusters:	
+        [[egress::eg_intr_md_for_dprsr.mirror_io_select<1> meta intrinsic no_split deparsed_to_tm mocha [0:0]]]
+
+Best Score: {M[n_packing_bits: 1, n_packing_priority: 100000, ], }
+Allocation Decisions:
+allocate: MB0[4:4] <- egress::eg_intr_md_for_dprsr.mirror_io_select<1> meta intrinsic no_split deparsed_to_tm mocha [0:0] @[-1r,2w]
+8: TRYING to allocate SUPERCLUSTER Uid: 347
+    slice lists:	
+        [ ingress::p.ipv4.len<16> ^0 ^bit[0..31] deparsed exact_containers mocha [0:15]
+          ingress::p.ipv4.tos<8> ^0 ^bit[0..15] deparsed exact_containers mocha [0:7]
+          ingress::p.ipv4.ihl<4> ^0 ^bit[0..7] deparsed exact_containers mocha [0:3]
+          ingress::p.ipv4.version<4> ^4 ^bit[0..3] deparsed exact_containers [0:3] ]
+    rotational clusters:	
+        [[ingress::p.ipv4.len<16> ^0 ^bit[0..31] deparsed exact_containers mocha [0:15]]]
+        [[ingress::p.ipv4.tos<8> ^0 ^bit[0..15] deparsed exact_containers mocha [0:7]]]
+        [[ingress::p.ipv4.ihl<4> ^0 ^bit[0..7] deparsed exact_containers mocha [0:3]]]
+        [[ingress::p.ipv4.version<4> ^4 ^bit[0..3] deparsed exact_containers [0:3]]]
+Successfully Allocated
+By slicing into the following superclusters:
+SUPERCLUSTER Uid: 433
+    slice lists:	
+        [ ingress::p.ipv4.len<16> ^0 ^bit[0..31] deparsed exact_containers mocha [0:15]
+          ingress::p.ipv4.tos<8> ^0 ^bit[0..15] deparsed exact_containers mocha [0:7]
+          ingress::p.ipv4.ihl<4> ^0 ^bit[0..7] deparsed exact_containers mocha [0:3]
+          ingress::p.ipv4.version<4> ^4 ^bit[0..3] deparsed exact_containers [0:3] ]
+    rotational clusters:	
+        [[ingress::p.ipv4.len<16> ^0 ^bit[0..31] deparsed exact_containers mocha [0:15]]]
+        [[ingress::p.ipv4.tos<8> ^0 ^bit[0..15] deparsed exact_containers mocha [0:7]]]
+        [[ingress::p.ipv4.ihl<4> ^0 ^bit[0..7] deparsed exact_containers mocha [0:3]]]
+        [[ingress::p.ipv4.version<4> ^4 ^bit[0..3] deparsed exact_containers [0:3]]]
+
+Best Score: {}
+Allocation Decisions:
+9: TRYING to allocate SUPERCLUSTER Uid: 343
+    slice lists:	
+        [ ingress::p.ipv4.chksum<16> ^0 ^bit[0..95] deparsed exact_containers mocha [0:15]
+          ingress::p.ipv4.proto<8> ^0 ^bit[0..79] deparsed exact_containers mocha [0:7]
+          ingress::p.ipv4.ttl<8> ^0 ^bit[0..71] deparsed exact_containers mocha [0:7] ]
+    rotational clusters:	
+        [[ingress::p.ipv4.chksum<16> ^0 ^bit[0..95] deparsed exact_containers mocha [0:15]]]
+        [[ingress::p.ipv4.proto<8> ^0 ^bit[0..79] deparsed exact_containers mocha [0:7]]]
+        [[ingress::p.ipv4.ttl<8> ^0 ^bit[0..71] deparsed exact_containers mocha [0:7]]]
+Successfully Allocated
+By slicing into the following superclusters:
+SUPERCLUSTER Uid: 459
+    slice lists:	
+        [ ingress::p.ipv4.chksum<16> ^0 ^bit[0..95] deparsed exact_containers mocha [0:15] ]
+    rotational clusters:	
+        [[ingress::p.ipv4.chksum<16> ^0 ^bit[0..95] deparsed exact_containers mocha [0:15]]]
+
+SUPERCLUSTER Uid: 461
+    slice lists:	
+        [ ingress::p.ipv4.proto<8> ^0 ^bit[0..79] deparsed exact_containers mocha [0:7] ]
+    rotational clusters:	
+        [[ingress::p.ipv4.proto<8> ^0 ^bit[0..79] deparsed exact_containers mocha [0:7]]]
+
+SUPERCLUSTER Uid: 462
+    slice lists:	
+        [ ingress::p.ipv4.ttl<8> ^0 ^bit[0..71] deparsed exact_containers mocha [0:7] ]
+    rotational clusters:	
+        [[ingress::p.ipv4.ttl<8> ^0 ^bit[0..71] deparsed exact_containers mocha [0:7]]]
+
+Best Score: {M[n_set_gress: 1, n_set_parser_group_gress: 1, n_inc_containers: 1, n_clot_bits: 8, ], }
+Allocation Decisions:
+allocate: MB6[0:7] <- ingress::p.ipv4.proto<8> ^0 ^bit[0..79] deparsed exact_containers mocha [0:7] @[-1r,2w]
+10: TRYING to allocate SUPERCLUSTER Uid: 345
+    slice lists:	
+        [ ingress::p.ipv4.frag<13> ^0 ^bit[0..63] deparsed exact_containers mocha [0:12]
+          ingress::p.ipv4.flags<3> ^5 ^bit[0..50] deparsed exact_containers [0:2]
+          ingress::p.ipv4.id<16> ^0 ^bit[0..47] deparsed exact_containers mocha [0:15] ]
+    rotational clusters:	
+        [[ingress::p.ipv4.frag<13> ^0 ^bit[0..63] deparsed exact_containers mocha [0:12]]]
+        [[ingress::p.ipv4.flags<3> ^5 ^bit[0..50] deparsed exact_containers [0:2]]]
+        [[ingress::p.ipv4.id<16> ^0 ^bit[0..47] deparsed exact_containers mocha [0:15]]]
+Successfully Allocated
+By slicing into the following superclusters:
+SUPERCLUSTER Uid: 481
+    slice lists:	
+        [ ingress::p.ipv4.frag<13> ^0 ^bit[0..63] deparsed exact_containers mocha [0:12]
+          ingress::p.ipv4.flags<3> ^5 ^bit[0..50] deparsed exact_containers [0:2]
+          ingress::p.ipv4.id<16> ^0 ^bit[0..47] deparsed exact_containers mocha [0:15] ]
+    rotational clusters:	
+        [[ingress::p.ipv4.frag<13> ^0 ^bit[0..63] deparsed exact_containers mocha [0:12]]]
+        [[ingress::p.ipv4.flags<3> ^5 ^bit[0..50] deparsed exact_containers [0:2]]]
+        [[ingress::p.ipv4.id<16> ^0 ^bit[0..47] deparsed exact_containers mocha [0:15]]]
+
+Best Score: {}
+Allocation Decisions:
+11: TRYING to allocate SUPERCLUSTER Uid: 353
+    slice lists:	
+        [ ingress::p.udp.chksum<16> ^0 ^bit[0..63] deparsed exact_containers mocha [0:15]
+          ingress::p.udp.len<16> ^0 ^bit[0..47] deparsed exact_containers mocha [0:15] ]
+    rotational clusters:	
+        [[ingress::p.udp.chksum<16> ^0 ^bit[0..63] deparsed exact_containers mocha [0:15]]]
+        [[ingress::p.udp.len<16> ^0 ^bit[0..47] deparsed exact_containers mocha [0:15]]]
+Successfully Allocated
+By slicing into the following superclusters:
+SUPERCLUSTER Uid: 517
+    slice lists:	
+        [ ingress::p.udp.chksum<16> ^0 ^bit[0..63] deparsed exact_containers mocha [0:15]
+          ingress::p.udp.len<16> ^0 ^bit[0..47] deparsed exact_containers mocha [0:15] ]
+    rotational clusters:	
+        [[ingress::p.udp.chksum<16> ^0 ^bit[0..63] deparsed exact_containers mocha [0:15]]]
+        [[ingress::p.udp.len<16> ^0 ^bit[0..47] deparsed exact_containers mocha [0:15]]]
+
+Best Score: {}
+Allocation Decisions:
+12: TRYING to allocate SUPERCLUSTER Uid: 355
+    slice lists:	
+        [ ingress::p.udp.dport<16> ^0 ^bit[0..31] deparsed exact_containers mocha [0:15]
+          ingress::p.udp.sport<16> ^0 ^bit[0..15] deparsed exact_containers mocha [0:15] ]
+    rotational clusters:	
+        [[ingress::p.udp.dport<16> ^0 ^bit[0..31] deparsed exact_containers mocha [0:15]]]
+        [[ingress::p.udp.sport<16> ^0 ^bit[0..15] deparsed exact_containers mocha [0:15]]]
+Successfully Allocated
+By slicing into the following superclusters:
+SUPERCLUSTER Uid: 553
+    slice lists:	
+        [ ingress::p.udp.dport<16> ^0 ^bit[0..31] deparsed exact_containers mocha [0:15]
+          ingress::p.udp.sport<16> ^0 ^bit[0..15] deparsed exact_containers mocha [0:15] ]
+    rotational clusters:	
+        [[ingress::p.udp.dport<16> ^0 ^bit[0..31] deparsed exact_containers mocha [0:15]]]
+        [[ingress::p.udp.sport<16> ^0 ^bit[0..15] deparsed exact_containers mocha [0:15]]]
+
+Best Score: {M[n_set_gress: 1, n_set_parser_group_gress: 1, n_set_deparser_group_gress: 1, n_inc_containers: 1, n_clot_bits: 32, ], }
+Allocation Decisions:
+allocate: MW0[0:15] <- ingress::p.udp.dport<16> ^0 ^bit[0..31] deparsed exact_containers mocha [0:15] @[-1r,2w]
+allocate: MW0[16:31] <- ingress::p.udp.sport<16> ^0 ^bit[0..15] deparsed exact_containers mocha [0:15] @[-1r,2w]
+13: TRYING to allocate SUPERCLUSTER Uid: 340
+    slice lists:	
+        [ ingress::p.ipv4.dst<32> ^0 ^bit[0..159] deparsed exact_containers mocha [0:31] ]
+    rotational clusters:	
+        [[ingress::p.ipv4.dst<32> ^0 ^bit[0..159] deparsed exact_containers mocha [0:31]]]
+Successfully Allocated
+By slicing into the following superclusters:
+SUPERCLUSTER Uid: 589
+    slice lists:	
+        [ ingress::p.ipv4.dst<32> ^0 ^bit[0..159] deparsed exact_containers mocha [0:31] ]
+    rotational clusters:	
+        [[ingress::p.ipv4.dst<32> ^0 ^bit[0..159] deparsed exact_containers mocha [0:31]]]
+
+Best Score: {M[n_set_gress: 1, n_set_parser_group_gress: 1, n_inc_containers: 1, n_clot_bits: 32, ], }
+Allocation Decisions:
+allocate: MW1[0:31] <- ingress::p.ipv4.dst<32> ^0 ^bit[0..159] deparsed exact_containers mocha [0:31] @[-1r,2w]
+14: TRYING to allocate SUPERCLUSTER Uid: 342
+    slice lists:	
+        [ ingress::p.ipv4.src<32> ^0 ^bit[0..127] deparsed exact_containers mocha [0:31] ]
+    rotational clusters:	
+        [[ingress::p.ipv4.src<32> ^0 ^bit[0..127] deparsed exact_containers mocha [0:31]]]
+Successfully Allocated
+By slicing into the following superclusters:
+SUPERCLUSTER Uid: 633
+    slice lists:	
+        [ ingress::p.ipv4.src<32> ^0 ^bit[0..127] deparsed exact_containers mocha [0:31] ]
+    rotational clusters:	
+        [[ingress::p.ipv4.src<32> ^0 ^bit[0..127] deparsed exact_containers mocha [0:31]]]
+
+Best Score: {M[n_set_gress: 1, n_set_parser_group_gress: 1, n_set_deparser_group_gress: 1, n_inc_containers: 1, n_clot_bits: 32, ], }
+Allocation Decisions:
+allocate: MW2[0:31] <- ingress::p.ipv4.src<32> ^0 ^bit[0..127] deparsed exact_containers mocha [0:31] @[-1r,2w]
+15: TRYING to allocate SUPERCLUSTER Uid: 393
+    slice lists:	
+        [ egress::eg_intr_md.deq_timedelta<32> intrinsic mocha dark [0:31] ]
+    rotational clusters:	
+        [[egress::eg_intr_md.deq_timedelta<32> intrinsic mocha dark [0:31]]]
+Successfully Allocated
+By slicing into the following superclusters:
+SUPERCLUSTER Uid: 677
+    slice lists:	
+        [ egress::eg_intr_md.deq_timedelta<32> intrinsic mocha dark [0:31] ]
+    rotational clusters:	
+        [[egress::eg_intr_md.deq_timedelta<32> intrinsic mocha dark [0:31]]]
+
+Best Score: {}
+Allocation Decisions:
+16: TRYING to allocate SUPERCLUSTER Uid: 356
+    slice lists:	[ ]
+    rotational clusters:	
+        [[ingress::vrf_0<16> meta mocha [0:15]]]
+Successfully Allocated
+By slicing into the following superclusters:
+SUPERCLUSTER Uid: 717
+    slice lists:	[ ]
+    rotational clusters:	
+        [[ingress::vrf_0<16> meta mocha [0:15]]]
+
+Best Score: {M[n_set_gress: 1, n_inc_containers: 1, n_mismatched_deparser_gress: 1, ], }
+Allocation Decisions:
+allocate: MH1[0:15] <- ingress::vrf_0<16> meta mocha [0:15] @[-1r,2w]
+17: TRYING to allocate SUPERCLUSTER Uid: 359
+    slice lists:	[ ]
+    rotational clusters:	
+        [[ingress::ig_md.Group_id<9> meta mocha [0:8]]]
+Successfully Allocated
+By slicing into the following superclusters:
+SUPERCLUSTER Uid: 724
+    slice lists:	[ ]
+    rotational clusters:	
+        [[ingress::ig_md.Group_id<9> meta mocha [0:8]]]
+
+Best Score: {M[n_set_gress: 1, n_inc_containers: 1, n_mismatched_deparser_gress: 1, ], }
+Allocation Decisions:
+allocate: MH2[0:8] <- ingress::ig_md.Group_id<9> meta mocha [0:8] @[-1r,2w]
+18: TRYING to allocate SUPERCLUSTER Uid: 384
+    slice lists:	
+        [ egress::eg_intr_md._pad9<8> intrinsic mocha [0:7]
+          egress::eg_intr_md.pkt_length<16> intrinsic mocha dark [0:15]
+          egress::eg_intr_md.deflection_flag<1> intrinsic mocha dark [0:0]
+          egress::eg_intr_md._pad8<7> intrinsic mocha [0:6] ]
+    rotational clusters:	
+        [[egress::eg_intr_md._pad9<8> intrinsic mocha [0:7]]]
+        [[egress::eg_intr_md.pkt_length<16> intrinsic mocha dark [0:15]]]
+        [[egress::eg_intr_md.deflection_flag<1> intrinsic mocha dark [0:0]]]
+        [[egress::eg_intr_md._pad8<7> intrinsic mocha [0:6]]]
+Successfully Allocated
+By slicing into the following superclusters:
+SUPERCLUSTER Uid: 736
+    slice lists:	
+        [ egress::eg_intr_md._pad9<8> intrinsic mocha [0:7]
+          egress::eg_intr_md.pkt_length<16> intrinsic mocha dark [0:15]
+          egress::eg_intr_md.deflection_flag<1> intrinsic mocha dark [0:0]
+          egress::eg_intr_md._pad8<7> intrinsic mocha [0:6] ]
+    rotational clusters:	
+        [[egress::eg_intr_md._pad9<8> intrinsic mocha [0:7]]]
+        [[egress::eg_intr_md.pkt_length<16> intrinsic mocha dark [0:15]]]
+        [[egress::eg_intr_md.deflection_flag<1> intrinsic mocha dark [0:0]]]
+        [[egress::eg_intr_md._pad8<7> intrinsic mocha [0:6]]]
+
+Best Score: {}
+Allocation Decisions:
+19: TRYING to allocate SUPERCLUSTER Uid: 400
+    slice lists:	
+        [ egress::eg_intr_md.deq_qdepth<19> intrinsic mocha dark [0:18]
+          egress::eg_intr_md._pad3<5> intrinsic mocha [0:4]
+          egress::eg_intr_md.enq_tstamp<32> intrinsic mocha dark [0:7] ]
+    rotational clusters:	
+        [[egress::eg_intr_md.deq_qdepth<19> intrinsic mocha dark [0:18]]]
+        [[egress::eg_intr_md._pad3<5> intrinsic mocha [0:4]]]
+        [[egress::eg_intr_md.enq_tstamp<32> intrinsic mocha dark [0:7]]]
+Successfully Allocated
+By slicing into the following superclusters:
+SUPERCLUSTER Uid: 765
+    slice lists:	
+        [ egress::eg_intr_md.deq_qdepth<19> intrinsic mocha dark [0:18]
+          egress::eg_intr_md._pad3<5> intrinsic mocha [0:4]
+          egress::eg_intr_md.enq_tstamp<32> intrinsic mocha dark [0:7] ]
+    rotational clusters:	
+        [[egress::eg_intr_md.deq_qdepth<19> intrinsic mocha dark [0:18]]]
+        [[egress::eg_intr_md._pad3<5> intrinsic mocha [0:4]]]
+        [[egress::eg_intr_md.enq_tstamp<32> intrinsic mocha dark [0:7]]]
+
+Best Score: {}
+Allocation Decisions:
+20: TRYING to allocate SUPERCLUSTER Uid: 402
+    slice lists:	
+        [ egress::eg_intr_md.enq_tstamp<32> intrinsic mocha dark [8:31]
+          egress::eg_intr_md.enq_congest_stat<2> intrinsic mocha dark [0:1]
+          egress::eg_intr_md._pad2<6> intrinsic mocha [0:5] ]
+    rotational clusters:	
+        [[egress::eg_intr_md.enq_tstamp<32> intrinsic mocha dark [8:31]]]
+        [[egress::eg_intr_md.enq_congest_stat<2> intrinsic mocha dark [0:1]]]
+        [[egress::eg_intr_md._pad2<6> intrinsic mocha [0:5]]]
+Successfully Allocated
+By slicing into the following superclusters:
+SUPERCLUSTER Uid: 798
+    slice lists:	
+        [ egress::eg_intr_md.enq_tstamp<32> intrinsic mocha dark [8:31]
+          egress::eg_intr_md.enq_congest_stat<2> intrinsic mocha dark [0:1]
+          egress::eg_intr_md._pad2<6> intrinsic mocha [0:5] ]
+    rotational clusters:	
+        [[egress::eg_intr_md.enq_tstamp<32> intrinsic mocha dark [8:31]]]
+        [[egress::eg_intr_md.enq_congest_stat<2> intrinsic mocha dark [0:1]]]
+        [[egress::eg_intr_md._pad2<6> intrinsic mocha [0:5]]]
+
+Best Score: {}
+Allocation Decisions:
+21: TRYING to allocate SUPERCLUSTER Uid: 404
+    slice lists:	
+        [ egress::eg_intr_md.enq_qdepth<19> intrinsic mocha dark [0:18]
+          egress::eg_intr_md._pad1<5> intrinsic mocha [0:4] ]
+    rotational clusters:	
+        [[egress::eg_intr_md.enq_qdepth<19> intrinsic mocha dark [0:18]]]
+        [[egress::eg_intr_md._pad1<5> intrinsic mocha [0:4]]]
+Successfully Allocated
+By slicing into the following superclusters:
+SUPERCLUSTER Uid: 831
+    slice lists:	
+        [ egress::eg_intr_md.enq_qdepth<19> intrinsic mocha dark [0:18]
+          egress::eg_intr_md._pad1<5> intrinsic mocha [0:4] ]
+    rotational clusters:	
+        [[egress::eg_intr_md.enq_qdepth<19> intrinsic mocha dark [0:18]]]
+        [[egress::eg_intr_md._pad1<5> intrinsic mocha [0:4]]]
+
+Best Score: {}
+Allocation Decisions:
+22: TRYING to allocate SUPERCLUSTER Uid: 386
+    slice lists:	
+        [ egress::eg_intr_md.egress_cos<3> intrinsic mocha dark [0:2]
+          egress::eg_intr_md._pad7<5> intrinsic mocha [0:4]
+          egress::eg_intr_md.egress_qid<7> intrinsic mocha dark [0:6]
+          egress::eg_intr_md._pad6<1> intrinsic mocha [0:0] ]
+    rotational clusters:	
+        [[egress::eg_intr_md.egress_cos<3> intrinsic mocha dark [0:2]]]
+        [[egress::eg_intr_md._pad7<5> intrinsic mocha [0:4]]]
+        [[egress::eg_intr_md.egress_qid<7> intrinsic mocha dark [0:6]]]
+        [[egress::eg_intr_md._pad6<1> intrinsic mocha [0:0]]]
+Successfully Allocated
+By slicing into the following superclusters:
+SUPERCLUSTER Uid: 856
+    slice lists:	
+        [ egress::eg_intr_md.egress_cos<3> intrinsic mocha dark [0:2]
+          egress::eg_intr_md._pad7<5> intrinsic mocha [0:4]
+          egress::eg_intr_md.egress_qid<7> intrinsic mocha dark [0:6]
+          egress::eg_intr_md._pad6<1> intrinsic mocha [0:0] ]
+    rotational clusters:	
+        [[egress::eg_intr_md.egress_cos<3> intrinsic mocha dark [0:2]]]
+        [[egress::eg_intr_md._pad7<5> intrinsic mocha [0:4]]]
+        [[egress::eg_intr_md.egress_qid<7> intrinsic mocha dark [0:6]]]
+        [[egress::eg_intr_md._pad6<1> intrinsic mocha [0:0]]]
+
+Best Score: {}
+Allocation Decisions:
+23: TRYING to allocate SUPERCLUSTER Uid: 391
+    slice lists:	
+        [ egress::eg_intr_md.egress_rid<16> intrinsic mocha dark [0:15] ]
+    rotational clusters:	
+        [[egress::eg_intr_md.egress_rid<16> intrinsic mocha dark [0:15]]]
+Successfully Allocated
+By slicing into the following superclusters:
+SUPERCLUSTER Uid: 864
+    slice lists:	
+        [ egress::eg_intr_md.egress_rid<16> intrinsic mocha dark [0:15] ]
+    rotational clusters:	
+        [[egress::eg_intr_md.egress_rid<16> intrinsic mocha dark [0:15]]]
+
+Best Score: {}
+Allocation Decisions:
+24: TRYING to allocate SUPERCLUSTER Uid: 394
+    slice lists:	
+        [ egress::eg_intr_md.app_pool_congest_stat<8> intrinsic mocha dark [0:7]
+          egress::eg_intr_md.deq_congest_stat<2> intrinsic mocha dark [0:1]
+          egress::eg_intr_md._pad4<6> intrinsic mocha [0:5] ]
+    rotational clusters:	
+        [[egress::eg_intr_md.app_pool_congest_stat<8> intrinsic mocha dark [0:7]]]
+        [[egress::eg_intr_md.deq_congest_stat<2> intrinsic mocha dark [0:1]]]
+        [[egress::eg_intr_md._pad4<6> intrinsic mocha [0:5]]]
+Successfully Allocated
+By slicing into the following superclusters:
+SUPERCLUSTER Uid: 876
+    slice lists:	
+        [ egress::eg_intr_md.app_pool_congest_stat<8> intrinsic mocha dark [0:7]
+          egress::eg_intr_md.deq_congest_stat<2> intrinsic mocha dark [0:1]
+          egress::eg_intr_md._pad4<6> intrinsic mocha [0:5] ]
+    rotational clusters:	
+        [[egress::eg_intr_md.app_pool_congest_stat<8> intrinsic mocha dark [0:7]]]
+        [[egress::eg_intr_md.deq_congest_stat<2> intrinsic mocha dark [0:1]]]
+        [[egress::eg_intr_md._pad4<6> intrinsic mocha [0:5]]]
+
+Best Score: {}
+Allocation Decisions:
+25: TRYING to allocate SUPERCLUSTER Uid: 388
+    slice lists:	
+        [ egress::eg_intr_md.egress_rid_first<1> intrinsic mocha dark [0:0]
+          egress::eg_intr_md._pad5<7> intrinsic mocha [0:6] ]
+    rotational clusters:	
+        [[egress::eg_intr_md.egress_rid_first<1> intrinsic mocha dark [0:0]]]
+        [[egress::eg_intr_md._pad5<7> intrinsic mocha [0:6]]]
+Successfully Allocated
+By slicing into the following superclusters:
+SUPERCLUSTER Uid: 883
+    slice lists:	
+        [ egress::eg_intr_md.egress_rid_first<1> intrinsic mocha dark [0:0]
+          egress::eg_intr_md._pad5<7> intrinsic mocha [0:6] ]
+    rotational clusters:	
+        [[egress::eg_intr_md.egress_rid_first<1> intrinsic mocha dark [0:0]]]
+        [[egress::eg_intr_md._pad5<7> intrinsic mocha [0:6]]]
+
+Best Score: {}
+Allocation Decisions:
+

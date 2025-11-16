@@ -1,0 +1,11 @@
+/home/long/Desktop/P4lens/target/CMakeFiles/bf-p4c.dir
+/home/long/Desktop/P4lens/target/CMakeFiles/driver.dir
+/home/long/Desktop/P4lens/target/CMakeFiles/tofino2.dir
+/home/long/Desktop/P4lens/target/CMakeFiles/tofino2-tofino2.dir
+/home/long/Desktop/P4lens/target/CMakeFiles/uninstall.dir
+/home/long/Desktop/P4lens/target/CMakeFiles/edit_cache.dir
+/home/long/Desktop/P4lens/target/CMakeFiles/rebuild_cache.dir
+/home/long/Desktop/P4lens/target/CMakeFiles/list_install_components.dir
+/home/long/Desktop/P4lens/target/CMakeFiles/install.dir
+/home/long/Desktop/P4lens/target/CMakeFiles/install/local.dir
+/home/long/Desktop/P4lens/target/CMakeFiles/install/strip.dir

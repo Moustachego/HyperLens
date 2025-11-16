@@ -1,0 +1,82 @@
++---------------------------------------------------------------------+
+|  Log file: pa.results.log                                           |
+|  Compiler version: 9.13.1                                           |
+|  Created on: Tue Oct 28 15:15:13 2025                               |
+|  Run ID: c06e08363adf4ad8                                           |
++---------------------------------------------------------------------+
+
+Allocation state: Final Allocation
+----------------------------------------------------------------------------
+|       PHV Group        | Containers Used |  Bits Used  | Bits Available |
+| (container bit widths) |     (% used)    |   (% used)  |                |
+----------------------------------------------------------------------------
+|         0 (32)         |    3 (15.00%)   | 96 (15.00%) |      640       |
+|         1 (32)         |    0 (0.00%)    |  0 (0.00%)  |      640       |
+|         2 (32)         |    0 (0.00%)    |  0 (0.00%)  |      640       |
+|         3 (32)         |    0 (0.00%)    |  0 (0.00%)  |      640       |
+|    Total for 32 bit    |    3 (3.75%)    |  96 (3.75%) |      2560      |
+|                        |                 |             |                |
+|         4 (8)          |    3 (15.00%)   | 20 (12.50%) |      160       |
+|         5 (8)          |    3 (15.00%)   |  15 (9.38%) |      160       |
+|         6 (8)          |    0 (0.00%)    |  0 (0.00%)  |      160       |
+|         7 (8)          |    0 (0.00%)    |  0 (0.00%)  |      160       |
+|    Total for 8 bit     |    6 (7.50%)    |  35 (5.47%) |      640       |
+|                        |                 |             |                |
+|         8 (16)         |    3 (15.00%)   | 34 (10.62%) |      320       |
+|         9 (16)         |    1 (5.00%)    |  9 (2.81%)  |      320       |
+|        10 (16)         |    0 (0.00%)    |  0 (0.00%)  |      320       |
+|        11 (16)         |    0 (0.00%)    |  0 (0.00%)  |      320       |
+|        12 (16)         |    0 (0.00%)    |  0 (0.00%)  |      320       |
+|        13 (16)         |    0 (0.00%)    |  0 (0.00%)  |      320       |
+|    Total for 16 bit    |    4 (3.33%)    |  43 (2.24%) |      1920      |
+|                        |                 |             |                |
+|     Overall total      |    13 (4.64%)   | 174 (3.40%) |      5120      |
+----------------------------------------------------------------------------
+
+--------------------------------------------
+PHV Allocation
+--------------------------------------------
+
+Allocations in Group 0 32 bits
+  32-bit PHV 12m (ingress): phv12[31:16] = p.udp.sport[15:0] (deparsed)
+  32-bit PHV 12m (ingress): phv12[15:0] = p.udp.dport[15:0] (deparsed)
+  32-bit PHV 13m (ingress): phv13[31:0] = p.ipv4.dst[31:0] (deparsed)
+  32-bit PHV 14m (ingress): phv14[31:0] = p.ipv4.src[31:0] (deparsed)
+  >> 3 in ingress and 0 in egress
+
+Allocations in Group 4 8 bits
+  8-bit PHV 80n (ingress): phv80[7:0] = $tmp2[7:0] (deparsed)
+  8-bit PHV 81n (ingress): phv81[6:6] = p.udp.$valid[0:0] (deparsed)
+  8-bit PHV 81n (ingress): phv81[5:5] = p.tcp.$valid[0:0] (deparsed)
+  8-bit PHV 81n (ingress): phv81[4:4] = p.ipv4.$valid[0:0] (deparsed)
+  8-bit PHV 81n (ingress): phv81[3:3] = p.ethernet.$valid[0:0] (deparsed)
+  8-bit PHV 81n (ingress): phv81[2:2] = ig_intr_md_for_tm.ucast_egress_port.$valid[0:0] (deparsed)
+  8-bit PHV 81n (ingress): phv81[1:1] = ig_intr_md_for_dprsr.drop_ctl.$valid[0:0] (deparsed)
+  8-bit PHV 81n (ingress): phv81[0:0] = ig_intr_md_for_dprsr.mirror_type.$valid[0:0] (deparsed)
+  8-bit PHV 92m (egress): phv92[4:4] = eg_intr_md_for_dprsr.mirror_io_select[0:0] (deparsed)
+  8-bit PHV 92m (egress): phv92[3:3] = p.ipv4.$valid[0:0] (deparsed)
+  8-bit PHV 92m (egress): phv92[2:2] = p.ethernet.$valid[0:0] (deparsed)
+  8-bit PHV 92m (egress): phv92[1:1] = eg_intr_md.egress_port.$valid[0:0] (deparsed)
+  8-bit PHV 92m (egress): phv92[0:0] = eg_intr_md_for_dprsr.mirror_io_select.$valid[0:0] (deparsed)
+  >> 2 in ingress and 1 in egress
+
+Allocations in Group 5 8 bits
+  8-bit PHV 112m (ingress): phv112[3:0] = ig_intr_md_for_dprsr.mirror_type[3:0] (deparsed)
+  8-bit PHV 113m (ingress): phv113[2:0] = ig_intr_md_for_dprsr.drop_ctl[2:0] (deparsed)
+  8-bit PHV 114m (ingress): phv114[7:0] = p.ipv4.proto[7:0] (deparsed)
+  >> 3 in ingress and 0 in egress
+
+Allocations in Group 8 16 bits
+  16-bit PHV 172m (egress): phv172[8:0] = eg_intr_md.egress_port[8:0] (deparsed)
+  16-bit PHV 173m (ingress): phv173[15:0] = vrf_0[15:0]
+  16-bit PHV 174m (ingress): phv174[8:0] = ig_md.Group_id[8:0]
+  >> 2 in ingress and 1 in egress
+
+Allocations in Group 9 16 bits
+  16-bit PHV 192m (ingress): phv192[8:0] = ig_intr_md_for_tm.ucast_egress_port[8:0] (deparsed)
+  >> 1 in ingress and 0 in egress
+
+
+Final POV layout (ingress):
+
+Final POV layout (egress):

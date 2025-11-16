@@ -1,0 +1,9 @@
+#pipeline pipe
+#stage 0
+^ - ip_table_0(0,18) : ingress
+#stage 1
+A ^ port_table_0(1,19) : ingress
+#dependencies
+A :  IXBAR_READ OUTPUT
+
+*** Table dependency chains (of minimum length 14) ***
