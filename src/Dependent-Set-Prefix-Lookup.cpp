@@ -13,7 +13,6 @@
 #include <algorithm>
 #include <fstream>
 #include <unordered_map>
-#include <cstdint>
 #include <limits>
 #include <unordered_set>
 #include <sstream>
@@ -178,25 +177,6 @@ static inline string make_cell_key(uint8_t proto,
 }
 
 /*************************************************************
- * Name: rules_overlap_strict
- * Fucttion: check strict overlap of two closed rules
- * @ input: interval a and b
- * @ output: 1/0
- *************************************************************/
-static inline bool rules_overlap_strict(uint32_t a_lo, uint32_t a_hi,
-                                           uint32_t b_lo, uint32_t b_hi) {
-    // strict overlap (length > 0) for integer closed intervals
-    return (std::min(a_hi, b_hi) >= std::max(a_lo, b_lo)) &&
-           ((std::min(a_hi, b_hi) - std::max(a_lo, b_lo)) + 1 > 0);
-}
-static inline uint32_t overlap_lo(uint32_t a_lo, uint32_t a_hi, uint32_t b_lo, uint32_t b_hi) {
-    return std::max(a_lo, b_lo);
-}
-static inline uint32_t overlap_hi(uint32_t a_lo, uint32_t a_hi, uint32_t b_lo, uint32_t b_hi) {
-    return std::min(a_hi, b_hi);
-}
-
-/*************************************************************
  * Name: collect_line_and_point_cells
  * Fucttion: Judge whether the cells of R1 and R2 have a 
  * line-and-point intersection.  
@@ -208,7 +188,9 @@ void collect_line_and_point_cells(
     const vector<size_t>& proto_rules,
     uint8_t proto,
     vector<IntersectionCell>& local_cells,
-    unordered_set<string>& seen_keys)
+    unordered_set<string>& seen_keys,
+    size_t rmax_id
+ )
 {
 
     size_t n = proto_rules.size();
@@ -241,7 +223,7 @@ void collect_line_and_point_cells(
                 if (covered.size() >= 2) {
                     string key = make_cell_key(proto, px, px, dlo, dhi);
                     if (seen_keys.insert(key).second) {
-                        local_cells.push_back({px, px, dlo, dhi, proto, covered});
+                        local_cells.push_back({px, px, dlo, dhi, proto, rmax_id, covered});
                     }
                 }
             }
@@ -264,7 +246,7 @@ void collect_line_and_point_cells(
                 if (covered.size() >= 2) {
                     string key = make_cell_key(proto, slo, shi, py, py);
                     if (seen_keys.insert(key).second) {
-                        local_cells.push_back({slo, shi, py, py, proto, covered});
+                        local_cells.push_back({slo, shi, py, py, proto, rmax_id, covered});
                     }
                 }
             }
@@ -291,7 +273,7 @@ void collect_line_and_point_cells(
                 if (covered.size() >= 2) {
                     string key = make_cell_key(proto, px, px, py, py);
                     if (seen_keys.insert(key).second) {
-                        local_cells.push_back({px, px, py, py, proto, covered});
+                        local_cells.push_back({px, px, py, py, proto, rmax_id, covered});
                     }
                 }
             }
@@ -308,7 +290,7 @@ void collect_line_and_point_cells(
                 if (covered.size() >= 2) {
                     string key = make_cell_key(proto, px, px, py, py);
                     if (seen_keys.insert(key).second) {
-                        local_cells.push_back({px, px, py, py, proto, covered});
+                        local_cells.push_back({px, px, py, py, proto, rmax_id, covered});
                     }
                 }
             }
@@ -325,7 +307,7 @@ void collect_line_and_point_cells(
                 if (covered.size() >= 2) {
                     string key = make_cell_key(proto, px, px, py, py);
                     if (seen_keys.insert(key).second) {
-                        local_cells.push_back({px, px, py, py, proto, covered});
+                        local_cells.push_back({px, px, py, py, proto, rmax_id, covered});
                     }
                 }
             }
@@ -342,7 +324,7 @@ void collect_line_and_point_cells(
                 if (covered.size() >= 2) {
                     string key = make_cell_key(proto, px, px, py, py);
                     if (seen_keys.insert(key).second) {
-                        local_cells.push_back({px, px, py, py, proto, covered});
+                        local_cells.push_back({px, px, py, py, proto, rmax_id, covered});
                     }
                 }
             }
@@ -537,7 +519,6 @@ void find_intersections_per_proto(
         // local accumulator for this proto
         vector<IntersectionCell> local_cells;
         unordered_set<string> seen_keys;
-        collect_line_and_point_cells(merged_ip_table, remaining, proto, local_cells, seen_keys);
         cout << "[find_intersections] Proto=" << (int)proto 
             << " line/point cells collected = " << local_cells.size() << endl;
       
@@ -549,7 +530,8 @@ void find_intersections_per_proto(
             rmax_rule_ids.push_back(best_rid);
 
             unordered_map<size_t, vector<size_t>> ancestors;        
-            build_ancestors(remaining, merged_ip_table, ancestors, best_rid);  
+            build_ancestors(remaining, merged_ip_table, ancestors, best_rid);
+            collect_line_and_point_cells(merged_ip_table, remaining, proto, local_cells, seen_keys, best_rid);  
 
             vector<size_t> S;
             S.reserve(remaining.size());
@@ -607,19 +589,19 @@ void find_intersections_per_proto(
                     if (cell_dst_hi < cell_dst_lo) continue;
 
                     // collect which rules in S cover this cell (use your specified containment test)
-                    cout << "Cell: " << cell_src_lo << "-" << cell_src_hi 
-                    << " , " << cell_dst_lo << "-" << cell_dst_hi
-                    << "   [src_ep idx = " << si << ", dst_ep idx = " << dj << "]"  
-                    << endl;
+                    // cout << "Cell: " << cell_src_lo << "-" << cell_src_hi 
+                    // << " , " << cell_dst_lo << "-" << cell_dst_hi
+                    // << "   [src_ep idx = " << si << ", dst_ep idx = " << dj << "]"  
+                    // << endl;
                     vector<size_t> covered;
                     covered.reserve(8);
                     for (size_t rid : S) {
                         const auto& rule = merged_ip_table[rid];
                         if ((rule.src_ip_lo <= cell_src_lo && cell_src_hi <= rule.src_ip_hi) &&
                             (rule.dst_ip_lo <= cell_dst_lo && cell_dst_hi <= rule.dst_ip_hi)) {
-                            cout << "Cover Rule: (rid=" << rid << "): " << rule.src_ip_lo << "-" << rule.src_ip_hi 
-                            << " , " << rule.dst_ip_lo<< "-" << rule.dst_ip_hi
-                            << endl;
+                            // cout << "Cover Rule: (rid=" << rid << "): " << rule.src_ip_lo << "-" << rule.src_ip_hi 
+                            // << " , " << rule.dst_ip_lo<< "-" << rule.dst_ip_hi
+                            // << endl;
                             covered.push_back(rid);
                         }
                     }
@@ -631,7 +613,7 @@ void find_intersections_per_proto(
                                 to_string(cell_dst_lo) + "-" + to_string(cell_dst_hi) + "-" +
                                 to_string(proto);
                         if (!seen_keys.count(key)) {
-                            local_cells.push_back({cell_src_lo, cell_src_hi, cell_dst_lo, cell_dst_hi, proto, covered});
+                            local_cells.push_back({cell_src_lo, cell_src_hi, cell_dst_lo, cell_dst_hi, proto, best_rid,covered});
                             seen_keys.insert(key);
                         }
                     }
@@ -654,19 +636,19 @@ void find_intersections_per_proto(
                     // ✅ 1. 点交：src、dst 都是单点
                     if (src_lo == src_hi && dst_lo == dst_hi) {
                         if (seen_keys.insert(key).second) {
-                            local_cells.push_back({src_lo, src_hi, dst_lo, dst_hi, proto, {S[i], S[j]}});
+                            local_cells.push_back({src_lo, src_hi, dst_lo, dst_hi, proto, best_rid, {S[i], S[j]}});
                         }
                     }
                     // ✅ 2. 线交：src是点，dst有长度
                     else if (src_lo == src_hi && dst_lo < dst_hi) {
                         if (seen_keys.insert(key).second) {
-                            local_cells.push_back({src_lo, src_hi, dst_lo, dst_hi, proto, {S[i], S[j]}});
+                            local_cells.push_back({src_lo, src_hi, dst_lo, dst_hi, proto, best_rid, {S[i], S[j]}});
                         }
                     }
                     // ✅ 3. 线交：dst是点，src有长度
                     else if (dst_lo == dst_hi && src_lo < src_hi) {
                         if (seen_keys.insert(key).second) {
-                            local_cells.push_back({src_lo, src_hi, dst_lo, dst_hi, proto, {S[i], S[j]}});
+                            local_cells.push_back({src_lo, src_hi, dst_lo, dst_hi, proto, best_rid, {S[i], S[j]}});
                         }
                     }
 
@@ -774,7 +756,6 @@ void merge_cells_and_ip_table(
          << final_ip_table.size() << endl;
 }
 
-
 vector<IPRule> split_rule_by_cell(const IPRule &rule, const IntersectionCell &cell) {
     vector<IPRule> output;
 
@@ -832,8 +813,6 @@ vector<IPRule> split_rule_by_cell(const IPRule &rule, const IntersectionCell &ce
     return output;
 }
 
-
-
 // 主流程：处理所有cell，拆出extra_rules
 void extract_and_split_cells(
         const vector<IPRule> &merged_ip_table,
@@ -858,6 +837,96 @@ static string ip_to_string(uint32_t ip) {
     return oss.str();
 }
 
+// 计算 rid 在 remaining 中能 cover 哪些 rule（按照 remaining 的内容）
+static vector<size_t> get_cover_set(
+    const vector<IPRule> &merged_ip_table,
+    size_t rid,
+    const vector<size_t> &remaining)
+{
+    vector<size_t> S;
+    const IPRule &A = merged_ip_table[rid];
+    for (size_t other : remaining) {
+        if (other == rid) continue;
+        if (covers(A, merged_ip_table[other])) {
+            S.push_back(other);
+        }
+    }
+    return S;
+}
+
+void find_Rmax_for_merged_ip_table(
+    const vector<IPRule>& merged_ip_table,
+    vector<Rmax_IPRule>& Rmax_merged_ip_table)
+{
+    Rmax_merged_ip_table.clear();
+    size_t N = merged_ip_table.size();
+    Rmax_merged_ip_table.resize(N);
+        for (size_t i = 0; i < N; ++i) {
+        const auto &r = merged_ip_table[i];
+        auto &dst = Rmax_merged_ip_table[i];
+
+        dst.src_ip_lo = r.src_ip_lo;
+        dst.src_ip_hi = r.src_ip_hi;
+        dst.dst_ip_lo = r.dst_ip_lo;
+        dst.dst_ip_hi = r.dst_ip_hi;
+        dst.proto = r.proto;
+        dst.priority = r.priority;
+        dst.src_prefix_len = r.src_prefix_len;
+        dst.dst_prefix_len = r.dst_prefix_len;
+        dst.merged_R = r.merged_R;
+
+        dst.rmax_id = SIZE_MAX; // 默认无 Rmax
+    }
+
+    // 1) bucket rules by proto: map proto -> indices (indices correspond to ip_table)
+    map<uint8_t, vector<size_t>> proto_to_rule_indices;
+    for (size_t i = 0; i < merged_ip_table.size(); ++i) {
+        proto_to_rule_indices[merged_ip_table[i].proto].push_back(i);
+    }
+
+    // 2) process each proto separately
+    for (const auto& kv : proto_to_rule_indices) {
+        uint8_t proto = kv.first;
+        vector<size_t> remaining = kv.second; // remaining rules for this proto
+
+        if (remaining.size() < 2) {
+            cout << "[find_intersections] Proto=" << (int)proto << " not enough rules, skip\n";
+            continue;
+        }
+
+        // 反复找 Rmax
+        while (remaining.size() >= 2) {
+            // 找最佳覆盖规则
+            size_t best_pos = find_best_cover_rule_in_set(merged_ip_table, remaining);
+            size_t best_rid = remaining[best_pos];
+
+            // 找它覆盖的所有规则 S
+            auto S = get_cover_set(merged_ip_table, best_rid, remaining);
+
+            // 给每个 S[x] 标记 rmax_id
+            for (size_t covered_rid : S) {
+                Rmax_merged_ip_table[covered_rid].rmax_id = best_rid;
+            }
+
+            Rmax_merged_ip_table[best_rid].rmax_id = best_rid;
+            // 构造 set 用于删除
+            unordered_set<size_t> sset(S.begin(), S.end());
+            sset.insert(best_rid); // Rmax 本身也踢掉
+
+            // 更新 remaining
+            vector<size_t> new_remain;
+            new_remain.reserve(remaining.size() - sset.size());
+            for (size_t rid : remaining) {
+                if (sset.count(rid) == 0)
+                    new_remain.push_back(rid);
+            }
+            remaining.swap(new_remain);
+        }
+    }
+
+    cout << "[find_Rmax_for_merged_ip_table] Rmax rules filled for "
+         << Rmax_merged_ip_table.size() << " entries\n";
+}
 
 /*************************************************************
  * Step 5: main
@@ -865,7 +934,7 @@ static string ip_to_string(uint32_t ip) {
 int main() {
     // 1) load rules and split into ip/port tables
     vector<Rule5D> rules;
-    load_rules_from_file("ACL_rules/test.rules", rules);
+    load_rules_from_file("ACL_rules/acl_10k.rules", rules);
 
     vector<IPRule> ip_table;
     vector<PortRule> port_table;
@@ -879,6 +948,10 @@ int main() {
     merge_same_ip_entry(ip_table, merged_ip_table);
     cout << "[Main] Merged IP rules = " << merged_ip_table.size() << endl;
 
+    // 3.5) find Rmax for merged_ip_table
+    vector<Rmax_IPRule> Rmax_merged_ip_table;
+    find_Rmax_for_merged_ip_table(merged_ip_table, Rmax_merged_ip_table);
+
     // 3) per-protocol elementary intervals (half-open endpoints)
     map<uint8_t, vector<uint32_t>> src_intervals_per_proto;
     map<uint8_t, vector<uint32_t>> dst_intervals_per_proto;
@@ -891,10 +964,9 @@ int main() {
     find_intersections_per_proto(merged_ip_table,src_intervals_per_proto, 
         dst_intervals_per_proto, intersections, rmax_rule_ids);
 
-
     //add a Gourp_id generator fuction for final table
     // 5) export merged IP table
-    ofstream fout1("merged_test.txt");
+    ofstream fout1("merged_acl_10k.txt");
     if (!fout1) {
         cerr << "Error: cannot open merged_ip_table.txt for writing.\n";
         return -1;
@@ -931,6 +1003,7 @@ int main() {
               << "PROTO=" << (int)cell.proto << " "
               << "SRC[" << cell.src_lo << "-" << cell.src_hi << "] "
               << "DST[" << cell.dst_lo << "-" << cell.dst_hi << "] "
+              << "Rmax=" << cell.rmax_id << " "
               << "Covered=" << cell.rule_indices.size() << " rules: ";
         for (auto rid : cell.rule_indices) fout2 << rid << " ";
         fout2 << "\n";
