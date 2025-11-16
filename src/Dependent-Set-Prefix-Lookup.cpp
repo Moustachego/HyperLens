@@ -16,6 +16,7 @@
 #include <limits>
 #include <unordered_set>
 #include <sstream>
+#include <string>
 #include <cstdint>
 #include <cmath>
 #include "input.hpp"
@@ -690,44 +691,116 @@ void find_intersections_per_proto(
 
 
 void merge_cells_and_ip_table(
-    const vector<IPRule>& merged_ip_table,          // 已合并后的规则（每条包含 merged_R）
-    const vector<IntersectionCell>& intersections,  // 求得的交叉cell
-    vector<FinalIPRule>& final_ip_table,
-    int &global_gid_counter)
+    const std::vector<Rmax_IPRule>& Rmax_merged_ip_table,
+    const std::vector<IntersectionCell>& intersections,
+    std::vector<FinalIPRule>& final_ip_table)
 {
     final_ip_table.clear();
 
-    // --- ✅ 1. 处理 Cell 规则 ---
-    for (const auto& cell : intersections) {
+    const int NO_RMAX = -1;
+    const size_t N = Rmax_merged_ip_table.size();
+
+    // 1) 划分类别：leaders 与 non-leaders（保留原始顺序）
+    std::vector<size_t> leader_indices;     // 原始索引（在 Rmax_merged_ip_table 中）
+    std::vector<size_t> nonleader_indices;  // 原始索引（在 Rmax_merged_ip_table 中）
+
+    leader_indices.reserve(N);
+    nonleader_indices.reserve(N);
+
+    for (size_t i = 0; i < N; ++i) {
+        const auto &r = Rmax_merged_ip_table[i];
+        // 认为 leader 的判定是 r.rmax_id == i
+        if (r.rmax_id == i) {
+            leader_indices.push_back(i);
+        } else {
+            nonleader_indices.push_back(i);
+        }
+    }
+
+    // 2) 先决定 leaders 在 final_table 中的新位置（他们位于末尾）
+    size_t cells_count = intersections.size();
+    size_t nonleader_count = nonleader_indices.size();
+    size_t leader_count = leader_indices.size();
+
+    size_t leaders_base_index = cells_count + nonleader_count; // leaders 在 final 表中起始索引
+
+    // 构造映射：原始 Rmax_merged_ip_table 索引 -> final 表中索引 (仅对 leader 有映射)
+    // 对于不能被识别为 leader 的 r (如 r.rmax_id == SIZE_MAX)，我们不会在 leader_map 中放映射
+    std::unordered_map<size_t, size_t> leader_to_final_index;
+    leader_to_final_index.reserve(leader_count);
+    for (size_t k = 0; k < leader_indices.size(); ++k) {
+        size_t orig_idx = leader_indices[k];
+        size_t final_idx = leaders_base_index + k;
+        leader_to_final_index[orig_idx] = final_idx;
+    }
+
+    // 3) 开始构造 final_ip_table（按指定顺序：cells -> nonleaders -> leaders）
+    final_ip_table.reserve(cells_count + nonleader_count + leader_count);
+
+    // --- (A) append intersections (cells) ---
+    for (size_t i = 0; i < intersections.size(); ++i) {
+        const auto &cell = intersections[i];
         FinalIPRule fr;
         fr.src_lo = cell.src_lo;
         fr.src_hi = cell.src_hi;
         fr.dst_lo = cell.dst_lo;
         fr.dst_hi = cell.dst_hi;
         fr.proto  = cell.proto;
-
+        fr.priority = 0;
         fr.is_cell = true;
         fr.is_rmax = false;
-        fr.priority = 0;
+        fr.merged_R = cell.rule_indices; // optional
 
-        // 每一个cell给一个新的 group id
-        fr.group_ids.push_back(global_gid_counter++);
+        int own_new_idx = static_cast<int>(final_ip_table.size()); // 当前将被放置的位置
+        int rmax_new_idx = NO_RMAX;
 
-        // 如果 cell 有来源规则，用第一个来源规则的 group id 作为参考
-        if (!cell.rule_indices.empty()) {
-            int original_gid = cell.rule_indices[0]; // 这里直接用 merged_R编号也可以
-            fr.group_ids.push_back(original_gid);
+        if (cell.rmax_id != SIZE_MAX) {
+            auto it = leader_to_final_index.find(cell.rmax_id);
+            if (it != leader_to_final_index.end()) rmax_new_idx = static_cast<int>(it->second);
+            else rmax_new_idx = NO_RMAX; // 找不到映射，标记为无
         }
 
-        // 保存来源（cell 可能对应多条原规则）
-        fr.merged_R = cell.rule_indices;
+        fr.group_ids.clear();
+        fr.group_ids.push_back(own_new_idx);
+        fr.group_ids.push_back(rmax_new_idx);
 
-        final_ip_table.push_back(fr);
+        final_ip_table.push_back(std::move(fr));
     }
 
-    // --- ✅ 2. 添加 merged_ip_table 中的 Rmax 原始IP规则 ---
-    for (size_t i = 0; i < merged_ip_table.size(); ++i) {
-        const auto &r = merged_ip_table[i];
+    // --- (B) append non-leader merged rules (保持原始顺序) ---
+    for (size_t idx : nonleader_indices) {
+        const auto &r = Rmax_merged_ip_table[idx];
+        FinalIPRule fr;
+        fr.src_lo = r.src_ip_lo;
+        fr.src_hi = r.src_ip_hi;
+        fr.dst_lo = r.dst_ip_lo;
+        fr.dst_hi = r.dst_ip_hi;
+        fr.proto  = r.proto;
+        fr.priority = r.priority;
+        fr.is_cell = false;
+        fr.is_rmax = false;
+        fr.merged_R = r.merged_R;
+
+        int own_new_idx = static_cast<int>(final_ip_table.size());
+        int rmax_new_idx = NO_RMAX;
+
+        if (r.rmax_id != SIZE_MAX) {
+            auto it = leader_to_final_index.find(r.rmax_id);
+            if (it != leader_to_final_index.end()) rmax_new_idx = static_cast<int>(it->second);
+            else rmax_new_idx = NO_RMAX;
+        }
+
+        fr.group_ids.clear();
+        fr.group_ids.push_back(own_new_idx);
+        fr.group_ids.push_back(rmax_new_idx);
+
+        final_ip_table.push_back(std::move(fr));
+    }
+
+    // --- (C) append leaders (Rmax) themselves，按原表顺序 ---
+    for (size_t k = 0; k < leader_indices.size(); ++k) {
+        size_t orig_idx = leader_indices[k];
+        const auto &r = Rmax_merged_ip_table[orig_idx];
 
         FinalIPRule fr;
         fr.src_lo = r.src_ip_lo;
@@ -735,26 +808,24 @@ void merge_cells_and_ip_table(
         fr.dst_lo = r.dst_ip_lo;
         fr.dst_hi = r.dst_ip_hi;
         fr.proto  = r.proto;
-
-        fr.is_cell = false;   // ✅ 这是Rmax，不是cell
+        fr.priority = r.priority;
+        fr.is_cell = false;
         fr.is_rmax = true;
-        fr.priority = 0;
-
-        // 第一维仍然是全局递增 gid
-        fr.group_ids.push_back(global_gid_counter++);
-
-        // 第二维直接使用它在 merged_ip_table 中的索引 或 最高优先级原始 rule id
-        fr.group_ids.push_back(static_cast<int>(i));
-
-        // ✅ 保存这个合并规则由哪些原始rule组成
         fr.merged_R = r.merged_R;
 
-        final_ip_table.push_back(fr);
-    }
+        int own_new_idx = static_cast<int>(final_ip_table.size()); // 应等于 leaders_base_index + k
+        // leader 只有自己作为 group id（单元素）
+        fr.group_ids.clear();
+        fr.group_ids.push_back(own_new_idx);
 
-    cout << "[merge_cells_and_ip_table] Final IP rules = "
-         << final_ip_table.size() << endl;
+        final_ip_table.push_back(std::move(fr));
+    }
+    // DEBUG 输出行（可选）
+    // cout << "[merge_cells_and_ip_table] final entries = " << final_ip_table.size() << endl;
 }
+
+
+
 
 vector<IPRule> split_rule_by_cell(const IPRule &rule, const IntersectionCell &cell) {
     vector<IPRule> output;
@@ -828,14 +899,6 @@ void extract_and_split_cells(
     }
 }
 
-static string ip_to_string(uint32_t ip) {
-    std::ostringstream oss;
-    oss << ((ip >> 24) & 0xFF) << "."
-        << ((ip >> 16) & 0xFF) << "."
-        << ((ip >> 8) & 0xFF) << "."
-        << (ip & 0xFF);
-    return oss.str();
-}
 
 // 计算 rid 在 remaining 中能 cover 哪些 rule（按照 remaining 的内容）
 static vector<size_t> get_cover_set(
@@ -928,6 +991,101 @@ void find_Rmax_for_merged_ip_table(
          << Rmax_merged_ip_table.size() << " entries\n";
 }
 
+// --------------- 工具：uint32 → 点分十进制 ----------------
+string ip_to_string(uint32_t ip) {
+    return to_string((ip >> 24) & 0xFF) + "." +
+           to_string((ip >> 16) & 0xFF) + "." +
+           to_string((ip >> 8) & 0xFF) + "." +
+           to_string(ip & 0xFF);
+}
+
+// ----------- 工具：将 [lo, hi] 转换为 CIDR 列表 -------------
+vector<string> range_to_cidrs(uint32_t start, uint32_t end) {
+    vector<string> result;
+
+    while (start <= end) {
+
+        uint32_t max_block = start & -start; // 最大对齐块
+        int prefix = 32 - __builtin_ctz(max_block);
+
+        // 尝试扩大 CIDR，直到超范围
+        while (prefix > 0) {  // **这里防止 prefix=0 再移位 32**
+            uint64_t block_size = 1ULL << (32 - prefix);
+            uint64_t block_end = (uint64_t)start + block_size - 1;
+
+            if (block_end > end) {
+                prefix++;
+            } else {
+                break;
+            }
+        }
+
+        // 追加 CIDR
+        result.push_back(ip_to_string(start) + "/" + to_string(prefix));
+
+        // 安全计算下一段（不能移位 32）
+        uint64_t step = (prefix == 0 ? (1ULL << 32) : (1ULL << (32 - prefix)));
+
+        uint64_t next = (uint64_t)start + step;
+        if (next > UINT32_MAX) break;
+
+        start = (uint32_t)next;
+    }
+
+    return result;
+}
+
+
+void write_final_table_in_cidr(
+    const vector<FinalIPRule>& final_ip_table,
+    const string& filename)
+{
+    ofstream fout(filename);
+    if (!fout) {
+        cerr << "Error opening output file: " << filename << "\n";
+        return;
+    }
+
+    fout << "Final IP Table (CIDR only) - " << final_ip_table.size() << " entries\n";
+
+    for (size_t i = 0; i < final_ip_table.size(); ++i) {
+        const auto& r = final_ip_table[i];
+
+        fout << "R[" << i << "] PROTO=" << int(r.proto) << " ";
+
+        // SRC
+        fout << "SRC{";
+        auto src_list = range_to_cidrs(r.src_lo, r.src_hi);
+        for (size_t k = 0; k < src_list.size(); ++k) {
+            fout << src_list[k];
+            if (k + 1 < src_list.size()) fout << ", ";
+        }
+        fout << "} ";
+
+        // DST
+        fout << "DST{";
+        auto dst_list = range_to_cidrs(r.dst_lo, r.dst_hi);
+        for (size_t k = 0; k < dst_list.size(); ++k) {
+            fout << dst_list[k];
+            if (k + 1 < dst_list.size()) fout << ", ";
+        }
+        fout << "} ";
+
+        // Group IDs
+        fout << "GIDs{";
+        for (size_t k = 0; k < r.group_ids.size(); ++k) {
+            fout << r.group_ids[k];
+            if (k + 1 < r.group_ids.size()) fout << ", ";
+        }
+        fout << "}\n";
+        cout << "Writing rule " << i << "/" << final_ip_table.size() << endl;
+    }
+
+    fout.close();
+    cout << "CIDR-format table written to " << filename << endl;
+}
+
+
 /*************************************************************
  * Step 5: main
  *************************************************************/
@@ -971,11 +1129,12 @@ int main() {
         cerr << "Error: cannot open merged_ip_table.txt for writing.\n";
         return -1;
     }
-    fout1 << "Merged IP Table (" << merged_ip_table.size() << " entries):\n";
-    fout1 << "Idx\tSrcIP_lo\tSrcIP_hi\tDstIP_lo\tDstIP_hi\tProto\tSrcMask\tDstMask\tMergedCount\n";
+    fout1 << "Merged IP Table (" << Rmax_merged_ip_table.size() << " entries):\n";
+    fout1 << "Idx\tSrcIP_lo\tSrcIP_hi\tDstIP_lo\tDstIP_hi\t"
+        << "Proto\tPriority\tSrcMask\tDstMask\tMergedCount\tRmaxID\n";
 
-    for (size_t i = 0; i < merged_ip_table.size(); ++i) {
-        const auto &r = merged_ip_table[i];
+    for (size_t i = 0; i < Rmax_merged_ip_table.size(); ++i) {
+        const auto &r = Rmax_merged_ip_table[i];
         fout1 << i << "\t"
               << r.src_ip_lo << "\t"
               << r.src_ip_hi << "\t"
@@ -984,7 +1143,15 @@ int main() {
               << static_cast<int>(r.proto) << "\t"
               << static_cast<int>(r.src_prefix_len) << "\t"
               << static_cast<int>(r.dst_prefix_len) << "\t"
-              << r.merged_R.size() << "\n";
+              << r.merged_R.size() << "\t";
+
+                  // 输出 rmax_id
+            if (r.rmax_id == SIZE_MAX)
+                fout1 << "NONE\t";
+            else
+                fout1 << r.rmax_id << "\t";
+            
+            fout1 << "\n"; 
     }
     fout1.close();
     cout << "Merged IP table saved to merged_ip_table.txt" << endl;
@@ -1022,46 +1189,20 @@ int main() {
     for (size_t i = 0; i < extra_rules.size(); ++i) {
         const auto &r = extra_rules[i];
         fout_extra << "ER[" << i << "] PROTO=" << (int)r.proto
-                << " SRC[" << ip_to_string(r.src_ip_lo) << "-"
-                << ip_to_string(r.src_ip_hi) << "] "
-                << " DST[" << ip_to_string(r.dst_ip_lo) << "-"
-                << ip_to_string(r.dst_ip_hi) << "]\n";
+                << " SRC[" << r.src_ip_lo << "-"
+                << r.src_ip_hi << "] "
+                << " DST[" << r.dst_ip_lo << "-"
+                << r.dst_ip_hi << "]\n";
     }
     fout_extra.close();
 
     // 7) merge intersection cells + merged IP table into final table
     vector<FinalIPRule> final_ip_table;
-    int global_gid_counter = 0;
-    merge_cells_and_ip_table(merged_ip_table, intersections, 
-        final_ip_table, global_gid_counter);
+    merge_cells_and_ip_table(Rmax_merged_ip_table, intersections, final_ip_table);
     
-    sort(final_ip_table.begin(), final_ip_table.end(), [](const FinalIPRule &a, const FinalIPRule &b) {
-    if (a.is_cell != b.is_cell) return a.is_cell > b.is_cell;   // cell 优先
-    if (a.is_rmax != b.is_rmax) return a.is_rmax < b.is_rmax;   // Rmax 放最后
-    return a.group_ids[0] < b.group_ids[0];                     // 否则按原顺序
-                                            });
+
+    //8) transfer rule into mask type
     // export final IP table
-    ofstream fout3("final_ip_table.txt");
-    if (!fout3) {
-        cerr << "Error: cannot open final_ip_table.txt for writing.\n";
-        return -1;
-    }
-    fout3 << "Final IP Table (" << final_ip_table.size() << " entries):\n";
-
-    for (size_t i = 0; i < final_ip_table.size(); ++i) {
-        const auto &r = final_ip_table[i];
-        fout3 << "R[" << i << "] "
-            << "PROTO=" << (int)r.proto << " "
-            << "SRC[" << ip_to_string(r.src_lo) << "-" << ip_to_string(r.src_hi) << "] "
-            << "DST[" << ip_to_string(r.dst_lo) << "-" << ip_to_string(r.dst_hi) << "] "
-            << "Group_IDs: ";
-
-        for (auto gid : r.group_ids) fout3 << gid << " ";
-        fout3 << "\n";
-    }
-
-    fout3.close();
-    cout << "Final IP table saved to final_ip_table.txt" << endl;
-
+    write_final_table_in_cidr(final_ip_table, "final_ip_table_cidr.txt");
     return 0;
 }
