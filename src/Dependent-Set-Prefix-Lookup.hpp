@@ -1,6 +1,6 @@
+#pragma once  // 或者下面这种传统写法
 #include <vector>
 using namespace std;
-
 
 struct IntersectionCell {
     uint32_t src_lo;
@@ -35,3 +35,8 @@ struct Rmax_IPRule {
     size_t   rmax_id;
     std::vector<size_t> merged_R;  // 存储原始规则的编号
 };
+
+void merge_same_ip_entry(
+    const std::vector<IPRule>& ip_table,
+    std::vector<IPRule>& merged_ip_table
+);

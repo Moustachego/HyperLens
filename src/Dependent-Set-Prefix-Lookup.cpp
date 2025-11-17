@@ -1078,7 +1078,7 @@ void write_final_table_in_cidr(
             if (k + 1 < r.group_ids.size()) fout << ", ";
         }
         fout << "}\n";
-        cout << "Writing rule " << i << "/" << final_ip_table.size() << endl;
+        // cout << "Writing rule " << i << "/" << final_ip_table.size() << endl;
     }
 
     fout.close();
@@ -1089,7 +1089,9 @@ void write_final_table_in_cidr(
 /*************************************************************
  * Step 5: main
  *************************************************************/
-int main() {
+// When building as part of a larger tool, allow disabling the standalone main
+#ifndef COMPILE_AS_LIB
+int main(int argc, char **argv) {
     // 1) load rules and split into ip/port tables
     vector<Rule5D> rules;
     load_rules_from_file("ACL_rules/acl_10k.rules", rules);
@@ -1206,3 +1208,4 @@ int main() {
     write_final_table_in_cidr(final_ip_table, "final_ip_table_cidr.txt");
     return 0;
 }
+#endif /* COMPILE_AS_LIB */
