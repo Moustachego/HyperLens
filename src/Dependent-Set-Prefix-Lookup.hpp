@@ -10,6 +10,7 @@ struct IntersectionCell {
     uint8_t  proto;
     size_t   rmax_id;   
     std::vector<size_t> rule_indices; // 记录由哪些规则覆盖（索引为 merged_ip_table 索引）
+    std::vector<size_t> Extraction;
 };
 
 struct FinalIPRule {
@@ -36,7 +37,68 @@ struct Rmax_IPRule {
     std::vector<size_t> merged_R;  // 存储原始规则的编号
 };
 
+struct Metainfo_for_SRC_port{
+    uint32_t Inital_Number;
+    uint16_t Src_lo;
+    uint16_t Src_hi;
+    vector<int> group_ids; 
+};
+
+// ===== Function Declarations =====
+
 void merge_same_ip_entry(
     const std::vector<IPRule>& ip_table,
     std::vector<IPRule>& merged_ip_table
+);
+
+void build_elementary_intervals_per_proto(
+    const std::vector<IPRule>& ip_table,
+    std::map<uint8_t, std::vector<uint32_t>>& src_intervals_per_proto,
+    std::map<uint8_t, std::vector<uint32_t>>& dst_intervals_per_proto
+);
+
+void find_intersections_per_proto(
+    const std::vector<IPRule>& merged_ip_table,
+    const std::map<uint8_t, std::vector<uint32_t>>& src_intervals_per_proto,
+    const std::map<uint8_t, std::vector<uint32_t>>& dst_intervals_per_proto,
+    std::vector<IntersectionCell>& intersections,
+    std::vector<size_t>& rmax_rule_ids
+);
+
+void merge_cells_and_ip_table(
+    const std::vector<Rmax_IPRule>& Rmax_merged_ip_table,
+    const std::vector<IntersectionCell>& intersections,
+    std::vector<FinalIPRule>& final_ip_table
+);
+
+std::vector<IPRule> split_rule_by_cell(
+    const IPRule &rule,
+    const IntersectionCell &cell
+);
+
+void extract_and_split_cells(
+    const std::vector<IPRule> &merged_ip_table,
+    const std::vector<IntersectionCell> &intersections,
+    std::vector<IPRule> &extra_rules
+);
+
+void find_Rmax_for_merged_ip_table(
+    const std::vector<IPRule>& merged_ip_table,
+    std::vector<Rmax_IPRule>& Rmax_merged_ip_table
+);
+
+std::string ip_to_string(uint32_t ip);
+
+std::vector<std::string> range_to_cidrs(uint32_t start, uint32_t end);
+
+void write_final_table_in_cidr(
+    const std::vector<FinalIPRule>& final_ip_table,
+    const std::string& filename
+);
+
+void Create_Metainfo_for_SRC_port(
+    const vector<PortRule>& port_table,
+    const vector<IPRule>& merged_ip_table,
+    const vector<IntersectionCell>& IntersectionCell,
+    const vector<FinalIPRule>& final_ip_table
 );

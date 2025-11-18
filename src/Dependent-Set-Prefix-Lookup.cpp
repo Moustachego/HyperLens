@@ -110,9 +110,9 @@ void build_elementary_intervals_per_proto(
         const auto &dset = dst_set_per_proto[proto]; // operator[] yields empty set if absent
         dst_intervals_per_proto[proto].assign(dset.begin(), dset.end());
 
-        cout << "[build_elementary_intervals] Proto=" << (int)proto
-             << " Src intervals=" << src_intervals_per_proto[proto].size()
-             << " Dst intervals=" << dst_intervals_per_proto[proto].size() << endl;
+        // cout << "[build_elementary_intervals] Proto=" << (int)proto
+        //      << " Src intervals=" << src_intervals_per_proto[proto].size()
+        //      << " Dst intervals=" << dst_intervals_per_proto[proto].size() << endl;
     }
 }
 
@@ -224,7 +224,8 @@ void collect_line_and_point_cells(
                 if (covered.size() >= 2) {
                     string key = make_cell_key(proto, px, px, dlo, dhi);
                     if (seen_keys.insert(key).second) {
-                        local_cells.push_back({px, px, dlo, dhi, proto, rmax_id, covered});
+                        vector<size_t> src_ids = { proto_rules[ia], proto_rules[ib] };
+                        local_cells.push_back({px, px, dlo, dhi, proto, rmax_id, covered, src_ids});
                     }
                 }
             }
@@ -247,7 +248,8 @@ void collect_line_and_point_cells(
                 if (covered.size() >= 2) {
                     string key = make_cell_key(proto, slo, shi, py, py);
                     if (seen_keys.insert(key).second) {
-                        local_cells.push_back({slo, shi, py, py, proto, rmax_id, covered});
+                        vector<size_t> src_ids = { proto_rules[ia], proto_rules[ib] };
+                        local_cells.push_back({slo, shi, py, py, proto, rmax_id, covered, src_ids});
                     }
                 }
             }
@@ -274,7 +276,8 @@ void collect_line_and_point_cells(
                 if (covered.size() >= 2) {
                     string key = make_cell_key(proto, px, px, py, py);
                     if (seen_keys.insert(key).second) {
-                        local_cells.push_back({px, px, py, py, proto, rmax_id, covered});
+                        vector<size_t> src_ids = { proto_rules[ia], proto_rules[ib] };
+                        local_cells.push_back({px, px, py, py, proto, rmax_id, covered, src_ids});
                     }
                 }
             }
@@ -291,7 +294,8 @@ void collect_line_and_point_cells(
                 if (covered.size() >= 2) {
                     string key = make_cell_key(proto, px, px, py, py);
                     if (seen_keys.insert(key).second) {
-                        local_cells.push_back({px, px, py, py, proto, rmax_id, covered});
+                        vector<size_t> src_ids = { proto_rules[ia], proto_rules[ib] };
+                        local_cells.push_back({px, px, py, py, proto, rmax_id, covered, src_ids});
                     }
                 }
             }
@@ -308,7 +312,8 @@ void collect_line_and_point_cells(
                 if (covered.size() >= 2) {
                     string key = make_cell_key(proto, px, px, py, py);
                     if (seen_keys.insert(key).second) {
-                        local_cells.push_back({px, px, py, py, proto, rmax_id, covered});
+                        vector<size_t> src_ids = { proto_rules[ia], proto_rules[ib] };
+                        local_cells.push_back({px, px, py, py, proto, rmax_id, covered, src_ids});
                     }
                 }
             }
@@ -325,7 +330,8 @@ void collect_line_and_point_cells(
                 if (covered.size() >= 2) {
                     string key = make_cell_key(proto, px, px, py, py);
                     if (seen_keys.insert(key).second) {
-                        local_cells.push_back({px, px, py, py, proto, rmax_id, covered});
+                        vector<size_t> src_ids = { proto_rules[ia], proto_rules[ib] };
+                        local_cells.push_back({px, px, py, py, proto, rmax_id, covered, src_ids});
                     }
                 }
             }
@@ -404,7 +410,9 @@ static void build_ancestors(
 static bool cell_is_invalid(
     const vector<size_t>& covered,
     const unordered_map<size_t, vector<size_t>>& ancestors,
-    const vector<IPRule>& merged_ip_table)
+    const vector<IPRule>& merged_ip_table,
+    vector<size_t>& out_minimal    
+)
 {
     if (covered.size() < 2) return true;
 
@@ -468,9 +476,32 @@ static bool cell_is_invalid(
         }
     }
 
+    out_minimal = minimal;
     // ----------------- 判断是否可用 -----------------
     return (minimal.size() < 2);
 }
+
+void Map_cell_to_origID(
+    const vector<IPRule>& merged_ip_table,
+    const vector<size_t>& idx_list,
+    vector<size_t>& out_orig_ids)
+{
+    out_orig_ids.clear();
+    unordered_set<size_t> uniq;
+
+    for (size_t mid : idx_list) {
+        if (mid >= merged_ip_table.size()) continue;
+
+        const auto& R = merged_ip_table[mid];
+        for (size_t orig : R.merged_R) {
+            uniq.insert(orig);   // 去重
+        }
+    }
+
+    out_orig_ids.assign(uniq.begin(), uniq.end());
+}
+
+
 
 
 /*************************************************************
@@ -480,11 +511,11 @@ static bool cell_is_invalid(
  * @ output: src_intervals_per_proto, dst_intervals_per_proto
  *************************************************************/
 void find_intersections_per_proto(
-    const vector<IPRule>& merged_ip_table,
-    const map<uint8_t, vector<uint32_t>>& src_intervals_per_proto,
-    const map<uint8_t, vector<uint32_t>>& dst_intervals_per_proto,
-    vector<IntersectionCell>& intersections,
-    vector<size_t>& rmax_rule_ids)   // global container (will be appended)
+    const std::vector<IPRule>& merged_ip_table,
+    const std::map<uint8_t, std::vector<uint32_t>>& src_intervals_per_proto,
+    const std::map<uint8_t, std::vector<uint32_t>>& dst_intervals_per_proto,
+    std::vector<IntersectionCell>& intersections,
+    std::vector<size_t>& rmax_rule_ids)   // global container (will be appended)
 {
     size_t global_before = intersections.size();
 
@@ -502,15 +533,15 @@ void find_intersections_per_proto(
         auto it_src = src_intervals_per_proto.find(proto);
         auto it_dst = dst_intervals_per_proto.find(proto);
         if (it_src == src_intervals_per_proto.end() || it_dst == dst_intervals_per_proto.end()) {
-            cout << "[find_intersections] Proto=" << (int)proto << " no intervals found\n";
+            // cout << "[find_intersections] Proto=" << (int)proto << " no intervals found\n";
             continue;
         }
         const auto& src_ep = it_src->second;
         const auto& dst_ep = it_dst->second;
 
-        cout << "[find_intersections] Proto=" << (int)proto
-             << " start total_rules=" << remaining.size()
-             << " endpoints src=" << src_ep.size() << " dst=" << dst_ep.size() << endl;
+        // cout << "[find_intersections] Proto=" << (int)proto
+        //      << " start total_rules=" << remaining.size()
+        //      << " endpoints src=" << src_ep.size() << " dst=" << dst_ep.size() << endl;
 
         if (remaining.size() < 2) {
             cout << "[find_intersections] Proto=" << (int)proto << " not enough rules, skip\n";
@@ -520,8 +551,8 @@ void find_intersections_per_proto(
         // local accumulator for this proto
         vector<IntersectionCell> local_cells;
         unordered_set<string> seen_keys;
-        cout << "[find_intersections] Proto=" << (int)proto 
-            << " line/point cells collected = " << local_cells.size() << endl;
+        // cout << "[find_intersections] Proto=" << (int)proto 
+        //     << " line/point cells collected = " << local_cells.size() << endl;
       
         // Iteratively peel off subsets dominated by a best-cover rule (R0)
         while (remaining.size() >= 2) {
@@ -606,7 +637,9 @@ void find_intersections_per_proto(
                             covered.push_back(rid);
                         }
                     }
-                    bool invalid_cell = cell_is_invalid(covered, ancestors, merged_ip_table);
+
+                    vector<size_t> minimal;
+                    bool invalid_cell = cell_is_invalid(covered, ancestors, merged_ip_table, minimal);
 
                     // you asked to collect cells covered by >=2 non-global rules (here S are non-global w.r.t this Rmax)
                     if (!invalid_cell && covered.size() >= 2) {
@@ -614,7 +647,10 @@ void find_intersections_per_proto(
                                 to_string(cell_dst_lo) + "-" + to_string(cell_dst_hi) + "-" +
                                 to_string(proto);
                         if (!seen_keys.count(key)) {
-                            local_cells.push_back({cell_src_lo, cell_src_hi, cell_dst_lo, cell_dst_hi, proto, best_rid,covered});
+                            vector<size_t> Extraction;
+                            Map_cell_to_origID(merged_ip_table, minimal, Extraction);
+                            local_cells.push_back({cell_src_lo, cell_src_hi, cell_dst_lo, cell_dst_hi, proto,
+                                 best_rid, covered, Extraction});
                             seen_keys.insert(key);
                         }
                     }
@@ -637,19 +673,25 @@ void find_intersections_per_proto(
                     // ✅ 1. 点交：src、dst 都是单点
                     if (src_lo == src_hi && dst_lo == dst_hi) {
                         if (seen_keys.insert(key).second) {
-                            local_cells.push_back({src_lo, src_hi, dst_lo, dst_hi, proto, best_rid, {S[i], S[j]}});
+                            vector<size_t> Extraction1;    
+                            Map_cell_to_origID(merged_ip_table, {S[i], S[j]}, Extraction1);
+                            local_cells.push_back({src_lo, src_hi, dst_lo, dst_hi, proto, best_rid, {S[i], S[j]}, Extraction1});
                         }
                     }
                     // ✅ 2. 线交：src是点，dst有长度
                     else if (src_lo == src_hi && dst_lo < dst_hi) {
                         if (seen_keys.insert(key).second) {
-                            local_cells.push_back({src_lo, src_hi, dst_lo, dst_hi, proto, best_rid, {S[i], S[j]}});
+                            vector<size_t> Extraction1;    
+                            Map_cell_to_origID(merged_ip_table, {S[i], S[j]}, Extraction1);
+                            local_cells.push_back({src_lo, src_hi, dst_lo, dst_hi, proto, best_rid, {S[i], S[j]}, Extraction1});
                         }
                     }
                     // ✅ 3. 线交：dst是点，src有长度
                     else if (dst_lo == dst_hi && src_lo < src_hi) {
                         if (seen_keys.insert(key).second) {
-                            local_cells.push_back({src_lo, src_hi, dst_lo, dst_hi, proto, best_rid, {S[i], S[j]}});
+                            vector<size_t> Extraction1;   
+                            Map_cell_to_origID(merged_ip_table, {S[i], S[j]}, Extraction1);
+                            local_cells.push_back({src_lo, src_hi, dst_lo, dst_hi, proto, best_rid, {S[i], S[j]}, Extraction1});
                         }
                     }
 
@@ -667,10 +709,10 @@ void find_intersections_per_proto(
             remaining.swap(new_remaining);
 
             // debug log per iteration:
-            cout << "[find_intersections] Proto=" << (int)proto
-                 << " peeled Rmax=" << best_rid << " covered_count=" << S.size()
-                 << " remaining_after=" << remaining.size()
-                 << " local_cells_now=" << local_cells.size() << endl;
+            // cout << "[find_intersections] Proto=" << (int)proto
+            //      << " peeled Rmax=" << best_rid << " covered_count=" << S.size()
+            //      << " remaining_after=" << remaining.size()
+            //      << " local_cells_now=" << local_cells.size() << endl;
 
             // continue loop until remaining < 2
         } // end while remaining
@@ -680,8 +722,8 @@ void find_intersections_per_proto(
         intersections.insert(intersections.end(), local_cells.begin(), local_cells.end());
         size_t added = intersections.size() - before_append;
 
-        cout << "[find_intersections] Proto=" << (int)proto
-             << " Added cells=" << added << " (local found=" << local_cells.size() << ")\n";
+        // cout << "[find_intersections] Proto=" << (int)proto
+        //      << " Added cells=" << added << " (local found=" << local_cells.size() << ")\n";
     } // end for each proto
 
     size_t global_added = intersections.size() - global_before;
@@ -823,9 +865,6 @@ void merge_cells_and_ip_table(
     // DEBUG 输出行（可选）
     // cout << "[merge_cells_and_ip_table] final entries = " << final_ip_table.size() << endl;
 }
-
-
-
 
 vector<IPRule> split_rule_by_cell(const IPRule &rule, const IntersectionCell &cell) {
     vector<IPRule> output;
@@ -987,8 +1026,8 @@ void find_Rmax_for_merged_ip_table(
         }
     }
 
-    cout << "[find_Rmax_for_merged_ip_table] Rmax rules filled for "
-         << Rmax_merged_ip_table.size() << " entries\n";
+    // cout << "[find_Rmax_for_merged_ip_table] Rmax rules filled for "
+    //      << Rmax_merged_ip_table.size() << " entries\n";
 }
 
 // --------------- 工具：uint32 → 点分十进制 ----------------
@@ -1086,11 +1125,75 @@ void write_final_table_in_cidr(
 }
 
 
+void Create_Metainfo_for_SRC_port(
+    const vector<PortRule>& port_table,
+    const vector<IPRule>& merged_ip_table,
+    const vector<IntersectionCell>& IntersectionCell,
+    const vector<FinalIPRule>& final_ip_table)
+{
+    vector<Metainfo_for_SRC_port> meta_src;
+
+    meta_src.clear();
+    meta_src.resize(port_table.size());
+
+    for (size_t i = 0; i < port_table.size(); ++i) {
+        const auto& p = port_table[i];
+
+        meta_src[i].Inital_Number = static_cast<uint32_t>(i);   // 当前规则序号
+        meta_src[i].Src_lo        = p.src_port_lo;
+        meta_src[i].Src_hi        = p.src_port_hi;
+
+        // group_ids 暂时空，不填
+        meta_src[i].group_ids.clear();
+    }
+    
+    
+
+
+    // ----------- 2. 输出调试信息到 txt ----------
+    std::ofstream fout("meta_src_debug.txt");
+    if (!fout) {
+        std::cerr << "Error: cannot open meta_src_debug.txt for writing.\n";
+        return;
+    }
+
+    fout << "MetaInfo for SRC Port (" << meta_src.size() << " entries)\n";
+    fout << "Idx\tInitNum\tSrc_lo\tSrc_hi\tGroupIDs\n";
+
+    for (size_t i = 0; i < meta_src.size(); ++i) {
+        const auto& m = meta_src[i];
+
+        fout << i << "\t"
+             << m.Inital_Number << "\t"
+             << m.Src_lo << "\t"
+             << m.Src_hi << "\t";
+
+        // 输出 group_ids
+        if (m.group_ids.empty()) {
+            fout << "{}";
+        } else {
+            fout << "{";
+            for (size_t k = 0; k < m.group_ids.size(); ++k) {
+                fout << m.group_ids[k];
+                if (k + 1 < m.group_ids.size()) fout << ",";
+            }
+            fout << "}";
+        }
+
+        fout << "\n";
+    }
+
+    fout.close();
+    std::cout << "[INFO] meta_src_debug.txt saved.\n";
+
+    
+};
+
 /*************************************************************
  * Step 5: main
  *************************************************************/
 // When building as part of a larger tool, allow disabling the standalone main
-#ifndef COMPILE_AS_LIB
+#ifdef DEMO_LOADER_MAIN
 int main(int argc, char **argv) {
     // 1) load rules and split into ip/port tables
     vector<Rule5D> rules;
@@ -1203,6 +1306,7 @@ int main(int argc, char **argv) {
     merge_cells_and_ip_table(Rmax_merged_ip_table, intersections, final_ip_table);
     
 
+    Create_Metainfo_for_SRC_port(port_table, merged_ip_table, intersections, final_ip_table);
     //8) transfer rule into mask type
     // export final IP table
     write_final_table_in_cidr(final_ip_table, "final_ip_table_cidr.txt");
