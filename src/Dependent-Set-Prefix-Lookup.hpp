@@ -1,5 +1,10 @@
 #pragma once  // 或者下面这种传统写法
 #include <vector>
+#include <map>
+#include <tuple>
+#include <algorithm>
+#include <fstream>
+#include <iostream>
 using namespace std;
 
 struct IntersectionCell {
@@ -44,6 +49,15 @@ struct Metainfo_for_SRC_port{
     uint16_t Src_hi;
     vector<int> group_ids; 
 };
+
+struct MergedItem{
+    std::vector<int> group_ids;      // GID 列表（你目前只有 1 个 GID）
+    int src_lo;
+    int src_hi;
+    std::vector<int> idx_list;       // 合并后的多个 Idx（重排后 i+1）
+    std::vector<int> initnum_list;   // 合并后的多个 InitNum
+};
+
 
 // ===== Function Declarations =====
 
@@ -101,5 +115,6 @@ void Create_Metainfo_for_SRC_port(
     const vector<PortRule>& port_table,
     const vector<IPRule>& merged_ip_table,
     const vector<IntersectionCell>& IntersectionCell,
-    const vector<FinalIPRule>& final_ip_table
+    const vector<FinalIPRule>& final_ip_table,
+    std::map<std::tuple<std::vector<int>, int, int>, MergedItem>& merged_output
 );

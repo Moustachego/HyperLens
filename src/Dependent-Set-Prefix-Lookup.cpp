@@ -19,6 +19,7 @@
 #include <string>
 #include <cstdint>
 #include <cmath>
+#include <iomanip> 
 #include "input.hpp"
 #include "Dependent-Set-Prefix-Lookup.hpp"
 
@@ -1182,13 +1183,15 @@ void Generate_cell_GID_to_metaifno(
         std::string key = make_key_from_final(fr);
         auto itc = cell_key_to_index.find(key);
         if (itc == cell_key_to_index.end()) {
+            // 找不到对应的 intersection cell —— 打警告并跳过（也可以选择暴露错误）
             if (enable_debug) std::cout << "[WARN] cannot find IntersectionCell for final cell fi="
                                         << fi << " key=" << key << "\n";
             continue;
         }
         const IntersectionCell &ic = intersection_cells[itc->second];
 
-        // 5) 收集 orig_rids
+        // 5) ic.Extraction 假设是 merged_ip_table 索引（你明确说明了这一点）
+        //    对每个 mid, 取 merged_ip_table[mid].merged_R（原始 rule id 列表）
         std::vector<size_t> orig_rids; orig_rids.reserve(16);
         for (size_t mid : ic.Extraction) {
             if (mid >= merged_ip_table.size()) {
@@ -1196,6 +1199,7 @@ void Generate_cell_GID_to_metaifno(
                 continue;
             }
             const IPRule &mip = merged_ip_table[mid];
+            // mip.merged_R 中应该是原始 rule ids（all_rules 索引）
             for (size_t orid : mip.merged_R) orig_rids.push_back(orid);
         }
 
@@ -1208,9 +1212,9 @@ void Generate_cell_GID_to_metaifno(
         std::sort(orig_rids.begin(), orig_rids.end());
         orig_rids.erase(std::unique(orig_rids.begin(), orig_rids.end()), orig_rids.end());
 
-        // -------- 新逻辑：先把所有 orig_rid 映射到 pidx 集合（去重） --------
-        std::unordered_set<size_t> pidx_set;
-        pidx_set.reserve(orig_rids.size());
+        // 6) 对于此 R 的每一个 orig_rid → pidx，
+        //    不再往 meta_src[pidx] 追加 gid，
+        //    而是创建新的 MetaInfo entry，形成独立规则。
         for (size_t orid : orig_rids) {
             auto itp = origRid_to_portIndex.find(orid);
             if (itp == origRid_to_portIndex.end()) {
@@ -1218,19 +1222,12 @@ void Generate_cell_GID_to_metaifno(
                                             << " not found in port_table mapping\n";
                 continue;
             }
-            pidx_set.insert(itp->second);
-        }
+            size_t pidx = itp->second;
 
-        if (pidx_set.empty()) {
-            if (enable_debug) std::cout << "[DBG] final cell fi=" << fi << " gid=" << gid
-                                        << " -> no mapped port indices\n";
-            continue;
-        }
-
-        // 为集合中的每个唯一 pidx 创建一个新的 meta entry（避免同一 (cell,pidx) 被重复展开）
-        for (size_t pidx : pidx_set) {
+            // 原始端口规则
             const PortRule &por = port_table[pidx];
 
+            // 创建一个新的 metainfo entry
             Metainfo_for_SRC_port new_entry;
             new_entry.Inital_Number = por.rid;   // 或者 por.init_num，按你的结构体
             new_entry.Src_lo   = por.src_port_lo;
@@ -1238,18 +1235,12 @@ void Generate_cell_GID_to_metaifno(
             new_entry.group_ids = { gid };
 
             meta_src.push_back(new_entry);
+        } // end for (size_t orid : orig_rids)
 
-            if (enable_debug) {
-                std::cout << "[DBG] create NEW META entry from pidx=" << pidx
-                          << " with gid=" << gid << " (meta_src size=" << meta_src.size() << ")\n";
-            }
-        }
     } // end for final_ip_table
 
     if (enable_debug) std::cout << "[INFO] Generate_cell_GID_to_metaifno done.\n";
 }
-
-
 
 
 void Generate_MergedR_GID_to_metaifno(
@@ -1290,7 +1281,8 @@ void Create_Metainfo_for_SRC_port(
     const vector<PortRule>& port_table,
     const vector<IPRule>& merged_ip_table,
     const vector<IntersectionCell>& IntersectionCell,
-    const vector<FinalIPRule>& final_ip_table)
+    const vector<FinalIPRule>& final_ip_table,
+    std::map<std::tuple<std::vector<int>, int, int>, MergedItem>& merged_output)
 {
     vector<Metainfo_for_SRC_port> meta_src;
 
@@ -1312,42 +1304,104 @@ void Create_Metainfo_for_SRC_port(
 
     Generate_cell_GID_to_metaifno(IntersectionCell, merged_ip_table, port_table, final_ip_table, meta_src);
 
-    // ----------- 2. 输出调试信息到 txt ----------
-    std::ofstream fout("meta_src_debug.txt");
+    // ---------- Step: 按 G-ID 排序 meta_src ----------
+    std::vector<Metainfo_for_SRC_port> sorted_meta = meta_src;
+
+    // 自定义排序
+    std::sort(sorted_meta.begin(), sorted_meta.end(),
+        [](const Metainfo_for_SRC_port &a, const Metainfo_for_SRC_port &b) {
+            int ga = a.group_ids.empty() ? -1 : a.group_ids[0];
+            int gb = b.group_ids.empty() ? -1 : b.group_ids[0];
+
+            if (ga != gb) return ga < gb;
+            if (a.Src_lo != b.Src_lo) return a.Src_lo < b.Src_lo;
+            if (a.Src_hi != b.Src_hi) return a.Src_hi < b.Src_hi;
+            return a.Inital_Number < b.Inital_Number;
+        }
+    );
+
+    // ---------- Step: 合并相同 (GroupIDs, Src_lo, Src_hi) ----------
+    std::map<std::tuple<std::vector<int>, int, int>, MergedItem> merged_map;
+
+    for (size_t i = 0; i < sorted_meta.size(); ++i) {
+        const auto& m = sorted_meta[i];
+
+        // key
+        auto key = std::make_tuple(m.group_ids, m.Src_lo, m.Src_hi);
+
+        
+        // 如果不存在就创建
+        if (merged_map.find(key) == merged_map.end()) {
+            merged_map[key] = {
+                m.group_ids,
+                m.Src_lo,
+                m.Src_hi,
+                {},    // idx_list
+                {}     // initnum_list
+            };
+        }
+
+        // 累积 Idx（重排后的行号） 和 InitNum
+        merged_map[key].idx_list.push_back(i + 1);  // ★ 修复 m.Idx → (i+1)
+        merged_map[key].initnum_list.push_back(m.Inital_Number);
+    }
+
+    int newID = 0;
+    for (auto &kv : merged_map) {
+        auto &item = kv.second;
+
+        item.idx_list.clear();        // 清空旧 idx_list
+        item.idx_list.push_back(newID);  // 分配新 ID
+        newID++;
+    }
+
+    merged_output = merged_map;
+    std::ofstream fout("meta_src_merged.txt");
     if (!fout) {
-        std::cerr << "Error: cannot open meta_src_debug.txt for writing.\n";
+        std::cerr << "Error: cannot open meta_src_merged.txt\n";
         return;
     }
 
-    fout << "MetaInfo for SRC Port (" << meta_src.size() << " entries)\n";
-    fout << "Idx\tInitNum\tSrc_lo\tSrc_hi\tGroupIDs\n";
+    fout << "GroupIDs\tSrc_lo\tSrc_hi\tIdx_list\tInitNum_list\n";
 
-    for (size_t i = 0; i < meta_src.size(); ++i) {
-        const auto& m = meta_src[i];
+    for (const auto& kv : merged_map) {
+        const auto& item = kv.second;
 
-        fout << i << "\t"
-             << m.Inital_Number << "\t"
-             << m.Src_lo << "\t"
-             << m.Src_hi << "\t";
-
-        // 输出 group_ids
-        if (m.group_ids.empty()) {
-            fout << "{}";
-        } else {
-            fout << "{";
-            for (size_t k = 0; k < m.group_ids.size(); ++k) {
-                fout << m.group_ids[k];
-                if (k + 1 < m.group_ids.size()) fout << ",";
-            }
-            fout << "}";
+        // --- 先把各列格式化为字符串 ---
+        std::string group_str = "{";
+        for (size_t i = 0; i < item.group_ids.size(); ++i) {
+            group_str += std::to_string(item.group_ids[i]);
+            if (i + 1 < item.group_ids.size()) group_str += ",";
         }
+        group_str += "}";
 
-        fout << "\n";
+        std::string idx_str = "{";
+        for (size_t i = 0; i < item.idx_list.size(); ++i) {
+            idx_str += std::to_string(item.idx_list[i]);
+            if (i + 1 < item.idx_list.size()) idx_str += ",";
+        }
+        idx_str += "}";
+
+        std::string initnum_str = "{";
+        for (size_t i = 0; i < item.initnum_list.size(); ++i) {
+            initnum_str += std::to_string(item.initnum_list[i]);
+            if (i + 1 < item.initnum_list.size()) initnum_str += ",";
+        }
+        initnum_str += "}";
+
+        // --- 使用 setw() 对齐输出 ---
+        fout << std::left
+            << std::setw(12) << group_str
+            << std::setw(8)  << item.src_lo
+            << std::setw(8)  << item.src_hi
+            << std::setw(18) << idx_str
+            << std::setw(20) << initnum_str
+            << "\n";
     }
 
-    fout.close();
-    std::cout << "[INFO] meta_src_debug.txt saved.\n";
 
+    fout.close();
+    std::cout << "[INFO] meta_src_merged.txt saved.\n";
     
 };
 

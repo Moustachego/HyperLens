@@ -20,6 +20,7 @@
 #include <string>
 #include <cstdint>
 #include <cmath>
+#include <iomanip> 
 #include "input.hpp"
 #include "Dependent-Set-Prefix-Lookup.hpp"
 #include "Parallel-Port-Lookup.hpp"
@@ -267,28 +268,7 @@ create_Table_for_SRC_port(
     // All intermediate results are declared within function scope
     auto intervals = step1_collect_intervals(port_table);
     auto block_map = step2_build_block_map(intervals);
-    // Print block_map for inspection before allocation decisions
-    // step7_print_block_map(block_map);
-    // Also dump block_map to file for offline inspection
-    // {
-    //     std::ofstream of("blockmap_dump.txt");
-    //     if (of) {
-    //         of << "BlockIdx\tBitmapHex\tAssigned\tOwners\n";
-    //         for (const auto &kv : block_map) {
-    //             of << kv.first << "\t0x" << std::hex << kv.second.bitmap << std::dec
-    //                << "\t" << (kv.second.assigned ? "yes" : "no") << "\t";
-    //             for (size_t i = 0; i < kv.second.owners.size(); ++i) {
-    //                 of << kv.second.owners[i];
-    //                 if (i + 1 < kv.second.owners.size()) of << ",";
-    //             }
-    //             of << "\n";
-    //         }
-    //         of.close();
-    //         cout << "[INFO] blockmap_dump.txt written in current working directory\n";
-    //     } else {
-    //         cout << "[WARN] cannot open blockmap_dump.txt for writing\n";
-    //     }
-    // }
+
     auto idxs = step3_collect_sorted_block_indices(block_map);
     auto runs = step4_build_runs(idxs);
 
@@ -305,7 +285,8 @@ create_Table_for_SRC_port(
 
 void laod_and_create_IP_table(vector<IPRule>& ip_table,
     vector<PortRule>& port_table, 
-    vector<IPRule>& merged_ip_table)
+    vector<IPRule>& merged_ip_table,
+    std::map<std::tuple<std::vector<int>, int, int>, MergedItem>& mateifno)
 {
     // 2) merge identical IP entries
     merge_same_ip_entry(ip_table, merged_ip_table);
@@ -338,7 +319,8 @@ void laod_and_create_IP_table(vector<IPRule>& ip_table,
 
     //8) transfer rule into mask type
     // export final IP table
-    Create_Metainfo_for_SRC_port(port_table, merged_ip_table, intersections, final_ip_table);
+
+    Create_Metainfo_for_SRC_port(port_table, merged_ip_table, intersections, final_ip_table, mateifno);
     write_final_table_in_cidr(final_ip_table, "final_ip_table_cidr.txt");
 }
 
@@ -361,10 +343,14 @@ int main(int argc, char **argv)  // accept optional path argument
     // Example continuation: split rules and prepare merged ip table (non-mandatory)
     vector<IPRule> ip_table;
     vector<PortRule> port_table;
+    std::map<std::tuple<std::vector<int>, int, int>, MergedItem> mateifno;
+
     split_rules(rules, ip_table, port_table);
     merge_same_ip_entry(ip_table, merged_ip_table);
 
-    laod_and_create_IP_table(ip_table, port_table, merged_ip_table);
+    laod_and_create_IP_table(ip_table, port_table, merged_ip_table, mateifno);
+
+    // make block for mateifno
 
     cout << "[Parallel-Port-Lookup] IP entries=" << ip_table.size()
          << ", Port entries=" << port_table.size()
