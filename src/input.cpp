@@ -137,6 +137,7 @@ void load_rules_from_file(const string &file, vector<Rule5D> &rules_out) {
     fclose(fp);
 }
 
+
 void split_rules(
     const std::vector<Rule5D>& all_rules,
     std::vector<IPRule>& ip_table,
@@ -144,6 +145,7 @@ void split_rules(
 ) {
     ip_table.clear();
     port_table.clear();
+    uint32_t i=0;
 
     for (const auto& r : all_rules) {
         // ---- 构造 IP 表 ----
@@ -165,12 +167,15 @@ void split_rules(
 
         // ---- 构造 Port 表 ----
         PortRule pr;
+        pr.rid         = i;
         pr.src_port_lo = static_cast<uint16_t>(r.range[2][0]);
         pr.src_port_hi = static_cast<uint16_t>(r.range[2][1]);
         pr.dst_port_lo = static_cast<uint16_t>(r.range[3][0]);
         pr.dst_port_hi = static_cast<uint16_t>(r.range[3][1]);
         pr.priority    = r.priority;
         port_table.push_back(pr);
+
+        i++; 
     }
 
     std::cout << "[split_rules] IP table size = " << ip_table.size()
@@ -209,7 +214,6 @@ vector<string> range_to_cidr(uint32_t start, uint32_t end) {
     }
     return res;
 }
-
 
 
 #ifdef DEMO_LOADER_MAIN

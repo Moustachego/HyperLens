@@ -24,6 +24,7 @@ struct IPRule {
 };
 
 struct PortRule {
+    uint32_t rid;
     uint16_t src_port_lo, src_port_hi;
     uint16_t dst_port_lo, dst_port_hi;
     uint32_t priority;

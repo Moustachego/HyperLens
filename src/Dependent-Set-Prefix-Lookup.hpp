@@ -20,6 +20,7 @@ struct FinalIPRule {
     uint32_t dst_hi;
     uint8_t  proto;
     uint32_t priority;              // 可以设置为0或原始优先级
+    uint32_t original_merged_index;
     vector<int> group_ids;          // 自身ID + Rmax的Group_ID
     bool is_cell = false;   // 是否为 intersection cell 产生的规则
     bool is_rmax = false;   // 是否属于 Rmax 区域

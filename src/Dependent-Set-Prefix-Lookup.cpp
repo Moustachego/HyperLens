@@ -792,6 +792,7 @@ void merge_cells_and_ip_table(
         fr.is_cell = true;
         fr.is_rmax = false;
         fr.merged_R = cell.rule_indices; // optional
+        fr.original_merged_index = SIZE_MAX;
 
         int own_new_idx = static_cast<int>(final_ip_table.size()); // 当前将被放置的位置
         int rmax_new_idx = NO_RMAX;
@@ -822,6 +823,7 @@ void merge_cells_and_ip_table(
         fr.is_cell = false;
         fr.is_rmax = false;
         fr.merged_R = r.merged_R;
+        fr.original_merged_index = idx;
 
         int own_new_idx = static_cast<int>(final_ip_table.size());
         int rmax_new_idx = NO_RMAX;
@@ -854,6 +856,7 @@ void merge_cells_and_ip_table(
         fr.is_cell = false;
         fr.is_rmax = true;
         fr.merged_R = r.merged_R;
+        fr.original_merged_index = orig_idx;
 
         int own_new_idx = static_cast<int>(final_ip_table.size()); // 应等于 leaders_base_index + k
         // leader 只有自己作为 group id（单元素）
@@ -1125,6 +1128,72 @@ void write_final_table_in_cidr(
 }
 
 
+void Generate_cell_GID_to_metaifno(
+    const vector<IntersectionCell>& IntersectionCell,
+    const vector<IPRule>& merged_ip_table,
+    const vector<PortRule>& port_table,
+    const vector<FinalIPRule>& final_ip_table,
+    vector<Metainfo_for_SRC_port>& meta_src)
+{
+    for (size_t i = 0; i < IntersectionCell.size(); ++i) {
+        const auto& cell = IntersectionCell[i];
+
+        for (size_t rid : cell.Extraction) {
+            for (size_t j = 0; j < merged_ip_table.size(); ++j) 
+            {
+                const auto& ip_rule = merged_ip_table[j];
+                auto it = std::find(ip_rule.merged_R.begin(), ip_rule.merged_R.end(), rid);
+                if (it != ip_rule.merged_R.end()) 
+                {
+                    size_t merged_index = j;
+
+                    for (size_t k = 0; k < port_table.size(); ++k) 
+                    {
+                        const auto& port_rule = port_table[k];  //wait to add more
+                    }
+                    break; 
+                }
+            }
+        }
+    }    
+
+}
+
+
+void Generate_MergedR_GID_to_metaifno(
+    const vector<FinalIPRule>& final_ip_table,
+    const vector<PortRule>& port_table,
+    vector<Metainfo_for_SRC_port>& meta_src)
+{
+    unordered_map<size_t, size_t> rid_to_port_index;
+    rid_to_port_index.reserve(port_table.size());
+
+    for (size_t i = 0; i < port_table.size(); ++i)
+        rid_to_port_index[port_table[i].rid] = i;
+
+    for (const auto& fr : final_ip_table)
+    {
+        // 🚫 跳过 cell
+        if (fr.is_cell) continue;
+
+        if (fr.group_ids.empty()) continue;
+
+        uint32_t gid = fr.group_ids[0];  // 只处理第一个 G-ID
+
+        for (size_t rid : fr.merged_R)
+        {
+            auto it = rid_to_port_index.find(rid);
+            if (it == rid_to_port_index.end()) continue;
+
+            auto& vec = meta_src[it->second].group_ids;
+
+            if (vec.empty() || vec.back() != gid)
+                vec.push_back(gid);
+        }
+    }
+}
+
+
 void Create_Metainfo_for_SRC_port(
     const vector<PortRule>& port_table,
     const vector<IPRule>& merged_ip_table,
@@ -1147,8 +1216,9 @@ void Create_Metainfo_for_SRC_port(
         meta_src[i].group_ids.clear();
     }
     
-    
+    Generate_MergedR_GID_to_metaifno(final_ip_table, port_table, meta_src);
 
+    Generate_cell_GID_to_metaifno(IntersectionCell, merged_ip_table, port_table, final_ip_table, meta_src);
 
     // ----------- 2. 输出调试信息到 txt ----------
     std::ofstream fout("meta_src_debug.txt");
