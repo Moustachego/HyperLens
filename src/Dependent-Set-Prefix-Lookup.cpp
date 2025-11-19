@@ -1129,35 +1129,127 @@ void write_final_table_in_cidr(
 
 
 void Generate_cell_GID_to_metaifno(
-    const vector<IntersectionCell>& IntersectionCell,
+    const vector<IntersectionCell>& intersection_cells,
     const vector<IPRule>& merged_ip_table,
     const vector<PortRule>& port_table,
     const vector<FinalIPRule>& final_ip_table,
-    vector<Metainfo_for_SRC_port>& meta_src)
+    vector<Metainfo_for_SRC_port>& meta_src
+)
 {
-    for (size_t i = 0; i < IntersectionCell.size(); ++i) {
-        const auto& cell = IntersectionCell[i];
+    bool enable_debug = false;
+    // 预检查与准备
+    if (meta_src.size() != port_table.size()) {
+        if (enable_debug) std::cout << "[WARN] meta_src size != port_table size -> resizing meta_src\n";
+        meta_src.resize(port_table.size());
+    }
 
-        for (size_t rid : cell.Extraction) {
-            for (size_t j = 0; j < merged_ip_table.size(); ++j) 
-            {
-                const auto& ip_rule = merged_ip_table[j];
-                auto it = std::find(ip_rule.merged_R.begin(), ip_rule.merged_R.end(), rid);
-                if (it != ip_rule.merged_R.end()) 
-                {
-                    size_t merged_index = j;
+    // 1) 建立 原始 rule id (orig_rid) -> port_table index 的映射（O(P)）
+    std::unordered_map<size_t, size_t> origRid_to_portIndex;
+    origRid_to_portIndex.reserve(port_table.size());
+    for (size_t pi = 0; pi < port_table.size(); ++pi) {
+        origRid_to_portIndex[ port_table[pi].rid ] = pi;
+    }
 
-                    for (size_t k = 0; k < port_table.size(); ++k) 
-                    {
-                        const auto& port_rule = port_table[k];  //wait to add more
-                    }
-                    break; 
-                }
+    // 2) 建立 IntersectionCell 快速查找表：用 key = src_lo-src_hi-dst_lo-dst_hi-proto
+    std::unordered_map<std::string, size_t> cell_key_to_index;
+    cell_key_to_index.reserve(intersection_cells.size());
+    for (size_t ci = 0; ci < intersection_cells.size(); ++ci) {
+        const auto &c = intersection_cells[ci];
+        std::string key = std::to_string(c.src_lo) + "-" + std::to_string(c.src_hi) + "-" +
+                          std::to_string(c.dst_lo) + "-" + std::to_string(c.dst_hi) + "-" +
+                          std::to_string((int)c.proto);
+        cell_key_to_index.emplace(key, ci);
+    }
+
+    // Helper lambda: build key from final rule coords
+    auto make_key_from_final = [](const FinalIPRule &fr)->std::string {
+        return std::to_string(fr.src_lo) + "-" + std::to_string(fr.src_hi) + "-" +
+               std::to_string(fr.dst_lo) + "-" + std::to_string(fr.dst_hi) + "-" +
+               std::to_string((int)fr.proto);
+    };
+
+    // 3) 遍历 final_ip_table，仅处理 is_cell == true 的条目
+    for (size_t fi = 0; fi < final_ip_table.size(); ++fi) {
+        const FinalIPRule &fr = final_ip_table[fi];
+        if (!fr.is_cell) continue;
+        if (fr.group_ids.empty()) {
+            if (enable_debug) std::cout << "[DBG] final cell idx=" << fi << " has no group_ids, skip\n";
+            continue;
+        }
+
+        int gid = fr.group_ids[0]; // 只取第一个 G-ID
+        // 4) 用 final rule 的坐标在 intersection_cells 中定位对应 cell，提取 Extraction
+        std::string key = make_key_from_final(fr);
+        auto itc = cell_key_to_index.find(key);
+        if (itc == cell_key_to_index.end()) {
+            if (enable_debug) std::cout << "[WARN] cannot find IntersectionCell for final cell fi="
+                                        << fi << " key=" << key << "\n";
+            continue;
+        }
+        const IntersectionCell &ic = intersection_cells[itc->second];
+
+        // 5) 收集 orig_rids
+        std::vector<size_t> orig_rids; orig_rids.reserve(16);
+        for (size_t mid : ic.Extraction) {
+            if (mid >= merged_ip_table.size()) {
+                if (enable_debug) std::cout << "[WARN] Extraction mid out-of-range: " << mid << "\n";
+                continue;
+            }
+            const IPRule &mip = merged_ip_table[mid];
+            for (size_t orid : mip.merged_R) orig_rids.push_back(orid);
+        }
+
+        if (orig_rids.empty()) {
+            if (enable_debug) std::cout << "[DBG] final cell fi=" << fi << " (gid=" << gid << ") -> no orig_rids\n";
+            continue;
+        }
+
+        // 去重 orig_rids
+        std::sort(orig_rids.begin(), orig_rids.end());
+        orig_rids.erase(std::unique(orig_rids.begin(), orig_rids.end()), orig_rids.end());
+
+        // -------- 新逻辑：先把所有 orig_rid 映射到 pidx 集合（去重） --------
+        std::unordered_set<size_t> pidx_set;
+        pidx_set.reserve(orig_rids.size());
+        for (size_t orid : orig_rids) {
+            auto itp = origRid_to_portIndex.find(orid);
+            if (itp == origRid_to_portIndex.end()) {
+                if (enable_debug) std::cout << "[DBG] orig rule id " << orid
+                                            << " not found in port_table mapping\n";
+                continue;
+            }
+            pidx_set.insert(itp->second);
+        }
+
+        if (pidx_set.empty()) {
+            if (enable_debug) std::cout << "[DBG] final cell fi=" << fi << " gid=" << gid
+                                        << " -> no mapped port indices\n";
+            continue;
+        }
+
+        // 为集合中的每个唯一 pidx 创建一个新的 meta entry（避免同一 (cell,pidx) 被重复展开）
+        for (size_t pidx : pidx_set) {
+            const PortRule &por = port_table[pidx];
+
+            Metainfo_for_SRC_port new_entry;
+            new_entry.Inital_Number = por.rid;   // 或者 por.init_num，按你的结构体
+            new_entry.Src_lo   = por.src_port_lo;
+            new_entry.Src_hi   = por.src_port_hi;
+            new_entry.group_ids = { gid };
+
+            meta_src.push_back(new_entry);
+
+            if (enable_debug) {
+                std::cout << "[DBG] create NEW META entry from pidx=" << pidx
+                          << " with gid=" << gid << " (meta_src size=" << meta_src.size() << ")\n";
             }
         }
-    }    
+    } // end for final_ip_table
 
+    if (enable_debug) std::cout << "[INFO] Generate_cell_GID_to_metaifno done.\n";
 }
+
+
 
 
 void Generate_MergedR_GID_to_metaifno(
