@@ -52,8 +52,8 @@ struct Metainfo_for_SRC_port{
 
 struct MergedItem{
     std::vector<int> group_ids;      // GID 列表（你目前只有 1 个 GID）
-    int src_lo;
-    int src_hi;
+    uint32_t src_lo;
+    uint32_t src_hi;
     std::vector<int> idx_list;       // 合并后的多个 Idx（重排后 i+1）
     std::vector<int> initnum_list;   // 合并后的多个 InitNum
 };

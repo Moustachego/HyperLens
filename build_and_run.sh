@@ -13,13 +13,13 @@ echo "================================"
 echo ""
 
 # 1. 清理旧的二进制文件
-echo "[1/4] 清理旧的二进制文件..."
+echo "[1/5] 清理旧的二进制文件..."
 rm -f src/Parallel-Port-Lookup
 echo "✓ 清理完成"
 echo ""
 
 # 2. 编译
-echo "[2/4] 编译 (g++-11 -std=c++17)..."
+echo "[2/5] 编译 (g++-11 -std=c++17)..."
 /usr/bin/g++-11 -std=c++17 -fdiagnostics-color=always -g -DCOMPILE_AS_LIB \
     src/Parallel-Port-Lookup.cpp \
     src/input.cpp \
@@ -29,7 +29,7 @@ echo "✓ 编译成功"
 echo ""
 
 # 3. 验证二进制文件存在
-echo "[3/4] 验证二进制文件..."
+echo "[3/5] 验证二进制文件..."
 if [ -f src/Parallel-Port-Lookup ]; then
     ls -lh src/Parallel-Port-Lookup
     echo "✓ 二进制文件已生成"
@@ -40,14 +40,14 @@ fi
 echo ""
 
 # 4. 运行程序
-echo "[4/4] 运行程序..."
+echo "[4/5] 运行程序..."
 echo "======== 程序输出 ========"
 ./src/Parallel-Port-Lookup src/ACL_rules/test.rules
 echo "======== 程序完成 ========"
 echo ""
 
 # 5. 检查输出文件
-echo "[5/4] 检查生成的输出文件..."
+echo "[5/5] 检查生成的输出文件..."
 if [ -f final_ip_table_cidr.txt ]; then
     echo "✓ final_ip_table_cidr.txt ($(wc -l < final_ip_table_cidr.txt) 行)"
 fi

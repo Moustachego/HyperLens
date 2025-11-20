@@ -5,7 +5,6 @@
 // @Created: 2025-11-16
 /************************************************************* */
 
-
 #include <iostream>
 #include <vector>
 #include <map>
@@ -21,267 +20,369 @@
 #include <cstdint>
 #include <cmath>
 #include <iomanip> 
+#include <bitset>
 #include "input.hpp"
 #include "Dependent-Set-Prefix-Lookup.hpp"
 #include "Parallel-Port-Lookup.hpp"
 
-
 using namespace std;
 
 
-//-------------------- Step 1 --------------------
-vector<pair<uint16_t,uint16_t>>
-step1_collect_intervals(const vector<PortRule>& port_table)
+static const size_t MAX_BLOCKS_ALLOWED = 3000000;    // 总 blocks 上限（防止 OOM），可调 这有什么作用？
+static const uint32_t MAX_SINGLE_RANGE = 1u << 20; 
+
+
+// 为单个 block 生成 32-bit 位图，严格按照 block_start 计算偏移
+std::bitset<32> generate_32bit_bitmap(uint32_t block_start, uint32_t L, uint32_t H)
 {
-    vector<pair<uint16_t,uint16_t>> intervals;
-    intervals.reserve(port_table.size());
-    for (const auto& p : port_table) {
-        intervals.emplace_back(p.src_port_lo, p.src_port_hi);
-        cout << "[DBG] Extracted SRC port: " << p.src_port_lo << "-" << p.src_port_hi << endl;
+    std::bitset<32> bitmap;
+    uint32_t start = std::max(block_start, L);
+    uint32_t end   = std::min(block_start + 31, H);
+    for (uint32_t p = start; p <= end; ++p) {
+        bitmap.set(p - block_start);  // bitmap 内的位置 = 端口 - block_start
     }
-    return intervals;
+    return bitmap;
 }
 
-//-------------------- Step 2 --------------------
-unordered_map<uint16_t, BlockMeta>
-step2_build_block_map(const vector<pair<uint16_t,uint16_t>>& intervals)
+std::string compute_bin_prefix(uint32_t start, uint32_t end)
 {
-    const int BLOCK_SIZE = 32;
-    unordered_map<uint16_t, BlockMeta> block_map;
-    block_map.reserve(intervals.size() * 2);
-
-    for (size_t rid = 0; rid < intervals.size(); ++rid) {
-        uint16_t L = intervals[rid].first;
-        uint16_t R = intervals[rid].second;
-        if (L > R) continue;
-
-        uint16_t bL = L / BLOCK_SIZE;
-        uint16_t bR = R / BLOCK_SIZE;
-
-        for (uint16_t b = bL; b <= bR; ++b) {
-            uint32_t bm = 0;
-
-            int start = max<int>(L, b * BLOCK_SIZE);
-            int end   = min<int>(R, b * BLOCK_SIZE + BLOCK_SIZE - 1);
-
-            for (int p = start; p <= end; ++p)
-                bm |= (1U << (p - b * BLOCK_SIZE));
-
-            auto it = block_map.find(b);
-            if (it == block_map.end()) {
-                block_map[b] = BlockMeta{b, bm, {rid}, false};
-            } else {
-                it->second.bitmap |= bm;
-                it->second.owners.push_back(rid);
-            }
-        }
-    }
-    return block_map;
-}
-
-//-------------------- Step 3 --------------------
-vector<uint16_t>
-step3_collect_sorted_block_indices(const unordered_map<uint16_t,BlockMeta>& block_map)
-{
-    vector<uint16_t> idxs;
-    idxs.reserve(block_map.size());
-    for (auto& kv : block_map)
-        idxs.push_back(kv.first);
-    sort(idxs.begin(), idxs.end());
-    return idxs;
-}
-
-//-------------------- Step 4 --------------------
-vector<pair<uint16_t,uint16_t>>
-step4_build_runs(const vector<uint16_t>& idxs)
-{
-    vector<pair<uint16_t,uint16_t>> runs;
-    if (idxs.empty()) return runs;
-
-    uint16_t s = idxs[0], prev = idxs[0];
-    for (size_t i = 1; i < idxs.size(); ++i) {
-        if (idxs[i] == prev + 1)
-            prev = idxs[i];
+    // 找到 start 和 end 二进制表示的公共前缀
+    std::string prefix;
+    for (int i = 15; i >= 0; --i) { // 16-bit 端口
+        bool bstart = (start >> i) & 1;
+        bool bend   = (end   >> i) & 1;
+        if (bstart == bend)
+            prefix += bstart ? '1' : '0';
         else {
-            runs.emplace_back(s, prev);
-            s = prev = idxs[i];
-        }
-    }
-    runs.emplace_back(s, prev);
-    return runs;
-}
-
-//-------------------- Step 5-A: log2 --------------------
-int ilog2_uint16(uint16_t x)
-{
-    int r = 0;
-    while (x > 1) { x >>= 1; ++r; }
-    return r;
-}
-
-//-------------------- Step 5-B: max initial aligned --------------------
-uint16_t max_initial_aligned(uint16_t L, uint16_t R)
-{
-    uint16_t size = 1;
-    while (true) {
-        uint16_t next = size << 1;
-        if (next == 0) break;
-        if ((L % next) == 0 && (uint32_t)(L + next - 1) <= R)
-            size = next;
-        else
+            prefix += std::string(i + 1, '*'); // 剩余位都用 *
             break;
-    }
-    return size;
-}
-
-//-------------------- Step 6: Build TCAM and SRAM entries with placement strategy --------------------
-// Placement strategy: 
-//   - Large/dense blocks (>512 ports or high bitmap density) -> SRAM
-//   - Small/sparse blocks -> TCAM
-// This balances fast lookup (TCAM for common cases) with capacity (SRAM for wide ranges)
-pair<vector<SRC_TCAM_Table>, vector<SRC_SRAM_Table>>
-step6_build_tcam_and_sram(
-    unordered_map<uint16_t,BlockMeta>& block_map,
-    const vector<pair<uint16_t,uint16_t>>& runs
-){
-    const int BLOCK_SIZE = 32;
-    const int BLOCK_BITS = 5;
-
-    vector<SRC_TCAM_Table> tcam_out;
-    vector<SRC_SRAM_Table> sram_out;
-
-    // full mask for a block of BLOCK_SIZE bits
-    const uint32_t FULL_MASK = (BLOCK_SIZE == 32) ? 0xFFFFFFFFu : ((1u << BLOCK_SIZE) - 1u);
-
-    for (auto &r : runs) {
-        uint16_t bstart = r.first;
-        uint16_t bend = r.second;
-
-        uint16_t b = bstart;
-        while (b <= bend) {
-            auto it = block_map.find(b);
-            if (it == block_map.end() || it->second.assigned) {
-                ++b;
-                continue;
-            }
-
-            // If this block is fully set (all 32 bits), try to form a power-of-two superblock for TCAM
-            if (it->second.bitmap == FULL_MASK) {
-                // find largest power-of-two cur such that all blocks in [b, b+cur-1] exist, unassigned and full
-                uint16_t cur = 1;
-                // grow cur while next doubling fits inside bend and blocks are full
-                while (true) {
-                    uint16_t next = cur << 1;
-                    if (next == 0) break; // overflow guard
-                    if ((uint32_t)(b + next - 1) > bend) break;
-                    bool ok = true;
-                    for (uint16_t bb = b + cur; bb <= b + next - 1; ++bb) {
-                        auto it2 = block_map.find(bb);
-                        if (it2 == block_map.end() || it2->second.assigned || it2->second.bitmap != FULL_MASK) { ok = false; break; }
-                    }
-                    if (!ok) break;
-                    cur = next;
-                }
-
-                uint16_t base_port = b * BLOCK_SIZE;
-                uint16_t prefix_len = 16 - (BLOCK_BITS + ilog2_uint16(cur));
-
-                // push TCAM entry representing this aligned superblock
-                tcam_out.push_back({0, base_port, prefix_len});
-                cout << "[TCAM] base_port=" << base_port << " blocks=" << cur << " prefix_len=" << prefix_len << endl;
-
-                for (uint16_t bb = b; bb <= b + cur - 1; ++bb)
-                    block_map[bb].assigned = true;
-
-                b += cur;
-            } else {
-                // Partial block: store its bitmap in SRAM (exact-match bitmap)
-                uint16_t base_port = b * BLOCK_SIZE;
-                uint32_t bm = it->second.bitmap;
-                sram_out.push_back({0, base_port, vector<size_t>{ static_cast<size_t>(bm) }, 0});
-                cout << "[SRAM] block=" << b << " base_port=" << base_port << " bitmap=0x" << hex << bm << dec << endl;
-
-                it->second.assigned = true;
-                ++b;
-            }
         }
     }
+    return prefix;
+}
 
-    return {tcam_out, sram_out};
+inline bool is_power_of_two(uint32_t n) {
+    return n && ((n & (n - 1)) == 0);
 }
 
 
-//-------------------- Step 7: Collect blocks (for debug) --------------------
-vector<BlockInfo>
-step7_collect_blocks(const unordered_map<uint16_t,BlockMeta>& block_map)
+struct SplitResult {
+    vector<BlockMeta> blocks;              // 拆分后的 block
+    vector<MergedItem> full_range_items;   // 0-65535 范围的 item
+};
+
+
+SplitResult split_port_range_into_blocks(const vector<MergedItem> &meta_src)
 {
-    vector<BlockInfo> blocks;
-    for (auto &kv : block_map)
-        blocks.push_back(BlockInfo{ kv.first, kv.second.bitmap });
-    return blocks;
-}
+    SplitResult result;
+    size_t total_blocks = 0;
 
-// Print detailed block_map for debugging
-void step7_print_block_map(const unordered_map<uint16_t,BlockMeta>& block_map) {
-    cout << "[BLOCKMAP] total_blocks=" << block_map.size() << "\n";
-    for (const auto &kv : block_map) {
-        const uint16_t idx = kv.first;
-        const BlockMeta &m = kv.second;
-        cout << "Block[" << idx << "] bitmap=0x" << hex << m.bitmap << dec
-             << " owners={";
-        for (size_t i = 0; i < m.owners.size(); ++i) {
-            cout << m.owners[i];
-            if (i + 1 < m.owners.size()) cout << ",";
+    for (const auto &item : meta_src)
+    {
+        if (item.group_ids.empty()) continue;
+
+        uint32_t L = item.src_lo;
+        uint32_t H = item.src_hi;
+        if (L > H) continue;
+
+        uint64_t range_len = (uint64_t)H - (uint64_t)L + 1u;
+        if (range_len > MAX_SINGLE_RANGE) continue;
+
+        uint32_t group_id = item.group_ids[0];
+
+        // -------- 特殊处理：全端口 0-65535 --------
+        if (L == 0 && H == 65535) {
+            result.full_range_items.push_back(item); // 保存全端口 item
+            continue;  // 跳过拆分
         }
-        cout << "} assigned=" << (m.assigned ? "yes" : "no") << "\n";
+
+        // 从 L 到 H 拆分 block
+        uint32_t start = L;
+        uint32_t block_idx = 0;
+
+        while (start <= H) {
+            uint32_t SP = start / 32;
+            uint32_t block_start = start;          // 第一个 block 用 start
+            uint32_t block_end;
+            
+            if (start != L) {                       // 后续 block 可以对齐到 32 的倍数
+                block_start = SP * 32;
+            }
+
+            // 第一个 block: 从 start 到下一个 32 的倍数 -1，或者 H
+            if (start % 32 != 0) {
+                block_end = min(H, (start / 32 + 1) * 32 - 1);
+            } else {
+                // 对齐 32 的倍数 block
+                block_end = min(H, start + 31);
+            }
+            BlockMeta bm;
+            bm.group_id = group_id;
+            bm.block_idx = block_idx;
+            bm.SP = SP;
+            bm.start = block_start;   // 记录真实起始端口
+            bm.end   = block_end;     // 记录真实结束端口
+            bm.assigned = false;
+
+            // -------- 判断是否可以用单一 prefix --------
+            uint32_t block_len = block_end - block_start + 1;
+            bool can_use_prefix = is_power_of_two(block_len) && (block_start % block_len == 0);
+
+            if (can_use_prefix) {
+                bm.can_use_prefix = true;
+                bm.bin_prefix = compute_bin_prefix(block_start, block_end);
+            } else {
+                bm.can_use_prefix = false;
+                bm.bitmap = generate_32bit_bitmap(block_start, block_start, block_end);
+            }
+
+            result.blocks.push_back(move(bm));
+            total_blocks++;
+            if (total_blocks > MAX_BLOCKS_ALLOWED) {
+                cerr << "[FATAL] total blocks exceed MAX_BLOCKS_ALLOWED.\n";
+                abort();
+            }
+
+            block_idx++;
+            start = block_end + 1;
+        }
+    }
+
+    cerr << "[DBG] split_port_range_into_blocks produced blocks.size() = "
+         << result.blocks.size()
+         << ", full_range_items.size() = "
+         << result.full_range_items.size() << "\n";
+
+    return result;
+}
+
+
+vector<MergedItem> convert_mateifno_to_vector(
+    const map<std::tuple<std::vector<int>, int, int>, MergedItem> &mateifno)
+{
+    vector<MergedItem> result;
+    result.reserve(mateifno.size()); // small, keep as is
+    for (const auto &kv : mateifno)
+        result.push_back(kv.second);
+    return result;
+}
+
+void fill_full_range_items_to_src_tcam(
+    const std::vector<MergedItem>& full_range_items,
+    std::vector<SRC_TCAM_Table>& src_tcam_table)
+{
+    for (const auto& item : full_range_items)
+    {
+        if (item.group_ids.empty()) {
+            std::cerr << "[WARN] MergedItem has empty group_ids, skipping.\n";
+            continue;
+        }
+
+        // 假设全端口范围 0-65535
+        if (item.src_lo == 0 && item.src_hi == 65535)
+        {
+            SRC_TCAM_Table entry;
+            entry.GroupID1 = static_cast<uint16_t>(item.group_ids[0]);
+            entry.src_port_value = 0;    // 基准端口
+            entry.src_port_mask  = 0x0000; // 全端口通配
+            entry.GroupID2 = entry.GroupID1; // 同 GroupID
+            entry.bin_prefix = std::string(16, '*');
+
+            src_tcam_table.push_back(std::move(entry));
+        }
+        else
+        {
+            std::cerr << "[INFO] MergedItem is not full range, skipping: "
+                      << item.src_lo << "-" << item.src_hi << "\n";
+        }
+    }
+
+    std::cerr << "[INFO] fill_full_range_items_to_src_tcam produced "
+              << src_tcam_table.size() << " entries.\n";
+}
+
+
+void merge_prefix_blocks(std::vector<BlockMeta>& blocks) {  //need to be checked
+    // 按 group_id 和 src_lo 排序，保持顺序
+    std::sort(blocks.begin(), blocks.end(), [](const BlockMeta &a, const BlockMeta &b) {
+        if (a.group_id != b.group_id) return a.group_id < b.group_id;
+        return a.start < b.end;  // 用实际端口顺序
+    });
+
+    size_t i = 0;
+    while (i < blocks.size()) {
+        // 只对 can_use_prefix=true 的 block 尝试合并
+        if (!blocks[i].can_use_prefix) {
+            i++;
+            continue;
+        }
+
+        uint32_t merge_start = blocks[i].start;
+        uint32_t merge_end = blocks[i].end;
+        std::string merge_prefix = blocks[i].bin_prefix;
+        size_t j = i + 1;
+
+        // 尝试合并后续连续 block
+        while (j < blocks.size() &&
+               blocks[j].group_id == blocks[i].group_id &&
+               blocks[j].can_use_prefix) {
+            
+            uint32_t candidate_start = merge_start;
+            uint32_t candidate_end = blocks[j].end;
+
+            // 计算合并后的公共前缀
+            std::string candidate_prefix = compute_bin_prefix(candidate_start, candidate_end);
+
+            // 判断合并后的 prefix 是否覆盖完整连续范围
+            uint32_t mask_len = 0;
+            for (char c : candidate_prefix) if (c != '*') mask_len++;
+
+            uint32_t prefix_range_len = 1u << (16 - mask_len);
+            // prefix_range_len 必须对齐 candidate_start，否则不能合并
+            if (candidate_start % prefix_range_len != 0) break;
+
+            // 合并成功，更新 merge_end 和 merge_prefix
+            merge_end = candidate_end;
+            merge_prefix = candidate_prefix;
+            j++;
+        }
+
+        // 更新第 i 个 block
+        blocks[i].start = merge_start;
+        blocks[i].end = merge_end;
+        blocks[i].bin_prefix = merge_prefix;
+        blocks[i].can_use_prefix = true;
+        
+        blocks[i].assigned = true;
+
+        // 删除已经被合并掉的 block
+        if (j > i + 1) {
+            blocks.erase(blocks.begin() + i + 1, blocks.begin() + j);
+        }
+
+        i++;
     }
 }
 
 
-//-------------------- Step 8: Print final stats --------------------
-void step8_print_stats(
-    const unordered_map<uint16_t,BlockMeta>& block_map,
-    const vector<SRC_TCAM_Table>& tcam
-){
-    size_t total = block_map.size();
-    size_t assigned = 0;
-    for (auto &kv : block_map)
-        if (kv.second.assigned) ++assigned;
+void output_sram_tcam_tables(
+    std::vector<SRC_TCAM_Table>& src_tcam_table,
+    std::vector<SRC_SRAM_Table>& src_sram_table)
+{
+    auto bitmap_to_32bit_string = [](const std::vector<size_t>& indexes) {
+        std::bitset<32> b;
+        for (size_t idx : indexes) {
+            if (idx < 32) b.set(idx);
+        }
+        std::string s;
+        for (int i = 31; i >= 0; --i) s += b[i] ? '1' : '0';
+        return s;
+    };
 
-    cout << "[RESULT] total distinct blocks = " << total
-         << ", assigned blocks = " << assigned
-         << ", TCAM entries = " << tcam.size() << endl;
+    // -------- TCAM 输出 --------
+    std::sort(src_tcam_table.begin(), src_tcam_table.end(),
+        [](const SRC_TCAM_Table &a, const SRC_TCAM_Table &b) {
+            return a.GroupID1 < b.GroupID1;
+        }
+    );
 
-    for (size_t i = 0; i < tcam.size(); ++i) {
-        cout << "[TCAM][" << i << "] base_port=" << tcam[i].Src_Port_TCAM
-             << " prefix_len=" << tcam[i].GroupID2 << endl;
+    std::ofstream tcam_file("SRC_TCAM_Table.txt");
+    tcam_file << std::left
+              << std::setw(20) << "GroupID1"
+              << std::setw(40) << "SrcPort"
+              << std::setw(20) << "GroupID2" << "\n";
+
+    for (const auto &e : src_tcam_table) {
+        tcam_file << std::left
+                  << std::setw(20) << e.GroupID1
+                  << std::setw(40) << e.bin_prefix
+                  << std::setw(20) << e.GroupID2 << "\n";
     }
+    tcam_file.close();
+
+    // -------- SRAM 输出 --------
+    std::sort(src_sram_table.begin(), src_sram_table.end(),
+        [](const SRC_SRAM_Table &a, const SRC_SRAM_Table &b) {
+            if (a.GroupID1 != b.GroupID1) return a.GroupID1 < b.GroupID1;
+            return a.SP_Quotient < b.SP_Quotient;
+        }
+    );
+
+    std::ofstream sram_file("SRC_SRAM_Table.txt");
+    sram_file << std::left
+              << std::setw(20) << "GroupID1"
+              << std::setw(22) << "SP_Quotient"
+              << std::setw(50) << "Bitmap32"
+              << std::setw(10) << "GroupID2" << "\n";
+
+    for (const auto &e : src_sram_table) {
+        sram_file << std::left
+                  << std::setw(20) << e.GroupID1
+                  << std::setw(22) << e.SP_Quotient
+                  << std::setw(50) << bitmap_to_32bit_string(e.bitmap)
+                  << std::setw(10) << e.GroupID2 << "\n";
+    }
+    sram_file.close();
+
+    std::cerr << "[INFO] Tables exported. "
+              << "TCAM entries=" << src_tcam_table.size()
+              << ", SRAM entries=" << src_sram_table.size() << "\n";
 }
 
+
+void assign_blocks_to_sram_tcam(
+    const std::vector<BlockMeta>& blocks,
+    std::vector<SRC_SRAM_Table>& src_sram_table,
+    std::vector<SRC_TCAM_Table>& src_tcam_table)
+{
+    for (const auto &bm : blocks) {
+        if (bm.can_use_prefix && bm.assigned) {
+            // 分配到 TCAM
+            SRC_TCAM_Table entry{};
+            entry.GroupID1 = static_cast<uint16_t>(bm.group_id);
+            entry.GroupID2 = entry.GroupID1;
+            entry.bin_prefix = bm.bin_prefix;
+            src_tcam_table.push_back(std::move(entry));
+        } else {
+            // 分配到 SRAM
+            SRC_SRAM_Table entry;
+            entry.GroupID1 = static_cast<uint16_t>(bm.group_id);
+            entry.GroupID2 = entry.GroupID1;
+            entry.SP_Quotient = static_cast<uint16_t>(bm.SP);
+
+            entry.bitmap.clear();
+            for (size_t k = 0; k < 32; ++k) {
+                if (bm.bitmap.test(k)) entry.bitmap.push_back(k);
+            }
+            src_sram_table.push_back(std::move(entry));
+        }
+    }
+
+    output_sram_tcam_tables(src_tcam_table, src_sram_table);
+}
 
 //-------------------- Step 9: Main function to build SRC port tables --------------------
-pair<pair<vector<BlockInfo>, vector<SRC_TCAM_Table>>, vector<SRC_SRAM_Table>>
-create_Table_for_SRC_port(
+void create_Table_for_SRC_port(
     const vector<PortRule>& port_table,
-    const vector<IPRule>& merged_ip_table
+    const vector<IPRule>& merged_ip_table,
+    std::map<std::tuple<std::vector<int>, int, int>, MergedItem>& mateifno
 ){
-    // All intermediate results are declared within function scope
-    auto intervals = step1_collect_intervals(port_table);
-    auto block_map = step2_build_block_map(intervals);
+    auto meta_src_list = convert_mateifno_to_vector(mateifno);
 
-    auto idxs = step3_collect_sorted_block_indices(block_map);
-    auto runs = step4_build_runs(idxs);
+    auto split_result = split_port_range_into_blocks(meta_src_list);
+    auto &blocks = split_result.blocks;
+    auto &full_range_items = split_result.full_range_items;
 
-    // Build both SRAM and TCAM tables with placement decision
-    auto [src_port_tcam, src_port_sram] = step6_build_tcam_and_sram(block_map, runs);
-    auto src_port_blocks = step7_collect_blocks(block_map);
+    std::vector<SRC_SRAM_Table> src_sram_table;
+    std::vector<SRC_TCAM_Table> src_tcam_table;
 
-    step8_print_stats(block_map, src_port_tcam);
+    fill_full_range_items_to_src_tcam(full_range_items, src_tcam_table);
 
-    // Return blocks, TCAM table, and SRAM table
-    return {{src_port_blocks, src_port_tcam}, src_port_sram};
+    merge_prefix_blocks(blocks);
+
+    assign_blocks_to_sram_tcam(blocks, src_sram_table, src_tcam_table);
+
 }
-
 
 void laod_and_create_IP_table(vector<IPRule>& ip_table,
     vector<PortRule>& port_table, 
@@ -357,12 +458,7 @@ int main(int argc, char **argv)  // accept optional path argument
          << ", Merged IP=" << merged_ip_table.size() << "\n";
 
     // Call the refactored function and capture results
-    auto [result, src_port_sram] = create_Table_for_SRC_port(port_table, merged_ip_table);
-    auto [src_port_blocks, SRC_TCAM_Table] = result;
-
-    cout << "[Parallel-Port-Lookup] SRC port TCAM table built with " << SRC_TCAM_Table.size() << " entries\n";
-    cout << "[Parallel-Port-Lookup] SRC port SRAM table built with " << src_port_sram.size() << " entries\n";
-    cout << "[Parallel-Port-Lookup] Block info collected: " << src_port_blocks.size() << " blocks\n";
+    create_Table_for_SRC_port(port_table, merged_ip_table, mateifno);
 
     return 0;
 }

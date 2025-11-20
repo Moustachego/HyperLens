@@ -192,7 +192,6 @@ static string ip_to_string(uint32_t ip) {
            
 }
 
-
 vector<string> range_to_cidr(uint32_t start, uint32_t end) {
     vector<string> res;
     while (start <= end) {
