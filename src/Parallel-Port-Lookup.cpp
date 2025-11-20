@@ -32,16 +32,40 @@ static const size_t MAX_BLOCKS_ALLOWED = 3000000;    // 总 blocks 上限（防�
 static const uint32_t MAX_SINGLE_RANGE = 1u << 20; 
 
 
-// 为单个 block 生成 32-bit 位图，严格按照 block_start 计算偏移
-std::bitset<32> generate_32bit_bitmap(uint32_t block_start, uint32_t L, uint32_t H)
+std::bitset<32> generate_32bit_bitmap(uint32_t block_base, uint32_t L, uint32_t H)
 {
-    std::bitset<32> bitmap;
-    uint32_t start = std::max(block_start, L);
-    uint32_t end   = std::min(block_start + 31, H);
-    for (uint32_t p = start; p <= end; ++p) {
-        bitmap.set(p - block_start);  // bitmap 内的位置 = 端口 - block_start
+    std::bitset<32> bitmap; // 默认全部 0
+    // block_base 是 SP*32（对齐的 32-port block 起始端口）
+    // 计算在 block 中真正要设置 1 的区间（相对 block_base 的偏移）
+    uint32_t s = std::max<uint32_t>(block_base, L);
+    uint32_t e = std::min<uint32_t>(block_base + 31u, H);
+    if (s <= e) {
+        for (uint32_t p = s; p <= e; ++p) {
+            bitmap.set(p - block_base); // bit index = offset inside 32-port block
+        }
     }
+    // 未命中的位保持 0（bitset 初始化为 0）
     return bitmap;
+}
+
+// 把 bitset<32> 转成可读字符串：
+// lsb_on_right = true -> 最右边是 bit0（block_start），与你之前展示的 "000...01111" 风格一致
+// lsb_on_right = false -> 最左边是 bit31（常见二进制从 MSB->LSB）
+// 返回 32 字符长的 "0"/"1" 字符串
+std::string bitmap32_to_string(const std::bitset<32> &bm, bool lsb_on_right = true)
+{
+    std::string s;
+    s.reserve(32);
+    if (lsb_on_right) {
+        // 为兼容以前展示风格，这里把 bit0 (offset 0) 放在字符串左侧
+        // 即按 bit0..bit31 的顺序输出，使得左侧对应 block 内的低偏移
+        for (int i = 0; i < 32; ++i) s.push_back(bm.test(i) ? '1' : '0');
+    } else {
+        // MSB on left (bit31 leftmost) == same as above but make alternative for clarity
+        for (int i = 31; i >= 0; --i) s.push_back(bm.test(i) ? '1' : '0');
+        // (实际上上面两种在实现上相同；保留这一参数以便将来反转显示，如果需要可以改)
+    }
+    return s;
 }
 
 std::string compute_bin_prefix(uint32_t start, uint32_t end)
@@ -123,6 +147,7 @@ SplitResult split_port_range_into_blocks(const vector<MergedItem> &meta_src)
             bm.start = block_start;   // 记录真实起始端口
             bm.end   = block_end;     // 记录真实结束端口
             bm.assigned = false;
+            bm.single_value = (block_start == block_end);
 
             // -------- 判断是否可以用单一 prefix --------
             uint32_t block_len = block_end - block_start + 1;
@@ -133,7 +158,9 @@ SplitResult split_port_range_into_blocks(const vector<MergedItem> &meta_src)
                 bm.bin_prefix = compute_bin_prefix(block_start, block_end);
             } else {
                 bm.can_use_prefix = false;
-                bm.bitmap = generate_32bit_bitmap(block_start, block_start, block_end);
+                // 使用 SP*32 作为 bitmap 的基准，使得 bitmap 的位序与 SP_Quotient 对齐
+                uint32_t block_base = SP * 32;
+                bm.bitmap = generate_32bit_bitmap(block_base, block_start, block_end);
             }
 
             result.blocks.push_back(move(bm));
@@ -201,67 +228,125 @@ void fill_full_range_items_to_src_tcam(
               << src_tcam_table.size() << " entries.\n";
 }
 
+static inline int prefix_fixed_len(const std::string &pref) {
+    int cnt = 0;
+    for (char c : pref) {
+        if (c == '*') break;
+        cnt++;
+    }
+    return cnt;
+}
 
-void merge_prefix_blocks(std::vector<BlockMeta>& blocks) {  //need to be checked
-    // 按 group_id 和 src_lo 排序，保持顺序
+// 是否为“兄弟前缀”：长度相同且除最后一位外完全相同，最后1位相反
+static inline bool are_sibling_prefixes(const std::string &a, const std::string &b) {
+    int la = prefix_fixed_len(a);
+    int lb = prefix_fixed_len(b);
+    if (la == 0 || lb == 0) return false;
+    if (la != lb) return false;
+    // 比较前 (la-1) 位
+    if (la == 1) {
+        // 只有 1 位固定：比较空前缀（都相同 trivially），最后一位需不同
+        return a[0] != b[0];
+    }
+    for (int i = 0; i < la-1; ++i) {
+        if (a[i] != b[i]) return false;
+    }
+    // 最后一位必须不同 and both are '0' or '1'
+    char la_char = a[la-1], lb_char = b[la-1];
+    if ((la_char == '0' || la_char == '1') && (lb_char == '0' || lb_char == '1') && la_char != lb_char)
+        return true;
+    return false;
+}
+
+// 生成 parent prefix（把最后一位变成 '*'）
+static inline std::string parent_prefix(const std::string &p) {
+    int L = prefix_fixed_len(p);
+    if (L == 0) return p; // already all *
+    std::string s = p.substr(0, std::max(0, L-1));
+    s += std::string(16 - (L-1), '*'); // 保持总长度为16位表示方式
+    return s;
+}
+
+// 主合并函数
+void merge_prefix_blocks(std::vector<BlockMeta>& blocks) {
+    // 先按 group_id, start 排序（严格按 start 升序）
     std::sort(blocks.begin(), blocks.end(), [](const BlockMeta &a, const BlockMeta &b) {
         if (a.group_id != b.group_id) return a.group_id < b.group_id;
-        return a.start < b.end;  // 用实际端口顺序
+        return a.start < b.start;
     });
+
+    std::vector<BlockMeta> out; // 最终输出容器
 
     size_t i = 0;
     while (i < blocks.size()) {
-        // 只对 can_use_prefix=true 的 block 尝试合并
-        if (!blocks[i].can_use_prefix) {
-            i++;
-            continue;
+        // collect same-group items in order
+        uint32_t gid = blocks[i].group_id;
+        size_t j = i;
+        std::vector<BlockMeta> group_blocks;
+        while (j < blocks.size() && blocks[j].group_id == gid) {
+            group_blocks.push_back(blocks[j]);
+            ++j;
         }
 
-        uint32_t merge_start = blocks[i].start;
-        uint32_t merge_end = blocks[i].end;
-        std::string merge_prefix = blocks[i].bin_prefix;
-        size_t j = i + 1;
+        // 处理本 group：对 can_use_prefix==true 的使用栈式合并
+        std::vector<BlockMeta> stack;
+        for (auto &bm : group_blocks) {
+            if (!bm.can_use_prefix) {
+                // flush any pending stack entries into out (因为非 prefix 的 block 不能与 prefix 合并)
+                while (!stack.empty()) {
+                    out.push_back(stack.front());
+                    stack.erase(stack.begin());
+                }
+                out.push_back(bm);
+                continue;
+            }
 
-        // 尝试合并后续连续 block
-        while (j < blocks.size() &&
-               blocks[j].group_id == blocks[i].group_id &&
-               blocks[j].can_use_prefix) {
-            
-            uint32_t candidate_start = merge_start;
-            uint32_t candidate_end = blocks[j].end;
+            // bm 可用 prefix，push 然后尝试合并栈顶
+            stack.push_back(bm);
 
-            // 计算合并后的公共前缀
-            std::string candidate_prefix = compute_bin_prefix(candidate_start, candidate_end);
+            // 尝试向上合并：只检查栈顶两个元素（前一个 A, 当前 B）
+            bool merged_once = true;
+            while (merged_once && stack.size() >= 2) {
+                merged_once = false;
+                BlockMeta B = stack.back();
+                BlockMeta A = stack[stack.size()-2];
 
-            // 判断合并后的 prefix 是否覆盖完整连续范围
-            uint32_t mask_len = 0;
-            for (char c : candidate_prefix) if (c != '*') mask_len++;
+                // 只有在相邻并且两者都是 can_use_prefix 的情况下尝试合并
+                if (A.can_use_prefix && B.can_use_prefix && (A.end + 1 == B.start)) {
+                    // 前缀必须是 sibling（同固定长、除最后一位外相同、最后一位不同）
+                    if (are_sibling_prefixes(A.bin_prefix, B.bin_prefix)) {
+                        // 合并为 parent
+                        BlockMeta M;
+                        M.group_id = A.group_id;
+                        M.start = A.start;
+                        M.end   = B.end;
+                        M.can_use_prefix = true;
+                        M.bin_prefix = parent_prefix(A.bin_prefix); // 或 parent_prefix(B.bin_prefix) 一样
+                        M.assigned = true; // 合并后的标记为 assigned (以便写入 TCAM later)
+                        // SP/block_idx 等字段可以重设或保留为 0/0
+                        M.SP = A.SP; M.block_idx = A.block_idx;
 
-            uint32_t prefix_range_len = 1u << (16 - mask_len);
-            // prefix_range_len 必须对齐 candidate_start，否则不能合并
-            if (candidate_start % prefix_range_len != 0) break;
+                        // pop 两个，push 一个
+                        stack.pop_back();
+                        stack.pop_back();
+                        stack.push_back(M);
 
-            // 合并成功，更新 merge_end 和 merge_prefix
-            merge_end = candidate_end;
-            merge_prefix = candidate_prefix;
-            j++;
-        }
+                        // 合并成功，继续尝试和前面再合并（所以循环）
+                        merged_once = true;
+                    }
+                }
+            } // end while try merging
+        } // end for blocks in group
 
-        // 更新第 i 个 block
-        blocks[i].start = merge_start;
-        blocks[i].end = merge_end;
-        blocks[i].bin_prefix = merge_prefix;
-        blocks[i].can_use_prefix = true;
-        
-        blocks[i].assigned = true;
+        // group 处理完，把 stack 的剩余压入 out（这些是 prefix 类型但无法进一步合并的）
+        for (auto &x : stack) out.push_back(x);
 
-        // 删除已经被合并掉的 block
-        if (j > i + 1) {
-            blocks.erase(blocks.begin() + i + 1, blocks.begin() + j);
-        }
-
-        i++;
+        // advance to next group
+        i = j;
     }
+
+    // 用合并后的 out 替换原 blocks（保留 can_use_prefix==false 的原条目也在 out 中）
+    blocks.swap(out);
 }
 
 
@@ -275,7 +360,8 @@ void output_sram_tcam_tables(
             if (idx < 32) b.set(idx);
         }
         std::string s;
-        for (int i = 31; i >= 0; --i) s += b[i] ? '1' : '0';
+        // 按 offset 0..31 的顺序输出，使得字符串左侧对应 block 内低偏移
+        for (int i = 0; i < 32; ++i) s += b[i] ? '1' : '0';
         return s;
     };
 
@@ -336,7 +422,7 @@ void assign_blocks_to_sram_tcam(
     std::vector<SRC_TCAM_Table>& src_tcam_table)
 {
     for (const auto &bm : blocks) {
-        if (bm.can_use_prefix && bm.assigned) {
+        if ( bm.assigned || bm.single_value || bm.can_use_prefix ) {
             // 分配到 TCAM
             SRC_TCAM_Table entry{};
             entry.GroupID1 = static_cast<uint16_t>(bm.group_id);

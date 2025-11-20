@@ -41,4 +41,5 @@ struct BlockMeta {
     bool can_use_prefix;
     std::bitset<32> bitmap; 
     bool assigned = false;        // 是否已经被分配给 TCAM（被合并成 superblock）
+    bool single_value = false;    // 新增：是否为单个端口值
 };
