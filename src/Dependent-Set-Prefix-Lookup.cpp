@@ -1232,6 +1232,8 @@ void Generate_cell_GID_to_metaifno(
             new_entry.Inital_Number = por.rid;   // 或者 por.init_num，按你的结构体
             new_entry.Src_lo   = por.src_port_lo;
             new_entry.Src_hi   = por.src_port_hi;
+            new_entry.Dst_lo   = por.dst_port_lo;
+            new_entry.Dst_hi   = por.dst_port_hi;
             new_entry.group_ids = { gid };
 
             meta_src.push_back(new_entry);
@@ -1277,35 +1279,37 @@ void Generate_MergedR_GID_to_metaifno(
 }
 
 
-void Create_Metainfo_for_SRC_port(
+void Create_Metainfo_for_port(
     const vector<PortRule>& port_table,
     const vector<IPRule>& merged_ip_table,
     const vector<IntersectionCell>& IntersectionCell,
     const vector<FinalIPRule>& final_ip_table,
     std::map<std::tuple<std::vector<int>, int, int>, MergedItem>& merged_output)
 {
-    vector<Metainfo_for_SRC_port> meta_src;
+    vector<Metainfo_for_SRC_port> meta;
 
-    meta_src.clear();
-    meta_src.resize(port_table.size());
+    meta.clear();
+    meta.resize(port_table.size());
 
     for (size_t i = 0; i < port_table.size(); ++i) {
         const auto& p = port_table[i];
 
-        meta_src[i].Inital_Number = static_cast<uint32_t>(i);   // 当前规则序号
-        meta_src[i].Src_lo        = p.src_port_lo;
-        meta_src[i].Src_hi        = p.src_port_hi;
+        meta[i].Inital_Number = static_cast<uint32_t>(i);   // 当前规则序号
+        meta[i].Src_lo        = p.src_port_lo;
+        meta[i].Src_hi        = p.src_port_hi;
+        meta[i].Dst_lo        = p.dst_port_lo;
+        meta[i].Dst_hi        = p.dst_port_hi;
 
         // group_ids 暂时空，不填
-        meta_src[i].group_ids.clear();
+        meta[i].group_ids.clear();
     }
     
-    Generate_MergedR_GID_to_metaifno(final_ip_table, port_table, meta_src);
+    Generate_MergedR_GID_to_metaifno(final_ip_table, port_table, meta);
 
-    Generate_cell_GID_to_metaifno(IntersectionCell, merged_ip_table, port_table, final_ip_table, meta_src);
+    Generate_cell_GID_to_metaifno(IntersectionCell, merged_ip_table, port_table, final_ip_table, meta);
 
     // ---------- Step: 按 G-ID 排序 meta_src ----------
-    std::vector<Metainfo_for_SRC_port> sorted_meta = meta_src;
+    std::vector<Metainfo_for_SRC_port> sorted_meta = meta;
 
     // 自定义排序
     std::sort(sorted_meta.begin(), sorted_meta.end(),
@@ -1336,6 +1340,8 @@ void Create_Metainfo_for_SRC_port(
                 m.group_ids,
                 m.Src_lo,
                 m.Src_hi,
+                m.Dst_lo,
+                m.Dst_hi,
                 {},    // idx_list
                 {}     // initnum_list
             };
@@ -1356,13 +1362,14 @@ void Create_Metainfo_for_SRC_port(
     }
 
     merged_output = merged_map;
-    std::ofstream fout("meta_src_merged.txt");
+    std::ofstream fout("meta_merged.txt");
     if (!fout) {
-        std::cerr << "Error: cannot open meta_src_merged.txt\n";
+        std::cerr << "Error: cannot open meta_merged.txt\n";
         return;
     }
 
-    fout << "GroupIDs\tSrc_lo\tSrc_hi\tIdx_list\tInitNum_list\n";
+    fout << "GroupIDs\tSrc_lo\tSrc_hi\tDst_lo\tDst_hi\tIdx_list\tInitNum_list\n";
+
 
     for (const auto& kv : merged_map) {
         const auto& item = kv.second;
@@ -1394,14 +1401,17 @@ void Create_Metainfo_for_SRC_port(
             << std::setw(12) << group_str
             << std::setw(8)  << item.src_lo
             << std::setw(8)  << item.src_hi
+            << std::setw(8)  << item.dst_lo       // ★ 新增
+            << std::setw(8)  << item.dst_hi       // ★ 新增
             << std::setw(18) << idx_str
             << std::setw(20) << initnum_str
             << "\n";
+
     }
 
 
     fout.close();
-    std::cout << "[INFO] meta_src_merged.txt saved.\n";
+    std::cout << "[INFO] meta_merged.txt saved.\n";
     
 };
 

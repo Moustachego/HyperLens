@@ -184,13 +184,41 @@ SplitResult split_port_range_into_blocks(const vector<MergedItem> &meta_src)
 }
 
 
+
+
+// Overload: convert from vector<Mate_SRC_LIST> to vector<MergedItem>
 vector<MergedItem> convert_mateifno_to_vector(
-    const map<std::tuple<std::vector<int>, int, int>, MergedItem> &mateifno)
+    const std::vector<Mate_SRC_LIST> &mate_src_list)
 {
     vector<MergedItem> result;
-    result.reserve(mateifno.size()); // small, keep as is
-    for (const auto &kv : mateifno)
-        result.push_back(kv.second);
+    result.reserve(mate_src_list.size());
+    for (const auto &s : mate_src_list) {
+        MergedItem mi;
+        mi.group_ids = s.group_ids;
+        mi.src_lo = s.src_lo;
+        mi.src_hi = s.src_hi;
+        mi.idx_list = s.idx_list;
+        mi.initnum_list = s.initnum_list;
+        result.push_back(std::move(mi));
+    }
+    return result;
+}
+
+// Overload: convert from vector<Mate_DST_LIST> to vector<MergedItem>
+vector<MergedItem> convert_mateifno_to_vector(
+    const std::vector<Mate_DST_LIST> &mate_dst_list)
+{
+    vector<MergedItem> result;
+    result.reserve(mate_dst_list.size());
+    for (const auto &d : mate_dst_list) {
+        MergedItem mi;
+        mi.group_ids = d.group_ids;
+        mi.dst_lo = d.dst_lo;
+        mi.dst_hi = d.dst_hi;
+        mi.idx_list = d.idx_list;
+        mi.initnum_list = d.initnum_list;
+        result.push_back(std::move(mi));
+    }
     return result;
 }
 
@@ -447,13 +475,53 @@ void assign_blocks_to_sram_tcam(
     output_sram_tcam_tables(src_tcam_table, src_sram_table);
 }
 
+// 将 merged_output 格式的 mateifno 拆分为以 src 为主和以 dst 为主的两个列表
+void split_mateinfo_into_src_dst(
+    const std::map<std::tuple<std::vector<int>, int, int>, MergedItem> &mateifno,
+    std::vector<Mate_SRC_LIST> &mate_src,
+    std::vector<Mate_DST_LIST> &mate_dst)
+{
+    mate_src.clear();
+    mate_dst.clear();
+
+    mate_src.reserve(mateifno.size());
+    mate_dst.reserve(mateifno.size());
+
+    for (const auto &kv : mateifno) {
+        const MergedItem &mi = kv.second;
+
+        Mate_SRC_LIST s;
+        s.group_ids = mi.group_ids;
+        s.src_lo = mi.src_lo;
+        s.src_hi = mi.src_hi;
+        s.idx_list = mi.idx_list;
+        s.initnum_list = mi.initnum_list;
+
+        Mate_DST_LIST d;
+        d.group_ids = mi.group_ids;
+        d.dst_lo = mi.dst_lo;
+        d.dst_hi = mi.dst_hi;
+        d.idx_list = mi.idx_list;
+        d.initnum_list = mi.initnum_list;
+
+        mate_src.push_back(std::move(s));
+        mate_dst.push_back(std::move(d));
+    }
+}
+
 //-------------------- Step 9: Main function to build SRC port tables --------------------
-void create_Table_for_SRC_port(
+void create_Table_for_port(
     const vector<PortRule>& port_table,
     const vector<IPRule>& merged_ip_table,
     std::map<std::tuple<std::vector<int>, int, int>, MergedItem>& mateifno
-){
-    auto meta_src_list = convert_mateifno_to_vector(mateifno);
+){  
+    vector<Mate_SRC_LIST> mate_src;
+    vector<Mate_DST_LIST> mate_dst;
+
+    split_mateinfo_into_src_dst(mateifno, mate_src, mate_dst);
+
+    auto meta_src_list = convert_mateifno_to_vector(mate_src);
+    auto meta_dst_list = convert_mateifno_to_vector(mate_dst);
 
     auto split_result = split_port_range_into_blocks(meta_src_list);
     auto &blocks = split_result.blocks;
@@ -507,7 +575,7 @@ void laod_and_create_IP_table(vector<IPRule>& ip_table,
     //8) transfer rule into mask type
     // export final IP table
 
-    Create_Metainfo_for_SRC_port(port_table, merged_ip_table, intersections, final_ip_table, mateifno);
+    Create_Metainfo_for_port(port_table, merged_ip_table, intersections, final_ip_table, mateifno);
     write_final_table_in_cidr(final_ip_table, "final_ip_table_cidr.txt");
 }
 
@@ -516,7 +584,7 @@ void laod_and_create_IP_table(vector<IPRule>& ip_table,
  *************************************************************/
 int main(int argc, char **argv)  // accept optional path argument
 {
-    string rules_path = "src/ACL_rules/test.rules";
+    string rules_path = "src/ACL_rules/test_port.rules";
     if (argc >= 2) rules_path = string(argv[1]);
 
     vector<Rule5D> rules;
@@ -544,7 +612,9 @@ int main(int argc, char **argv)  // accept optional path argument
          << ", Merged IP=" << merged_ip_table.size() << "\n";
 
     // Call the refactored function and capture results
-    create_Table_for_SRC_port(port_table, merged_ip_table, mateifno);
+    create_Table_for_port(port_table, merged_ip_table, mateifno);
+
+
 
     return 0;
 }

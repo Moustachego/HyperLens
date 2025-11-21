@@ -47,6 +47,8 @@ struct Metainfo_for_SRC_port{
     uint32_t Inital_Number;
     uint16_t Src_lo;
     uint16_t Src_hi;
+    uint16_t Dst_lo;
+    uint16_t Dst_hi;
     vector<int> group_ids; 
 };
 
@@ -54,6 +56,8 @@ struct MergedItem{
     std::vector<int> group_ids;      // GID 列表（你目前只有 1 个 GID）
     uint32_t src_lo;
     uint32_t src_hi;
+    uint32_t dst_lo;
+    uint32_t dst_hi;
     std::vector<int> idx_list;       // 合并后的多个 Idx（重排后 i+1）
     std::vector<int> initnum_list;   // 合并后的多个 InitNum
 };
@@ -111,7 +115,7 @@ void write_final_table_in_cidr(
     const std::string& filename
 );
 
-void Create_Metainfo_for_SRC_port(
+void Create_Metainfo_for_port(
     const vector<PortRule>& port_table,
     const vector<IPRule>& merged_ip_table,
     const vector<IntersectionCell>& IntersectionCell,

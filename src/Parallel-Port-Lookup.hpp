@@ -43,3 +43,21 @@ struct BlockMeta {
     bool assigned = false;        // 是否已经被分配给 TCAM（被合并成 superblock）
     bool single_value = false;    // 新增：是否为单个端口值
 };
+
+// 占位输出结构
+struct Mate_SRC_LIST {
+    std::vector<int> group_ids;      // GID 列表（你目前只有 1 个 GID）
+    uint32_t src_lo;
+    uint32_t src_hi;
+    std::vector<int> idx_list;       // 合并后的多个 Idx（重排后 i+1）
+    std::vector<int> initnum_list;   // 合并后的多个 InitNum
+};
+
+// 占位输出结构
+struct Mate_DST_LIST {
+    std::vector<int> group_ids;      // GID 列表（你目前只有 1 个 GID）
+    uint32_t dst_lo;
+    uint32_t dst_hi;
+    std::vector<int> idx_list;       // 合并后的多个 Idx（重排后 i+1）
+    std::vector<int> initnum_list;   // 合并后的多个 InitNum
+};
