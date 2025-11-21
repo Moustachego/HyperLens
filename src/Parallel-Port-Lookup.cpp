@@ -92,18 +92,18 @@ inline bool is_power_of_two(uint32_t n) {
 
 struct SplitResult {
     vector<BlockMeta> blocks;              // 拆分后的 block
-    vector<MergedItem> full_range_items;   // 0-65535 范围的 item
+    vector<SRC_Port_Item> full_range_items;   // 0-65535 范围的 item (now SRC_Port_Item)
 };
 
 
-SplitResult split_port_range_into_blocks(const vector<MergedItem> &meta_src)
+SplitResult split_port_range_into_blocks(const vector<SRC_Port_Item> &meta_src)
 {
     SplitResult result;
     size_t total_blocks = 0;
 
-    for (const auto &item : meta_src)
-    {
-        if (item.group_ids.empty()) continue;
+    for (size_t item_idx = 0; item_idx < meta_src.size(); ++item_idx) {
+        const auto &item = meta_src[item_idx];
+        if (item.group_ids1.empty()) continue;
 
         uint32_t L = item.src_lo;
         uint32_t H = item.src_hi;
@@ -112,11 +112,12 @@ SplitResult split_port_range_into_blocks(const vector<MergedItem> &meta_src)
         uint64_t range_len = (uint64_t)H - (uint64_t)L + 1u;
         if (range_len > MAX_SINGLE_RANGE) continue;
 
-        uint32_t group_id = item.group_ids[0];
+        uint32_t group_id = item.group_ids1[0];
+        uint32_t group_id2 = item.group_ids2.empty() ? 0 : static_cast<uint32_t>(item.group_ids2[0]);
 
         // -------- 特殊处理：全端口 0-65535 --------
         if (L == 0 && H == 65535) {
-            result.full_range_items.push_back(item); // 保存全端口 item
+            result.full_range_items.push_back(item); // 保存全端口 item (SRC_Port_Item)
             continue;  // 跳过拆分
         }
 
@@ -142,6 +143,8 @@ SplitResult split_port_range_into_blocks(const vector<MergedItem> &meta_src)
             }
             BlockMeta bm;
             bm.group_id = group_id;
+            bm.src_item_idx = static_cast<uint32_t>(item_idx);
+            bm.group_id2 = group_id2;
             bm.block_idx = block_idx;
             bm.SP = SP;
             bm.start = block_start;   // 记录真实起始端口
@@ -184,8 +187,6 @@ SplitResult split_port_range_into_blocks(const vector<MergedItem> &meta_src)
 }
 
 
-
-
 // Overload: convert from vector<Mate_SRC_LIST> to vector<MergedItem>
 vector<MergedItem> convert_mateifno_to_vector(
     const std::vector<Mate_SRC_LIST> &mate_src_list)
@@ -223,13 +224,13 @@ vector<MergedItem> convert_mateifno_to_vector(
 }
 
 void fill_full_range_items_to_src_tcam(
-    const std::vector<MergedItem>& full_range_items,
+    const std::vector<SRC_Port_Item>& full_range_items,
     std::vector<SRC_TCAM_Table>& src_tcam_table)
 {
     for (const auto& item : full_range_items)
     {
-        if (item.group_ids.empty()) {
-            std::cerr << "[WARN] MergedItem has empty group_ids, skipping.\n";
+        if (item.group_ids1.empty()) {
+            std::cerr << "[WARN] SRC_Port_Item has empty group_ids1, skipping.\n";
             continue;
         }
 
@@ -237,17 +238,17 @@ void fill_full_range_items_to_src_tcam(
         if (item.src_lo == 0 && item.src_hi == 65535)
         {
             SRC_TCAM_Table entry;
-            entry.GroupID1 = static_cast<uint16_t>(item.group_ids[0]);
+            entry.GroupID1 = static_cast<uint16_t>(item.group_ids1[0]);
             entry.src_port_value = 0;    // 基准端口
             entry.src_port_mask  = 0x0000; // 全端口通配
-            entry.GroupID2 = entry.GroupID1; // 同 GroupID
             entry.bin_prefix = std::string(16, '*');
+            entry.GroupID2 = item.group_ids2.empty() ? entry.GroupID1 : static_cast<uint16_t>(item.group_ids2[0]);
 
             src_tcam_table.push_back(std::move(entry));
         }
         else
         {
-            std::cerr << "[INFO] MergedItem is not full range, skipping: "
+            std::cerr << "[INFO] SRC_Port_Item is not full range, skipping: "
                       << item.src_lo << "-" << item.src_hi << "\n";
         }
     }
@@ -297,83 +298,78 @@ static inline std::string parent_prefix(const std::string &p) {
 
 // 主合并函数
 void merge_prefix_blocks(std::vector<BlockMeta>& blocks) {
-    // 先按 group_id, start 排序（严格按 start 升序）
+    // 先按 group_id, src_item_idx, start 排序（确保只在同一 src_item 内合并）
     std::sort(blocks.begin(), blocks.end(), [](const BlockMeta &a, const BlockMeta &b) {
         if (a.group_id != b.group_id) return a.group_id < b.group_id;
+        if (a.src_item_idx != b.src_item_idx) return a.src_item_idx < b.src_item_idx;
         return a.start < b.start;
     });
 
-    std::vector<BlockMeta> out; // 最终输出容器
+    std::vector<BlockMeta> out;
+    out.reserve(blocks.size());
 
+    size_t n = blocks.size();
     size_t i = 0;
-    while (i < blocks.size()) {
-        // collect same-group items in order
+    while (i < n) {
+        // determine group range with same group_id and src_item_idx
         uint32_t gid = blocks[i].group_id;
+        uint32_t src_idx = blocks[i].src_item_idx;
         size_t j = i;
-        std::vector<BlockMeta> group_blocks;
-        while (j < blocks.size() && blocks[j].group_id == gid) {
-            group_blocks.push_back(blocks[j]);
-            ++j;
-        }
+        while (j < n && blocks[j].group_id == gid && blocks[j].src_item_idx == src_idx) ++j;
 
-        // 处理本 group：对 can_use_prefix==true 的使用栈式合并
+        // process [i, j) sequence
         std::vector<BlockMeta> stack;
-        for (auto &bm : group_blocks) {
+        stack.reserve(j - i);
+
+        for (size_t k = i; k < j; ++k) {
+            const BlockMeta &bm = blocks[k];
+
             if (!bm.can_use_prefix) {
-                // flush any pending stack entries into out (因为非 prefix 的 block 不能与 prefix 合并)
-                while (!stack.empty()) {
-                    out.push_back(stack.front());
-                    stack.erase(stack.begin());
-                }
+                // flush stack to out
+                for (auto &s : stack) out.push_back(std::move(s));
+                stack.clear();
                 out.push_back(bm);
                 continue;
             }
 
-            // bm 可用 prefix，push 然后尝试合并栈顶
+            // push a copy for possible merging
             stack.push_back(bm);
 
-            // 尝试向上合并：只检查栈顶两个元素（前一个 A, 当前 B）
-            bool merged_once = true;
-            while (merged_once && stack.size() >= 2) {
-                merged_once = false;
+            // try merging as long as top two are mergeable
+            while (stack.size() >= 2) {
                 BlockMeta B = stack.back();
                 BlockMeta A = stack[stack.size()-2];
+                if (!(A.can_use_prefix && B.can_use_prefix && (A.end + 1 == B.start) && are_sibling_prefixes(A.bin_prefix, B.bin_prefix)))
+                    break;
 
-                // 只有在相邻并且两者都是 can_use_prefix 的情况下尝试合并
-                if (A.can_use_prefix && B.can_use_prefix && (A.end + 1 == B.start)) {
-                    // 前缀必须是 sibling（同固定长、除最后一位外相同、最后一位不同）
-                    if (are_sibling_prefixes(A.bin_prefix, B.bin_prefix)) {
-                        // 合并为 parent
-                        BlockMeta M;
-                        M.group_id = A.group_id;
-                        M.start = A.start;
-                        M.end   = B.end;
-                        M.can_use_prefix = true;
-                        M.bin_prefix = parent_prefix(A.bin_prefix); // 或 parent_prefix(B.bin_prefix) 一样
-                        M.assigned = true; // 合并后的标记为 assigned (以便写入 TCAM later)
-                        // SP/block_idx 等字段可以重设或保留为 0/0
-                        M.SP = A.SP; M.block_idx = A.block_idx;
+                // create merged block M
+                BlockMeta M;
+                M.group_id = A.group_id;
+                M.src_item_idx = A.src_item_idx;
+                M.start = A.start;
+                M.end = B.end;
+                M.can_use_prefix = true;
+                M.bin_prefix = parent_prefix(A.bin_prefix);
+                M.assigned = true;
+                M.SP = A.SP;
+                M.block_idx = A.block_idx;
+                // GID2 handling: keep if equal, otherwise mark 0 (non-unique)
+                M.group_id2 = (A.group_id2 == B.group_id2) ? A.group_id2 : 0;
 
-                        // pop 两个，push 一个
-                        stack.pop_back();
-                        stack.pop_back();
-                        stack.push_back(M);
+                // pop two and push merged
+                stack.pop_back();
+                stack.pop_back();
+                stack.push_back(std::move(M));
+            }
+        }
 
-                        // 合并成功，继续尝试和前面再合并（所以循环）
-                        merged_once = true;
-                    }
-                }
-            } // end while try merging
-        } // end for blocks in group
+        // flush remaining stack
+        for (auto &s : stack) out.push_back(std::move(s));
+        stack.clear();
 
-        // group 处理完，把 stack 的剩余压入 out（这些是 prefix 类型但无法进一步合并的）
-        for (auto &x : stack) out.push_back(x);
-
-        // advance to next group
         i = j;
     }
 
-    // 用合并后的 out 替换原 blocks（保留 can_use_prefix==false 的原条目也在 out 中）
     blocks.swap(out);
 }
 
@@ -454,15 +450,15 @@ void assign_blocks_to_sram_tcam(
             // 分配到 TCAM
             SRC_TCAM_Table entry{};
             entry.GroupID1 = static_cast<uint16_t>(bm.group_id);
-            entry.GroupID2 = entry.GroupID1;
             entry.bin_prefix = bm.bin_prefix;
+            entry.GroupID2 = static_cast<uint16_t>(bm.group_id2);
             src_tcam_table.push_back(std::move(entry));
         } else {
             // 分配到 SRAM
             SRC_SRAM_Table entry;
             entry.GroupID1 = static_cast<uint16_t>(bm.group_id);
-            entry.GroupID2 = entry.GroupID1;
             entry.SP_Quotient = static_cast<uint16_t>(bm.SP);
+            entry.GroupID2 = static_cast<uint16_t>(bm.group_id2);
 
             entry.bitmap.clear();
             for (size_t k = 0; k < 32; ++k) {
@@ -509,6 +505,100 @@ void split_mateinfo_into_src_dst(
     }
 }
 
+// 给 src 表条目分配顺序的 GID2（第二个 group id）
+// 接受 vector<SRC_Port_Item>，按顺序从 1 开始赋值到 group_ids2
+void create_GID2_for_src_port_table(std::vector<SRC_Port_Item> &items) {
+    int gid2 = 1;
+    for (auto &it : items) {
+        if (it.group_ids2.size() >= 1) it.group_ids2[0] = gid2;
+        else it.group_ids2.push_back(gid2);
+        ++gid2;
+    }
+}
+
+// Build SRC_Port_Item list from meta_src_list, assign GID2s and return the items
+std::vector<SRC_Port_Item> build_src_items_from_meta_src_list(const std::vector<MergedItem> &meta_src_list) {
+    std::vector<SRC_Port_Item> src_items;
+    src_items.reserve(meta_src_list.size());
+    for (const auto &mi : meta_src_list) {
+        SRC_Port_Item it;
+        it.group_ids1 = mi.group_ids;
+        it.src_lo = mi.src_lo;
+        it.src_hi = mi.src_hi;
+        // group_ids2 empty for now; will be filled by create_GID2_for_src_port_table
+        src_items.push_back(std::move(it));
+    }
+
+    // assign GID2 sequentially
+    create_GID2_for_src_port_table(src_items);
+
+    return src_items;
+}
+
+// Build SRC_Port_Item list directly from Mate_SRC_LIST (avoid intermediate MergedItem)
+std::vector<SRC_Port_Item> build_src_items_from_mate_src_list(const std::vector<Mate_SRC_LIST> &mate_src) {
+    std::vector<SRC_Port_Item> src_items;
+    src_items.reserve(mate_src.size());
+    for (const auto &s : mate_src) {
+        SRC_Port_Item it;
+        it.group_ids1 = s.group_ids;
+        it.src_lo = s.src_lo;
+        it.src_hi = s.src_hi;
+        // group_ids2 will be assigned later
+        src_items.push_back(std::move(it));
+    }
+    return src_items;
+}
+
+// Apply assigned GID2s from src_items back into meta_src_list (update group_ids)
+void apply_src_items_back_to_meta(std::vector<MergedItem> &meta_src_list, const std::vector<SRC_Port_Item> &src_items) {
+    size_t n = std::min(meta_src_list.size(), src_items.size());
+    for (size_t i = 0; i < n; ++i) {
+        // preserve other fields in meta_src_list, but update group_ids
+        meta_src_list[i].group_ids = src_items[i].group_ids1;
+        if (!src_items[i].group_ids2.empty()) {
+            int gid2 = src_items[i].group_ids2[0];
+            if (meta_src_list[i].group_ids.size() >= 2) meta_src_list[i].group_ids[1] = gid2;
+            else meta_src_list[i].group_ids.push_back(gid2);
+        }
+    }
+}
+
+void output_src_items_to_txt(const std::vector<SRC_Port_Item> &src_items)
+{
+    std::ofstream fout("src_items.txt");
+    if (!fout) {
+        std::cerr << "Error: cannot open src_items.txt\n";
+        return;
+    }
+
+    fout << "GID1\tSrc_lo\tSrc_hi\tGID2\n";
+
+    for (const auto &s : src_items) {
+
+        // stringify group id vectors
+        std::ostringstream g1oss, g2oss;
+        for (size_t i = 0; i < s.group_ids1.size(); ++i) {
+            if (i) g1oss << ",";
+            g1oss << s.group_ids1[i];
+        }
+        for (size_t i = 0; i < s.group_ids2.size(); ++i) {
+            if (i) g2oss << ",";
+            g2oss << s.group_ids2[i];
+        }
+
+        fout << std::left
+            << std::setw(12) << g1oss.str()
+            << std::setw(12) << s.src_lo
+            << std::setw(12) << s.src_hi
+            << std::setw(12) << g2oss.str()
+            << "\n";
+    }
+
+    fout.close();
+    std::cout << "[INFO] src_items.txt saved.\n";
+}
+
 //-------------------- Step 9: Main function to build SRC port tables --------------------
 void create_Table_for_port(
     const vector<PortRule>& port_table,
@@ -520,21 +610,29 @@ void create_Table_for_port(
 
     split_mateinfo_into_src_dst(mateifno, mate_src, mate_dst);
 
-    auto meta_src_list = convert_mateifno_to_vector(mate_src);
-    auto meta_dst_list = convert_mateifno_to_vector(mate_dst);
+    // build SRC_Port_Item list directly from mate_src and assign GID2s
+    auto src_items = build_src_items_from_mate_src_list(mate_src);
+    // assign GID2 sequentially
+    create_GID2_for_src_port_table(src_items);
 
-    auto split_result = split_port_range_into_blocks(meta_src_list);
-    auto &blocks = split_result.blocks;
-    auto &full_range_items = split_result.full_range_items;
-
+    output_src_items_to_txt(src_items);
+    //create tcam sram for SRC port table
     std::vector<SRC_SRAM_Table> src_sram_table;
     std::vector<SRC_TCAM_Table> src_tcam_table;
+
+    auto split_result = split_port_range_into_blocks(src_items);
+    auto &blocks = split_result.blocks;
+    auto &full_range_items = split_result.full_range_items;
 
     fill_full_range_items_to_src_tcam(full_range_items, src_tcam_table);
 
     merge_prefix_blocks(blocks);
 
     assign_blocks_to_sram_tcam(blocks, src_sram_table, src_tcam_table);
+
+    //create tcam sram for DST port table;
+    std::vector<DST_SRAM_Table> dst_sram_table;
+    std::vector<DST_TCAM_Table> dst_tcam_table;
 
 }
 

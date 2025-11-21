@@ -6,21 +6,6 @@
 
 using namespace std;
 
-// 占位输出结构
-struct SRC_SRAM_Table {
-    uint16_t GroupID1;
-    uint16_t SP_Quotient;
-    vector<size_t> bitmap; // 对应哪些 merged_ip_table 条目
-    uint16_t GroupID2;
-};
-
-struct SRC_TCAM_Table {
-    uint16_t GroupID1;
-    uint16_t src_port_value;   // 基准端口值
-    uint16_t src_port_mask;   // 16-bit mask: 1=固定，0=通配
-    uint16_t GroupID2;
-    std::string bin_prefix;
-};
 
 struct PortRangeEntry {
     uint32_t group_id;               // GroupIDs
@@ -33,10 +18,12 @@ struct PortRangeEntry {
 // 全局 block 元数据，记录属于哪些规则以及是否已分配到 TCAM
 struct BlockMeta {
     uint32_t group_id;
+    uint32_t group_id2;
     uint16_t block_idx;
     uint32_t SP;
     uint32_t start;       // 新增：block 实际起始端口
     uint32_t end;         // 新增：block 实际结束端口 
+    uint32_t src_item_idx; // 新增：来源于哪个 src_items 的索引
     std::string bin_prefix;
     bool can_use_prefix;
     std::bitset<32> bitmap; 
@@ -61,3 +48,45 @@ struct Mate_DST_LIST {
     std::vector<int> idx_list;       // 合并后的多个 Idx（重排后 i+1）
     std::vector<int> initnum_list;   // 合并后的多个 InitNum
 };
+
+// 用于给 SRC 表分配第二个 GID 的临时结构
+struct SRC_Port_Item{
+    std::vector<int> group_ids1;      // 原始 GID 列表
+    uint32_t src_lo;
+    uint32_t src_hi;
+    std::vector<int> group_ids2;      // 分配后的 GID2（顺序分配）
+};
+
+// 占位输出结构
+struct SRC_SRAM_Table {
+    uint16_t GroupID1;
+    uint16_t SP_Quotient;
+    vector<size_t> bitmap; // 对应哪些 merged_ip_table 条目
+    uint16_t GroupID2;
+};
+
+struct SRC_TCAM_Table {
+    uint16_t GroupID1;
+    uint16_t src_port_value;   // 基准端口值
+    uint16_t src_port_mask;   // 16-bit mask: 1=固定，0=通配
+    uint16_t GroupID2;
+    std::string bin_prefix;
+};
+
+// 占位输出结构
+struct DST_SRAM_Table {
+    uint16_t GroupID2;
+    uint16_t SP_Quotient;
+    vector<size_t> bitmap; // 对应哪些 merged_ip_table 条目
+    uint16_t Action;
+};
+
+struct DST_TCAM_Table {
+    uint16_t GroupID2;
+    uint16_t dst_port_value;   // 基准端口值
+    uint16_t dst_port_mask;   // 16-bit mask: 1=固定，0=通配
+    uint16_t Action;
+    std::string bin_prefix;
+};
+
+

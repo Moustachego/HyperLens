@@ -42,7 +42,7 @@ echo ""
 # 4. 运行程序
 echo "[4/5] 运行程序..."
 echo "======== 程序输出 ========"
-./src/Parallel-Port-Lookup src/ACL_rules/test.rules
+./src/Parallel-Port-Lookup src/ACL_rules/test_port.rules
 echo "======== 程序完成 ========"
 echo ""
 
