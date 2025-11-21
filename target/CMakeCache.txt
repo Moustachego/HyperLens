@@ -236,10 +236,6 @@ P4C-GEN-BFRT-CONF:FILEPATH=/home/long/bf-sde-9.13.1/install/bin/p4c-gen-bfrt-con
 //Path to a program.
 P4C-MANIFEST-CONFIG:FILEPATH=/home/long/bf-sde-9.13.1/install/bin/p4c-manifest-config
 
-P4FLAGS:STRING=
-
-P4PPFLAGS:STRING=
-
 P4_LANG:STRING=p4-16
 
 //No help, variable specified on the command line.
@@ -247,8 +243,6 @@ P4_NAME:UNINITIALIZED=tofino2
 
 //No help, variable specified on the command line.
 P4_PATH:UNINITIALIZED=/home/long/Desktop/P4lens/tofino2.p4
-
-PDFLAGS:STRING=
 
 //Build P4 for PSA architecture
 PSA:BOOL=OFF

@@ -92,11 +92,17 @@ inline bool is_power_of_two(uint32_t n) {
 
 struct SplitResult {
     vector<BlockMeta> blocks;              // 拆分后的 block
-    vector<SRC_Port_Item> full_range_items;   // 0-65535 范围的 item (now SRC_Port_Item)
+    vector<SRC_Port_Item> full_range_items_src;   // 0-65535 范围的 item (now SRC_Port_Item)
+};
+
+// DST 专用拆分结果
+struct SplitResult_DST {
+    std::vector<BlockMeta_DST> blocks;              // 拆分后的 block（DST 特定）
+    std::vector<DST_Port_Item> full_range_items_dst; // 全端口项
 };
 
 
-SplitResult split_port_range_into_blocks(const vector<SRC_Port_Item> &meta_src)
+SplitResult split_port_range_into_blocks_for_src(const vector<SRC_Port_Item> &meta_src)
 {
     SplitResult result;
     size_t total_blocks = 0;
@@ -117,7 +123,7 @@ SplitResult split_port_range_into_blocks(const vector<SRC_Port_Item> &meta_src)
 
         // -------- 特殊处理：全端口 0-65535 --------
         if (L == 0 && H == 65535) {
-            result.full_range_items.push_back(item); // 保存全端口 item (SRC_Port_Item)
+            result.full_range_items_src.push_back(item); // 保存全端口 item (SRC_Port_Item)
             continue;  // 跳过拆分
         }
 
@@ -178,10 +184,96 @@ SplitResult split_port_range_into_blocks(const vector<SRC_Port_Item> &meta_src)
         }
     }
 
-    cerr << "[DBG] split_port_range_into_blocks produced blocks.size() = "
+    cerr << "[DBG] split_port_range_into_blocks_for_src produced blocks.size() = "
          << result.blocks.size()
          << ", full_range_items.size() = "
-         << result.full_range_items.size() << "\n";
+         << result.full_range_items_src.size() << "\n";
+
+    return result;
+}
+
+
+// DST 侧的拆分函数：把 0-65535 单独收集到 full_range_items_dst，其余拆分为 BlockMeta_DST
+SplitResult_DST split_port_range_into_blocks_for_dst(const std::vector<DST_Port_Item> &meta_dst)
+{
+    SplitResult_DST result;
+    size_t total_blocks = 0;
+
+    for (size_t item_idx = 0; item_idx < meta_dst.size(); ++item_idx) {
+        const auto &item = meta_dst[item_idx];
+        if (item.group_ids1.empty()) continue;
+
+        uint32_t L = item.dst_lo;
+        uint32_t H = item.dst_hi;
+        if (L > H) continue;
+
+        uint64_t range_len = (uint64_t)H - (uint64_t)L + 1u;
+        if (range_len > MAX_SINGLE_RANGE) continue;
+
+        uint32_t group_id = item.group_ids1[0];
+        uint32_t group_id2 = item.group_ids2.empty() ? 0 : static_cast<uint32_t>(item.group_ids2[0]);
+
+        // 全端口特殊处理
+        if (L == 0 && H == 65535) {
+            result.full_range_items_dst.push_back(item);
+            continue;
+        }
+
+        uint32_t start = L;
+        uint32_t block_idx = 0;
+        while (start <= H) {
+            uint32_t SP = start / 32;
+            uint32_t block_start = start;
+            uint32_t block_end;
+
+            if (start != L) block_start = SP * 32;
+
+            if (start % 32 != 0) {
+                block_end = std::min(H, (start / 32 + 1) * 32 - 1);
+            } else {
+                block_end = std::min(H, start + 31);
+            }
+
+            BlockMeta_DST bm;
+            bm.group_id = group_id;
+            bm.group_id2 = group_id2;
+            bm.Action = item.Action; // preserve Action list from DST item
+            bm.src_item_idx = static_cast<uint32_t>(item_idx);
+            bm.block_idx = block_idx;
+            bm.SP = SP;
+            bm.start = block_start;
+            bm.end = block_end;
+            bm.assigned = false;
+            bm.single_value = (block_start == block_end);
+
+            uint32_t block_len = block_end - block_start + 1;
+            bool can_use_prefix = is_power_of_two(block_len) && (block_start % block_len == 0);
+
+            if (can_use_prefix) {
+                bm.can_use_prefix = true;
+                bm.bin_prefix = compute_bin_prefix(block_start, block_end);
+            } else {
+                bm.can_use_prefix = false;
+                uint32_t block_base = SP * 32;
+                bm.bitmap = generate_32bit_bitmap(block_base, block_start, block_end);
+            }
+
+            result.blocks.push_back(std::move(bm));
+            total_blocks++;
+            if (total_blocks > MAX_BLOCKS_ALLOWED) {
+                cerr << "[FATAL] total DST blocks exceed MAX_BLOCKS_ALLOWED.\n";
+                abort();
+            }
+
+            block_idx++;
+            start = block_end + 1;
+        }
+    }
+
+    cerr << "[DBG] split_port_range_into_blocks_for_dst produced blocks.size() = "
+         << result.blocks.size()
+         << ", full_range_items.size() = "
+         << result.full_range_items_dst.size() << "\n";
 
     return result;
 }
@@ -255,6 +347,38 @@ void fill_full_range_items_to_src_tcam(
 
     std::cerr << "[INFO] fill_full_range_items_to_src_tcam produced "
               << src_tcam_table.size() << " entries.\n";
+}
+
+// 对 DST 全端口项进行 TCAM 填充：以 G-ID2 为主键、Action 为最终动作，中间端口字段为通配符
+void fill_full_range_items_to_dst_tcam(
+    const std::vector<DST_Port_Item>& full_range_items,
+    std::vector<DST_TCAM_Table>& dst_tcam_table)
+{
+    for (const auto &item : full_range_items) {
+        if (item.group_ids1.empty()) {
+            std::cerr << "[WARN] DST_Port_Item has empty group_ids1, skipping.\n";
+            continue;
+        }
+
+        if (item.dst_lo == 0 && item.dst_hi == 65535) {
+            DST_TCAM_Table entry{};
+            // 不处理 G-ID1；以 G-ID2 为索引起点
+            entry.GroupID2 = item.group_ids2.empty() ? 0 : static_cast<uint16_t>(item.group_ids2[0]);
+            entry.dst_port_value = 0;
+            entry.dst_port_mask = 0x0000; // 全端口通配
+            entry.bin_prefix = std::string(16, '*');
+            // ACTION: 如果有多个，取第一个作为默认动作
+            entry.Action = item.Action.empty() ? 0 : static_cast<uint16_t>(item.Action[0]);
+
+            dst_tcam_table.push_back(std::move(entry));
+        } else {
+            std::cerr << "[INFO] DST_Port_Item is not full range, skipping: "
+                      << item.dst_lo << "-" << item.dst_hi << "\n";
+        }
+    }
+
+    std::cerr << "[INFO] fill_full_range_items_to_dst_tcam produced "
+              << dst_tcam_table.size() << " entries." << "\n";
 }
 
 static inline int prefix_fixed_len(const std::string &pref) {
@@ -371,6 +495,147 @@ void merge_prefix_blocks(std::vector<BlockMeta>& blocks) {
     }
 
     blocks.swap(out);
+}
+
+// DST 专用的合并函数：以 GroupID2 为主键并限制在相同 src_item_idx 内合并
+void merge_prefix_blocks_for_dst(std::vector<BlockMeta_DST>& blocks) {
+    // 按 group_id2, src_item_idx, start 排序
+    std::sort(blocks.begin(), blocks.end(), [](const BlockMeta_DST &a, const BlockMeta_DST &b) {
+        if (a.group_id2 != b.group_id2) return a.group_id2 < b.group_id2;
+        if (a.src_item_idx != b.src_item_idx) return a.src_item_idx < b.src_item_idx;
+        return a.start < b.start;
+    });
+
+    std::vector<BlockMeta_DST> out;
+    out.reserve(blocks.size());
+
+    size_t n = blocks.size();
+    size_t i = 0;
+    while (i < n) {
+        uint32_t gid2 = blocks[i].group_id2;
+        uint32_t src_idx = blocks[i].src_item_idx;
+        size_t j = i;
+        while (j < n && blocks[j].group_id2 == gid2 && blocks[j].src_item_idx == src_idx) ++j;
+
+        std::vector<BlockMeta_DST> stack;
+        stack.reserve(j - i);
+
+        auto actions_equal = [](const std::vector<int> &a, const std::vector<int> &b) {
+            if (a.size() != b.size()) return false;
+            for (size_t k = 0; k < a.size(); ++k) if (a[k] != b[k]) return false;
+            return true;
+        };
+
+        auto actions_union = [](const std::vector<int> &a, const std::vector<int> &b) {
+            std::vector<int> res = a;
+            for (int x : b) {
+                if (std::find(res.begin(), res.end(), x) == res.end()) res.push_back(x);
+            }
+            return res;
+        };
+
+        for (size_t k = i; k < j; ++k) {
+            const BlockMeta_DST &bm = blocks[k];
+
+            if (!bm.can_use_prefix) {
+                for (auto &s : stack) out.push_back(std::move(s));
+                stack.clear();
+                out.push_back(bm);
+                continue;
+            }
+
+            stack.push_back(bm);
+
+            while (stack.size() >= 2) {
+                BlockMeta_DST B = stack.back();
+                BlockMeta_DST A = stack[stack.size()-2];
+                if (!(A.can_use_prefix && B.can_use_prefix && (A.end + 1 == B.start) && are_sibling_prefixes(A.bin_prefix, B.bin_prefix)))
+                    break;
+
+                BlockMeta_DST M;
+                M.group_id2 = A.group_id2;
+                M.group_id = A.group_id; // keep group_id from A but not used as key
+                M.src_item_idx = A.src_item_idx;
+                M.start = A.start;
+                M.end = B.end;
+                M.can_use_prefix = true;
+                M.bin_prefix = parent_prefix(A.bin_prefix);
+                M.assigned = true;
+                M.SP = A.SP;
+                M.block_idx = A.block_idx;
+                // ACTION 合并：如果完全相同保留，否则做并集
+                if (actions_equal(A.Action, B.Action)) M.Action = A.Action;
+                else M.Action = actions_union(A.Action, B.Action);
+
+                // group_id2 在组内相同，若出现不同则置 0（不过排序保证同组相同）
+                M.group_id2 = (A.group_id2 == B.group_id2) ? A.group_id2 : 0;
+
+                // pop two and push merged
+                stack.pop_back();
+                stack.pop_back();
+                stack.push_back(std::move(M));
+            }
+        }
+
+        for (auto &s : stack) out.push_back(std::move(s));
+        stack.clear();
+
+        i = j;
+    }
+
+    blocks.swap(out);
+}
+
+// 将 DST BlockMeta_DST 分配到 DST SRAM/TCAM 并输出文件
+void assign_blocks_to_dst_sram_tcam(const std::vector<BlockMeta_DST>& blocks,
+                                    std::vector<DST_SRAM_Table>& dst_sram_table,
+                                    std::vector<DST_TCAM_Table>& dst_tcam_table)
+{
+    for (const auto &bm : blocks) {
+        if (bm.assigned || bm.single_value || bm.can_use_prefix) {
+            DST_TCAM_Table entry{};
+            entry.GroupID2 = static_cast<uint16_t>(bm.group_id2);
+            entry.bin_prefix = bm.bin_prefix;
+            entry.Action = bm.Action.empty() ? 0 : static_cast<uint16_t>(bm.Action[0]);
+            dst_tcam_table.push_back(std::move(entry));
+        } else {
+            DST_SRAM_Table entry;
+            entry.GroupID2 = static_cast<uint16_t>(bm.group_id2);
+            entry.SP_Quotient = static_cast<uint16_t>(bm.SP);
+            entry.Action = bm.Action.empty() ? 0 : static_cast<uint16_t>(bm.Action[0]);
+            entry.bitmap.clear();
+            for (size_t k = 0; k < 32; ++k) if (bm.bitmap.test(k)) entry.bitmap.push_back(k);
+            dst_sram_table.push_back(std::move(entry));
+        }
+    }
+
+    // 输出到文件
+    std::sort(dst_tcam_table.begin(), dst_tcam_table.end(), [](const DST_TCAM_Table &a, const DST_TCAM_Table &b){
+        return a.GroupID2 < b.GroupID2;
+    });
+    std::ofstream dtcam("DST_TCAM_Table.txt");
+    dtcam << std::left << std::setw(12) << "GroupID2" << std::setw(20) << "DstPort" << std::setw(10) << "Action" << "\n";
+    for (const auto &e : dst_tcam_table) {
+        dtcam << std::left << std::setw(12) << e.GroupID2 << std::setw(20) << e.bin_prefix << std::setw(10) << e.Action << "\n";
+    }
+    dtcam.close();
+
+    std::sort(dst_sram_table.begin(), dst_sram_table.end(), [](const DST_SRAM_Table &a, const DST_SRAM_Table &b){
+        if (a.GroupID2 != b.GroupID2) return a.GroupID2 < b.GroupID2;
+        return a.SP_Quotient < b.SP_Quotient;
+    });
+    std::ofstream dsram("DST_SRAM_Table.txt");
+    dsram << std::left << std::setw(12) << "GroupID2" << std::setw(12) << "SP_Quotient" << std::setw(40) << "Bitmap32" << std::setw(10) << "Action" << "\n";
+    for (const auto &e : dst_sram_table) {
+        std::bitset<32> b;
+        for (size_t idx : e.bitmap) if (idx < 32) b.set(idx);
+        std::string s;
+        for (int i = 0; i < 32; ++i) s += b[i] ? '1' : '0';
+        dsram << std::left << std::setw(12) << e.GroupID2 << std::setw(12) << e.SP_Quotient << std::setw(40) << s << std::setw(10) << e.Action << "\n";
+    }
+    dsram.close();
+
+    std::cerr << "[INFO] DST Tables exported. TCAM entries=" << dst_tcam_table.size() << ", SRAM entries=" << dst_sram_table.size() << "\n";
 }
 
 
@@ -499,6 +764,7 @@ void split_mateinfo_into_src_dst(
         d.dst_hi = mi.dst_hi;
         d.idx_list = mi.idx_list;
         d.initnum_list = mi.initnum_list;
+        d.action = mi.action;  // 传递 action 字段
 
         mate_src.push_back(std::move(s));
         mate_dst.push_back(std::move(d));
@@ -508,6 +774,16 @@ void split_mateinfo_into_src_dst(
 // 给 src 表条目分配顺序的 GID2（第二个 group id）
 // 接受 vector<SRC_Port_Item>，按顺序从 1 开始赋值到 group_ids2
 void create_GID2_for_src_port_table(std::vector<SRC_Port_Item> &items) {
+    int gid2 = 1;
+    for (auto &it : items) {
+        if (it.group_ids2.size() >= 1) it.group_ids2[0] = gid2;
+        else it.group_ids2.push_back(gid2);
+        ++gid2;
+    }
+}
+
+// 给 dst 表条目分配顺序的 GID2（对称于 src）
+void create_GID2_for_dst_port_table(std::vector<DST_Port_Item> &items) {
     int gid2 = 1;
     for (auto &it : items) {
         if (it.group_ids2.size() >= 1) it.group_ids2[0] = gid2;
@@ -529,9 +805,6 @@ std::vector<SRC_Port_Item> build_src_items_from_meta_src_list(const std::vector<
         src_items.push_back(std::move(it));
     }
 
-    // assign GID2 sequentially
-    create_GID2_for_src_port_table(src_items);
-
     return src_items;
 }
 
@@ -548,6 +821,23 @@ std::vector<SRC_Port_Item> build_src_items_from_mate_src_list(const std::vector<
         src_items.push_back(std::move(it));
     }
     return src_items;
+}
+
+// Build DST_Port_Item list directly from Mate_DST_LIST (avoid intermediate MergedItem)
+std::vector<DST_Port_Item> build_dst_items_from_mate_dst_list(const std::vector<Mate_DST_LIST> &mate_dst) {
+    std::vector<DST_Port_Item> dst_items;
+    dst_items.reserve(mate_dst.size());
+    for (const auto &d : mate_dst) {
+        DST_Port_Item it;
+        it.group_ids1 = d.group_ids;
+        it.dst_lo = d.dst_lo;
+        it.dst_hi = d.dst_hi;
+        // Initialize Action from mate_dst.action
+        it.Action.push_back(d.action);
+        // group_ids2 will be assigned later if needed
+        dst_items.push_back(std::move(it));
+    }
+    return dst_items;
 }
 
 // Apply assigned GID2s from src_items back into meta_src_list (update group_ids)
@@ -620,19 +910,33 @@ void create_Table_for_port(
     std::vector<SRC_SRAM_Table> src_sram_table;
     std::vector<SRC_TCAM_Table> src_tcam_table;
 
-    auto split_result = split_port_range_into_blocks(src_items);
-    auto &blocks = split_result.blocks;
-    auto &full_range_items = split_result.full_range_items;
+    auto split_result_src = split_port_range_into_blocks_for_src(src_items);
+    auto &blocks_src = split_result_src.blocks;
+    auto &full_range_items_src = split_result_src.full_range_items_src;
 
-    fill_full_range_items_to_src_tcam(full_range_items, src_tcam_table);
+    fill_full_range_items_to_src_tcam(full_range_items_src, src_tcam_table);
 
-    merge_prefix_blocks(blocks);
+    merge_prefix_blocks(blocks_src);
 
-    assign_blocks_to_sram_tcam(blocks, src_sram_table, src_tcam_table);
+    assign_blocks_to_sram_tcam(blocks_src, src_sram_table, src_tcam_table);
 
     //create tcam sram for DST port table;
     std::vector<DST_SRAM_Table> dst_sram_table;
     std::vector<DST_TCAM_Table> dst_tcam_table;
+
+    auto dst_items = build_dst_items_from_mate_dst_list(mate_dst);
+    // assign GID2 sequentially for DST table as well (if needed downstream)
+    create_GID2_for_dst_port_table(dst_items);
+    auto split_result_dst = split_port_range_into_blocks_for_dst(dst_items);
+    auto &blocks_dst = split_result_dst.blocks;
+    auto &full_range_items_dst = split_result_dst.full_range_items_dst;
+
+    fill_full_range_items_to_dst_tcam(full_range_items_dst, dst_tcam_table);
+    // 对剩余 blocks 做合并（以 GID2 为主）并分配到 DST TCAM/SRAM
+    merge_prefix_blocks_for_dst(blocks_dst);
+
+    // assign DST blocks to DST SRAM/TCAM (moved to standalone function)
+    assign_blocks_to_dst_sram_tcam(blocks_dst, dst_sram_table, dst_tcam_table);
 
 }
 
@@ -678,8 +982,9 @@ void laod_and_create_IP_table(vector<IPRule>& ip_table,
 }
 
 /*************************************************************
- * Step 5: main
+ * Step 5: main (protected with COMPILE_AS_STANDALONE_MAIN)
  *************************************************************/
+#ifdef COMPILE_AS_STANDALONE_MAIN
 int main(int argc, char **argv)  // accept optional path argument
 {
     string rules_path = "src/ACL_rules/test_port.rules";
@@ -716,3 +1021,4 @@ int main(int argc, char **argv)  // accept optional path argument
 
     return 0;
 }
+#endif

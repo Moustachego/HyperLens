@@ -1,7 +1,0 @@
-digraph ingress {
-0 [label="$root" shape=box color="black"];
-1 [label="ip_table_0" shape=box color="black"];
-2 [label="port_table_0" shape=box color="black"];
-0-> 1 [label="$start" color="black"];
-1-> 2 [label="$always" color="black"];
-}

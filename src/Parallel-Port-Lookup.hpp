@@ -16,7 +16,7 @@ struct PortRangeEntry {
 };
 
 // 全局 block 元数据，记录属于哪些规则以及是否已分配到 TCAM
-struct BlockMeta {
+struct BlockMeta_SRC {
     uint32_t group_id;
     uint32_t group_id2;
     uint16_t block_idx;
@@ -30,6 +30,27 @@ struct BlockMeta {
     bool assigned = false;        // 是否已经被分配给 TCAM（被合并成 superblock）
     bool single_value = false;    // 新增：是否为单个端口值
 };
+
+// 全局 block 元数据，记录属于哪些规则以及是否已分配到 TCAM
+struct BlockMeta_DST {
+    uint32_t group_id;
+    uint32_t group_id2;
+    std::vector<int> Action;
+    uint16_t block_idx;
+    uint32_t SP;
+    uint32_t start;       // 新增：block 实际起始端口
+    uint32_t end;         // 新增：block 实际结束端口 
+    uint32_t src_item_idx; // 新增：来源于哪个 src_items 的索引
+    std::string bin_prefix;
+    bool can_use_prefix;
+    std::bitset<32> bitmap; 
+    bool assigned = false;        // 是否已经被分配给 TCAM（被合并成 superblock）
+    bool single_value = false;    // 新增：是否为单个端口值
+};
+
+// 为兼容现有代码，默认的 BlockMeta 映射到 SRC 版本。
+// 新的 DST 流程应当使用 BlockMeta_DST 明确区分。
+using BlockMeta = BlockMeta_SRC;
 
 // 占位输出结构
 struct Mate_SRC_LIST {
@@ -47,6 +68,7 @@ struct Mate_DST_LIST {
     uint32_t dst_hi;
     std::vector<int> idx_list;       // 合并后的多个 Idx（重排后 i+1）
     std::vector<int> initnum_list;   // 合并后的多个 InitNum
+    uint16_t action;                 // 来自规则的 action 字段
 };
 
 // 用于给 SRC 表分配第二个 GID 的临时结构
@@ -55,6 +77,15 @@ struct SRC_Port_Item{
     uint32_t src_lo;
     uint32_t src_hi;
     std::vector<int> group_ids2;      // 分配后的 GID2（顺序分配）
+};
+
+// 对称的 DST 项结构
+struct DST_Port_Item{
+    std::vector<int> group_ids1;      // 原始 GID 列表
+    std::vector<int> group_ids2;      // GID2 列表
+    uint32_t dst_lo;
+    uint32_t dst_hi;
+    std::vector<int> Action;      // 分配后的 GID2（顺序分配或 action id）
 };
 
 // 占位输出结构
@@ -88,5 +119,21 @@ struct DST_TCAM_Table {
     uint16_t Action;
     std::string bin_prefix;
 };
+
+// ===== Function Declarations =====
+
+void laod_and_create_IP_table(
+    std::vector<IPRule>& ip_table,
+    std::vector<PortRule>& port_table,
+    std::vector<IPRule>& merged_ip_table,
+    std::map<std::tuple<std::vector<int>, int, int>, MergedItem>& mateifno
+);
+
+void create_Table_for_port(
+    const std::vector<PortRule>& port_table,
+    const std::vector<IPRule>& merged_ip_table,
+    std::map<std::tuple<std::vector<int>, int, int>, MergedItem>& mateifno
+);
+
 
 

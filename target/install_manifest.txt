@@ -1,5 +1,0 @@
-/home/long/bf-sde-9.13.1/install/bin/sdepythonpath.py
-/home/long/bf-sde-9.13.1/install/share/p4/targets/tofino2/tofino2.conf
-/home/long/bf-sde-9.13.1/install/share/tofino2pd/tofino2/bf-rt.json
-/home/long/bf-sde-9.13.1/install/share/tofino2pd/tofino2/pipe/context.json
-/home/long/bf-sde-9.13.1/install/share/tofino2pd/tofino2/pipe/tofino2.bin

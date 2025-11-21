@@ -11,6 +11,7 @@ struct Rule5D {
     std::array<std::array<uint32_t,2>, 5> range; 
     std::array<int,5> prefix_length;  // store prefix-like info (as in original)
     uint32_t priority;
+    uint16_t action;  // 规则最后一列的 action 值（如 0x0000）
 };
 
 struct IPRule {
@@ -28,6 +29,7 @@ struct PortRule {
     uint16_t src_port_lo, src_port_hi;
     uint16_t dst_port_lo, dst_port_hi;
     uint32_t priority;
+    uint16_t action;  // 从规则最后一列传递的 action 值
 };
 
 // ===== API：从文件中加载 ACL 规则到 Rule5D 向量 =====

@@ -59,7 +59,7 @@ void load_rules_from_file(const string &file, vector<Rule5D> &rules_out) {
     unsigned dip1,dip2,dip3,dip4, dmask;
     unsigned sport1, sport2, dport1, dport2;
     unsigned protocol, protocol_mask;
-    unsigned dummy_flags, dummy_mask;
+    unsigned action_flags, action_mask;
 
     u32 rule_count = 0;
     // read lines until EOF
@@ -71,7 +71,7 @@ void load_rules_from_file(const string &file, vector<Rule5D> &rules_out) {
             &dip1, &dip2, &dip3, &dip4, &dmask,
             &sport1, &sport2, &dport1, &dport2,
             &protocol, &protocol_mask,
-            &dummy_flags, &dummy_mask
+            &action_flags, &action_mask
         );
 
         // Sometimes separators are tabs; try alternate format when initial fails
@@ -82,11 +82,12 @@ void load_rules_from_file(const string &file, vector<Rule5D> &rules_out) {
             char buf[1024];
             if (!fgets(buf, sizeof(buf), fp)) break;
             // attempt sscanf on buf
-            ret = sscanf(buf, "@%u.%u.%u.%u/%u\t%u.%u.%u.%u/%u\t%u : %u\t%u : %u\t%x/%x\t%*x/%*x",
+            ret = sscanf(buf, "@%u.%u.%u.%u/%u\t%u.%u.%u.%u/%u\t%u : %u\t%u : %u\t%x/%x\t%x/%x",
                          &sip1,&sip2,&sip3,&sip4,&smask,
                          &dip1,&dip2,&dip3,&dip4,&dmask,
                          &sport1,&sport2,&dport1,&dport2,
-                         &protocol,&protocol_mask);
+                         &protocol,&protocol_mask,
+                         &action_flags,&action_mask);
             if (ret < 14) {
                 // skip this bad line
                 continue;
@@ -130,6 +131,7 @@ void load_rules_from_file(const string &file, vector<Rule5D> &rules_out) {
 
         ++rule_count;
         r.priority = rule_count;
+        r.action = static_cast<uint16_t>(action_flags);  // 保存 action 值
 
         rules_out.emplace_back(r);
     }
@@ -173,6 +175,7 @@ void split_rules(
         pr.dst_port_lo = static_cast<uint16_t>(r.range[3][0]);
         pr.dst_port_hi = static_cast<uint16_t>(r.range[3][1]);
         pr.priority    = r.priority;
+        pr.action      = r.action;  // 从 Rule5D 传递 action
         port_table.push_back(pr);
 
         i++; 

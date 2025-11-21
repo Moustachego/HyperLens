@@ -1299,6 +1299,7 @@ void Create_Metainfo_for_port(
         meta[i].Src_hi        = p.src_port_hi;
         meta[i].Dst_lo        = p.dst_port_lo;
         meta[i].Dst_hi        = p.dst_port_hi;
+        meta[i].action        = p.action;  // 从 port_table 获取 action 值
 
         // group_ids 暂时空，不填
         meta[i].group_ids.clear();
@@ -1343,7 +1344,8 @@ void Create_Metainfo_for_port(
                 m.Dst_lo,
                 m.Dst_hi,
                 {},    // idx_list
-                {}     // initnum_list
+                {},    // initnum_list
+                m.action  // 从第一条条目获取 action 值
             };
         }
 
