@@ -23,7 +23,7 @@ echo "[2/5] 编译 (g++-11 -std=c++17)..."
 /usr/bin/g++-11 -std=c++17 -fdiagnostics-color=always -g \
     src/P4Lens.cpp \
     src/Parallel-Port-Lookup.cpp \
-    src/input.cpp \
+    src/Loader.cpp \
     src/Dependent-Set-Prefix-Lookup.cpp \
     -o src/P4Lens 2>&1
 echo "✓ 编译成功"
@@ -42,9 +42,9 @@ echo ""
 
 # 4. 运行程序
 echo "[4/5] 运行程序..."
-echo "=========================== 程序输出 ============================="
+echo "============================== 程序输出 =============================="
 ./src/P4Lens src/ACL_rules/test.rules
-echo "=========================== 程序完成 ============================="
+echo "============================== 程序完成 =============================="
 echo ""
 
 # 5. 检查输出文件
