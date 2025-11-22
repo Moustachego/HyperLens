@@ -1,13 +1,12 @@
-/*
- * P4Lens: Main Entry Point
- * 
- * This file serves as the unified main entry point for the P4Lens project.
- * It orchestrates the loading of ACL rules and the generation of TCAM/SRAM tables
- * for both SRC and DST port lookups.
- * 
- * Author: P4Lens Contributors
- * Date: 2025
- */
+/** *************************************************************/
+// -------------------Main Entry Point for P4Lens--------------------
+// 
+// This file serves as the unified main entry point for the P4Lens project.
+// It orchestrates the loading of ACL rules and the generation of TCAM/SRAM tables
+// for both SRC and DST port lookups.
+// @Author: weijzh (weijzh@pcl.ac.cn)
+// @Created: 2025-10-30
+/************************************************************* */
 
 #include <iostream>
 #include <vector>
