@@ -1,4 +1,4 @@
-**P4Lens — Parallel Port Lookup and TCAM/SRAM Table Generator**
+**P4Lens — Scalable High-Speed Packet Classification on Programmable Switches**
 
 P4Lens is a compact toolchain for analyzing ACL-style five-tuple rules and producing optimized port-lookup tables suitable for TCAM and SRAM implementation. It implements a full pipeline that: parses ACL rules (including per-rule action fields), splits rules into IP and port dimensions, merges identical IP entries, computes per-port block partitions, and emits TCAM/SRAM table files for both source (SRC) and destination (DST) port lookups.
 
