@@ -70,11 +70,11 @@ int main(int argc, char **argv)
 
     // Step 3: Create metadata and tables
     // (laod_and_create_IP_table internally handles IP merge, intersection detection, and metainfo generation)
-    cout << "[STEP 3] Processing IP and port metadata...\n";
+    cout << "[STEP 3] Creating IP Table and port metadata...\n";
     vector<IPRule> merged_ip_table;
     std::map<std::tuple<std::vector<int>, int, int>, MergedItem> mateifno;
     laod_and_create_IP_table(ip_table, port_table, merged_ip_table, mateifno);
-    cout << "[SUCCESS] IP metadata processing completed (Merged to " << merged_ip_table.size() << " unique IP entries)\n\n";
+    cout << "[SUCCESS] IP Table and metadata processing completed (Merged to " << merged_ip_table.size() << " unique IP entries)\n\n";
 
     // Step 4: Generate TCAM/SRAM tables for both SRC and DST
     cout << "[STEP 4] Generating TCAM/SRAM tables for port lookups...\n";

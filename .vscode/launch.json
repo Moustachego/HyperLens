@@ -2,17 +2,23 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Launch Parallel-Port-Lookup (build then debug)",
-            "type": "cppdbg",
+            "name": "Debug P4Lens (F5)",
+            "type": "lldb",
             "request": "launch",
-            "program": "${workspaceFolder}/src/Parallel-Port-Lookup",
+            "program": "${workspaceFolder}/src/P4Lens.debug",
             "args": ["src/ACL_rules/test.rules"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],
-            "externalConsole": false,
+            "externalConsole": true,
             "MIMode": "gdb",
             "miDebuggerPath": "/usr/bin/gdb",
+            "logging": {
+                "engineLogging": true,
+                "trace": true,
+                "traceResponse": true,
+                "programOutput": true
+            },
             "setupCommands": [
                 {
                     "description": "Enable pretty-printing for gdb",
@@ -23,35 +29,14 @@
                     "description": "Set disassembly flavor to intel",
                     "text": "-gdb-set disassembly-flavor intel",
                     "ignoreFailures": true
-                }
-            ],
-            "preLaunchTask": "Build: Parallel-Port-Lookup (g++-11)"
-        },
-        {
-            "name": "Debug active file (build then debug)",
-            "type": "cppdbg",
-            "request": "launch",
-            "program": "${fileDirname}/${fileBasenameNoExtension}",
-            "args": [],
-            "stopAtEntry": false,
-            "cwd": "${fileDirname}",
-            "environment": [],
-            "externalConsole": false,
-            "MIMode": "gdb",
-            "miDebuggerPath": "/usr/bin/gdb",
-            "setupCommands": [
-                {
-                    "description": "Enable pretty-printing for gdb",
-                    "text": "-enable-pretty-printing",
-                    "ignoreFailures": true
                 },
                 {
-                    "description": "Set disassembly flavor to intel",
-                    "text": "-gdb-set disassembly-flavor intel",
-                    "ignoreFailures": true
+                    "description": "Set breakpoint after rule loading",
+                    "text": "-break-insert src/P4Lens.cpp:57",
+                    "ignoreFailures": false
                 }
             ],
-            "preLaunchTask": "Build: quick single-file (current file)"
+            "preLaunchTask": "Build: P4Lens (g++-11) - Debug"
         }
     ]
 }

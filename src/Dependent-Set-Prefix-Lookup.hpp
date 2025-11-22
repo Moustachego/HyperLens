@@ -1,12 +1,14 @@
-#pragma once  // 或者下面这种传统写法
+#pragma once 
 #include <vector>
 #include <map>
 #include <tuple>
 #include <algorithm>
 #include <fstream>
 #include <iostream>
+
 using namespace std;
 
+// ===== Struct Declarations =====
 struct IntersectionCell {
     uint32_t src_lo;
     uint32_t src_hi;
@@ -66,7 +68,6 @@ struct MergedItem{
 
 
 // ===== Function Declarations =====
-
 void merge_same_ip_entry(
     const std::vector<IPRule>& ip_table,
     std::vector<IPRule>& merged_ip_table

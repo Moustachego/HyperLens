@@ -3,19 +3,21 @@
     "tasks": [
         {
             "type": "shell",
-            "label": "Build: Parallel-Port-Lookup (g++-11)",
+            "label": "Build: P4Lens (g++-11) - Debug",
             "command": "/usr/bin/g++-11",
             "args": [
                 "-std=c++17",
                 "-fdiagnostics-color=always",
                 "-g",
                 "-O0",
-                "-DCOMPILE_AS_LIB",
+                "-Wall",
+                "-Wextra",
+                "${workspaceFolder}/src/P4Lens.cpp",
                 "${workspaceFolder}/src/Parallel-Port-Lookup.cpp",
-                "${workspaceFolder}/src/input.cpp",
+                "${workspaceFolder}/src/Loader.cpp",
                 "${workspaceFolder}/src/Dependent-Set-Prefix-Lookup.cpp",
                 "-o",
-                "${workspaceFolder}/src/Parallel-Port-Lookup"
+                "${workspaceFolder}/src/P4Lens.debug"
             ],
             "options": {
                 "cwd": "${workspaceFolder}"
@@ -27,7 +29,7 @@
                 "kind": "build",
                 "isDefault": true
             },
-            "detail": "Build Parallel-Port-Lookup (g++-11, links all required sources, sets -DCOMPILE_AS_LIB)"
+            "detail": "Build P4Lens debug version (g++-11, all required sources with full debug symbols)"
         },
         {
             "type": "shell",

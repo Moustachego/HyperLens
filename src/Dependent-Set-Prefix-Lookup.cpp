@@ -19,20 +19,14 @@
 #include <string>
 #include <cstdint>
 #include <cmath>
-#include <iomanip> 
+#include <iomanip>
+
 #include "Loader.hpp"
 #include "Dependent-Set-Prefix-Lookup.hpp"
 
 using namespace std;
 
 
-/********************************************************************
- * Name: merge_same_ip_entry (only keep merged_R version)
- * Function:
- *   - 合并 IP 规则中“完全一样”的项
- *   - 每条合并后的 IPRule 里记录 merged_R = {原始规则编号...}
- *   - 重新设置合并后规则的 priority（按出现顺序 1,2,3,...）
- ********************************************************************/
 void merge_same_ip_entry(
     const std::vector<IPRule>& ip_table,
     std::vector<IPRule>& merged_ip_table
@@ -56,7 +50,7 @@ void merge_same_ip_entry(
         if (it == key_to_index.end()) {
             IPRule new_rule = rule;
             new_rule.merged_R.clear();
-            new_rule.merged_R.push_back(i);  // 记录原始规则编号
+            new_rule.merged_R.push_back(i);  
 
             merged_ip_table.push_back(new_rule);
             key_to_index[key] = merged_ip_table.size() - 1;
@@ -374,8 +368,13 @@ static void build_ancestors(
 
     // Step 2: 传递闭包
     bool changed = true;
+    size_t closure_iter = 0;
     while (changed) {
         changed = false;
+        closure_iter++;
+        if (closure_iter % 5 == 0) {
+            std::cout << "[build_ancestors] Closure iteration " << closure_iter << " (rem.size=" << rem.size() << ")" << std::endl;
+        }
         for (auto& kv : ancestors) {
             size_t node = kv.first;
             auto& vec = kv.second;
@@ -396,6 +395,9 @@ static void build_ancestors(
                 changed = true;
             }
         }
+    }
+    if (closure_iter > 0) {
+        std::cout << "[build_ancestors] Closure converged after " << closure_iter << " iterations" << std::endl;
     }
 }
 
@@ -556,7 +558,12 @@ void find_intersections_per_proto(
         //     << " line/point cells collected = " << local_cells.size() << endl;
       
         // Iteratively peel off subsets dominated by a best-cover rule (R0)
+        size_t peel_iter = 0;
         while (remaining.size() >= 2) {
+            peel_iter++;
+            if (peel_iter % 3 == 0) {
+                std::cout << "[find_intersections] Peel iteration " << peel_iter << " (remaining=" << remaining.size() << ")" << std::endl;
+            }
             size_t best_pos = find_best_cover_rule_in_set(merged_ip_table, remaining);
             size_t best_rid = remaining[best_pos];
             const auto &Rmax = merged_ip_table[best_rid];
@@ -601,6 +608,7 @@ void find_intersections_per_proto(
             }
 
             // Enumerate elementary cells **restricted to Rmax** using endpoints (treat endpoints as half-open)
+            size_t cell_count = 0;
             for (size_t si = src_start_idx; si + 1 < src_ep.size() && si + 1 <= src_end_idx; ++si) {
                 // ensure the interval [src_ep[si], src_ep[si+1]-1] lies inside Rmax
                 uint32_t cell_src_lo = src_ep[si];
@@ -644,6 +652,7 @@ void find_intersections_per_proto(
 
                     // you asked to collect cells covered by >=2 non-global rules (here S are non-global w.r.t this Rmax)
                     if (!invalid_cell && covered.size() >= 2) {
+                        cell_count++;
                         string key = to_string(cell_src_lo) + "-" + to_string(cell_src_hi) + "-" +
                                 to_string(cell_dst_lo) + "-" + to_string(cell_dst_hi) + "-" +
                                 to_string(proto);
@@ -1420,127 +1429,9 @@ void Create_Metainfo_for_port(
     
 };
 
-/*************************************************************
- * Step 5: main
- *************************************************************/
-// When building as part of a larger tool, allow disabling the standalone main
+
 #ifdef DEMO_LOADER_MAIN
 int main(int argc, char **argv) {
-    // 1) load rules and split into ip/port tables
-    vector<Rule5D> rules;
-    load_rules_from_file("ACL_rules/acl_10k.rules", rules);
-
-    vector<IPRule> ip_table;
-    vector<PortRule> port_table;
-    split_rules(rules, ip_table, port_table);
-
-    cout << "Total loaded rules: " << rules.size() << endl;
-    cout << "IP table entries: " << ip_table.size() << endl;
-
-    // 2) merge identical IP entries
-    vector<IPRule> merged_ip_table;
-    merge_same_ip_entry(ip_table, merged_ip_table);
-    cout << "[Main] Merged IP rules = " << merged_ip_table.size() << endl;
-
-    // 3.5) find Rmax for merged_ip_table
-    vector<Rmax_IPRule> Rmax_merged_ip_table;
-    find_Rmax_for_merged_ip_table(merged_ip_table, Rmax_merged_ip_table);
-
-    // 3) per-protocol elementary intervals (half-open endpoints)
-    map<uint8_t, vector<uint32_t>> src_intervals_per_proto;
-    map<uint8_t, vector<uint32_t>> dst_intervals_per_proto;
-    build_elementary_intervals_per_proto(merged_ip_table,
-        src_intervals_per_proto, dst_intervals_per_proto);
-
-    // 4) find intersection cells (per-proto)
-    vector<IntersectionCell> intersections;
-    vector<size_t> rmax_rule_ids;
-    find_intersections_per_proto(merged_ip_table,src_intervals_per_proto, 
-        dst_intervals_per_proto, intersections, rmax_rule_ids);
-
-    //add a Gourp_id generator fuction for final table
-    // 5) export merged IP table
-    ofstream fout1("merged_acl_10k.txt");
-    if (!fout1) {
-        cerr << "Error: cannot open merged_ip_table.txt for writing.\n";
-        return -1;
-    }
-    fout1 << "Merged IP Table (" << Rmax_merged_ip_table.size() << " entries):\n";
-    fout1 << "Idx\tSrcIP_lo\tSrcIP_hi\tDstIP_lo\tDstIP_hi\t"
-        << "Proto\tPriority\tSrcMask\tDstMask\tMergedCount\tRmaxID\n";
-
-    for (size_t i = 0; i < Rmax_merged_ip_table.size(); ++i) {
-        const auto &r = Rmax_merged_ip_table[i];
-        fout1 << i << "\t"
-              << r.src_ip_lo << "\t"
-              << r.src_ip_hi << "\t"
-              << r.dst_ip_lo << "\t"
-              << r.dst_ip_hi << "\t"
-              << static_cast<int>(r.proto) << "\t"
-              << static_cast<int>(r.src_prefix_len) << "\t"
-              << static_cast<int>(r.dst_prefix_len) << "\t"
-              << r.merged_R.size() << "\t";
-
-                  // 输出 rmax_id
-            if (r.rmax_id == SIZE_MAX)
-                fout1 << "NONE\t";
-            else
-                fout1 << r.rmax_id << "\t";
-            
-            fout1 << "\n"; 
-    }
-    fout1.close();
-    cout << "Merged IP table saved to merged_ip_table.txt" << endl;
-
-    // 6) export intersection cells
-    ofstream fout2("intersection_cells.txt");
-    if (!fout2) {
-        cerr << "Error: cannot open intersection_cells.txt for writing.\n";
-        return -1;
-    }
-
-    fout2 << "Intersection Cells (" << intersections.size() << " total):\n";
-    for (size_t i = 0; i < intersections.size(); ++i) {
-        const auto &cell = intersections[i];
-        fout2 << "Cell[" << i << "] "
-              << "PROTO=" << (int)cell.proto << " "
-              << "SRC[" << cell.src_lo << "-" << cell.src_hi << "] "
-              << "DST[" << cell.dst_lo << "-" << cell.dst_hi << "] "
-              << "Rmax=" << cell.rmax_id << " "
-              << "Covered=" << cell.rule_indices.size() << " rules: ";
-        for (auto rid : cell.rule_indices) fout2 << rid << " ";
-        fout2 << "\n";
-    }
-    fout2.close();
-    cout << "Intersection cells saved to intersection_cells.txt" << endl;
-
-    cout << "============================================\n";
-    cout << "All data exported successfully.\n";
-
-    vector<IPRule> extra_rules;
-    extract_and_split_cells(merged_ip_table, intersections, extra_rules);
-    cout << "[INFO] Extra rules (range only, no CIDR): " << extra_rules.size() << endl;
-
-    ofstream fout_extra("extra_rules.txt");
-    for (size_t i = 0; i < extra_rules.size(); ++i) {
-        const auto &r = extra_rules[i];
-        fout_extra << "ER[" << i << "] PROTO=" << (int)r.proto
-                << " SRC[" << r.src_ip_lo << "-"
-                << r.src_ip_hi << "] "
-                << " DST[" << r.dst_ip_lo << "-"
-                << r.dst_ip_hi << "]\n";
-    }
-    fout_extra.close();
-
-    // 7) merge intersection cells + merged IP table into final table
-    vector<FinalIPRule> final_ip_table;
-    merge_cells_and_ip_table(Rmax_merged_ip_table, intersections, final_ip_table);
-    
-
-    Create_Metainfo_for_SRC_port(port_table, merged_ip_table, intersections, final_ip_table);
-    //8) transfer rule into mask type
-    // export final IP table
-    write_final_table_in_cidr(final_ip_table, "final_ip_table_cidr.txt");
     return 0;
 }
 #endif /* COMPILE_AS_LIB */
