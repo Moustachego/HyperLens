@@ -13,7 +13,7 @@
 #include <string>
 #include <map>
 #include <tuple>
-#include "input.hpp"
+#include "Loader.hpp"
 #include "Dependent-Set-Prefix-Lookup.hpp"
 #include "Parallel-Port-Lookup.hpp"
 
@@ -39,13 +39,13 @@ using std::endl;
 int main(int argc, char **argv)
 {
     // Parse command-line arguments
-    string rules_path = "src/ACL_rules/test_port.rules";
+    string rules_path = "src/ACL_rules/test.rules";
     if (argc >= 2) {
         rules_path = string(argv[1]);
     }
 
     cout << "================================\n";
-    cout << "P4Lens - ACL Rule Processing\n";
+    cout << "-------------P4Lens------------- \n";
     cout << "================================\n\n";
 
     // Step 1: Load rules from file
@@ -68,20 +68,16 @@ int main(int argc, char **argv)
     cout << "[SUCCESS] IP table: " << ip_table.size() << " entries, "
          << "Port table: " << port_table.size() << " entries\n\n";
 
-    // Step 3: Merge identical IP entries
-    cout << "[STEP 3] Merging identical IP entries...\n";
+    // Step 3: Create metadata and tables
+    // (laod_and_create_IP_table internally handles IP merge, intersection detection, and metainfo generation)
+    cout << "[STEP 3] Processing IP and port metadata...\n";
     vector<IPRule> merged_ip_table;
-    merge_same_ip_entry(ip_table, merged_ip_table);
-    cout << "[SUCCESS] Merged to " << merged_ip_table.size() << " unique IP entries\n\n";
-
-    // Step 4: Create metadata and tables
-    cout << "[STEP 4] Creating IP table metadata and port lookups...\n";
     std::map<std::tuple<std::vector<int>, int, int>, MergedItem> mateifno;
     laod_and_create_IP_table(ip_table, port_table, merged_ip_table, mateifno);
-    cout << "[SUCCESS] Metadata generation completed\n\n";
+    cout << "[SUCCESS] IP metadata processing completed (Merged to " << merged_ip_table.size() << " unique IP entries)\n\n";
 
-    // Step 5: Generate TCAM/SRAM tables for both SRC and DST
-    cout << "[STEP 5] Generating TCAM/SRAM tables for port lookups...\n";
+    // Step 4: Generate TCAM/SRAM tables for both SRC and DST
+    cout << "[STEP 4] Generating TCAM/SRAM tables for port lookups...\n";
     create_Table_for_port(port_table, merged_ip_table, mateifno);
     cout << "[SUCCESS] Port lookup tables generated\n\n";
 

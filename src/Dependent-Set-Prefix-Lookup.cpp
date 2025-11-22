@@ -20,7 +20,7 @@
 #include <cstdint>
 #include <cmath>
 #include <iomanip> 
-#include "input.hpp"
+#include "Loader.hpp"
 #include "Dependent-Set-Prefix-Lookup.hpp"
 
 using namespace std;
@@ -793,7 +793,7 @@ void merge_cells_and_ip_table(
         fr.is_cell = true;
         fr.is_rmax = false;
         fr.merged_R = cell.rule_indices; // optional
-        fr.original_merged_index = SIZE_MAX;
+        fr.original_merged_index = std::numeric_limits<uint32_t>::max();
 
         int own_new_idx = static_cast<int>(final_ip_table.size()); // 当前将被放置的位置
         int rmax_new_idx = NO_RMAX;
@@ -1234,6 +1234,7 @@ void Generate_cell_GID_to_metaifno(
             new_entry.Src_hi   = por.src_port_hi;
             new_entry.Dst_lo   = por.dst_port_lo;
             new_entry.Dst_hi   = por.dst_port_hi;
+            new_entry.action   = por.action;
             new_entry.group_ids = { gid };
 
             meta_src.push_back(new_entry);
@@ -1300,6 +1301,7 @@ void Create_Metainfo_for_port(
         meta[i].Dst_lo        = p.dst_port_lo;
         meta[i].Dst_hi        = p.dst_port_hi;
         meta[i].action        = p.action;  // 从 port_table 获取 action 值
+        // (debug print removed)
 
         // group_ids 暂时空，不填
         meta[i].group_ids.clear();
@@ -1347,6 +1349,7 @@ void Create_Metainfo_for_port(
                 {},    // initnum_list
                 m.action  // 从第一条条目获取 action 值
             };
+            // (debug print removed)
         }
 
         // 累积 Idx（重排后的行号） 和 InitNum
