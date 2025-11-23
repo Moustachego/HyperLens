@@ -20,6 +20,7 @@
 #include <cstdint>
 #include <cmath>
 #include <iomanip>
+#include <queue>  // ★ 添加queue头文件用于BFS优化
 
 #include "Loader.hpp"
 #include "Dependent-Set-Prefix-Lookup.hpp"
@@ -69,13 +70,6 @@ void merge_same_ip_entry(
 }
 
 
-
-/*************************************************************
- * Name: build_elementary_intervals_per_proto
- * Fuction: build elementary intervals per protocol for src and dst IPs
- * @ input: merged ip_table
- * @ output: src_intervals_per_proto, dst_intervals_per_proto
- *************************************************************/
 void build_elementary_intervals_per_proto(
     const vector<IPRule>& ip_table,
     map<uint8_t, vector<uint32_t>>& src_intervals_per_proto,
@@ -104,34 +98,19 @@ void build_elementary_intervals_per_proto(
         // dst: may be empty if no entry in dst_set_per_proto for this proto
         const auto &dset = dst_set_per_proto[proto]; // operator[] yields empty set if absent
         dst_intervals_per_proto[proto].assign(dset.begin(), dset.end());
-
-        // cout << "[build_elementary_intervals] Proto=" << (int)proto
-        //      << " Src intervals=" << src_intervals_per_proto[proto].size()
-        //      << " Dst intervals=" << dst_intervals_per_proto[proto].size() << endl;
     }
 }
 
-/*************************************************************
- * Name: covers
- * Fucttion: check if prefix A covers prefix B
- * @ input: Rule A, Rule B
- * @ output: 0/1
- *************************************************************/
+
 static inline bool covers(const IPRule& A, const IPRule& B) {
-    if (&A == &B) return false; // 显式排除自己（按引用比较）
+    if (&A == &B) return false;
     return (A.src_ip_lo <= B.src_ip_lo &&
             A.src_ip_hi >= B.src_ip_hi &&
             A.dst_ip_lo <= B.dst_ip_lo &&
             A.dst_ip_hi >= B.dst_ip_hi);
 }
 
-/*************************************************************
- * Name: find_best_cover_rule_in_set
- * Fucttion: find iterative R0-driven partition,table A(reamining) 
- * compared to table B(ip table)
- * @ input: merged ip_table, reamining_rules(a kv table including reamining rules)
- * @ output: R0 position in rule_indices
- *************************************************************/
+
 static inline size_t find_best_cover_rule_in_set(
     const vector<IPRule>& ip_table,
     const vector<size_t>& reamining_rules)
@@ -157,12 +136,7 @@ static inline size_t find_best_cover_rule_in_set(
     return best_pos;
 }
 
-/*************************************************************
- * Name: make_cell_key
- * Fucttion: make a string key for a cell for deduplication
- * @ input: cell parameters
- * @ output: string key
- *************************************************************/
+
 static inline string make_cell_key(uint8_t proto,
                                    uint32_t s_lo, uint32_t s_hi,
                                    uint32_t d_lo, uint32_t d_hi) {
@@ -182,14 +156,14 @@ void collect_line_and_point_cells(
     size_t rmax_id
  )
 {
-    // Helper: 检查cell是否与merged_ip_table中某个规则完全相同
+    // Helper: check if a cell is duplicate of any merged_ip_table rule
     auto is_duplicate_of_merged_rule = [&](uint32_t s_lo, uint32_t s_hi, 
                                            uint32_t d_lo, uint32_t d_hi) -> bool {
         for (size_t rid : proto_rules) {
             const IPRule &R = ip_table[rid];
             if (R.src_ip_lo == s_lo && R.src_ip_hi == s_hi &&
                 R.dst_ip_lo == d_lo && R.dst_ip_hi == d_hi) {
-                return true;  // 找到完全相同的规则
+                return true;  // Found an identical rule
             }
         }
         return false;
@@ -212,9 +186,8 @@ void collect_line_and_point_cells(
             uint32_t dlo = std::max(A.dst_ip_lo, B.dst_ip_lo);
             uint32_t dhi = std::min(A.dst_ip_hi, B.dst_ip_hi);
             if (dhi >= dlo) { 
-                // ★ 新增：检查是否与merged_ip_table中规则完全相同
                 if (is_duplicate_of_merged_rule(px, px, dlo, dhi)) {
-                    continue;  // 跳过完全相同的cell
+                    continue;  // Skip identical cell
                 }
                 
                 vector<size_t> covered;
@@ -241,9 +214,8 @@ void collect_line_and_point_cells(
             uint32_t slo = std::max(A.src_ip_lo, B.src_ip_lo);
             uint32_t shi = std::min(A.src_ip_hi, B.src_ip_hi);
                 if (shi >= slo) { // overlap length >= 1 -> line along dst point py
-                    // ★ 新增：检查是否与merged_ip_table中规则完全相同
                     if (is_duplicate_of_merged_rule(slo, shi, py, py)) {
-                        continue;  // 跳过完全相同的cell
+                        continue;  
                     }
                     
                     vector<size_t> covered;
@@ -273,9 +245,8 @@ void collect_line_and_point_cells(
             if (src_touch_ab && dst_touch_ab) {
                 uint32_t px = A.src_ip_hi, py = A.dst_ip_hi;
                 
-                // ★ 新增：检查是否与merged_ip_table中规则完全相同
                 if (is_duplicate_of_merged_rule(px, px, py, py)) {
-                    goto skip_point_1;  // 跳过完全相同的cell
+                    goto skip_point_1; 
                 }
                 
                 // check containment among proto rules
@@ -300,9 +271,9 @@ void collect_line_and_point_cells(
             if (src_touch_ab && dst_touch_ba) {
                 uint32_t px = A.src_ip_hi, py = B.dst_ip_hi;
                 
-                // ★ 新增：检查是否与merged_ip_table中规则完全相同
+                // Check if identical to any merged_ip_table rule
                 if (is_duplicate_of_merged_rule(px, px, py, py)) {
-                    goto skip_point_2;  // 跳过完全相同的cell
+                    goto skip_point_2;  
                 }
                 
                 vector<size_t> covered;
@@ -325,9 +296,8 @@ void collect_line_and_point_cells(
             if (src_touch_ba && dst_touch_ab) {
                 uint32_t px = B.src_ip_hi, py = A.dst_ip_hi;
                 
-                // ★ 新增：检查是否与merged_ip_table中规则完全相同
                 if (is_duplicate_of_merged_rule(px, px, py, py)) {
-                    goto skip_point_3;  // 跳过完全相同的cell
+                    goto skip_point_3;  
                 }
                 
                 vector<size_t> covered;
@@ -350,9 +320,8 @@ void collect_line_and_point_cells(
             if (src_touch_ba && dst_touch_ba) {
                 uint32_t px = B.src_ip_hi, py = B.dst_ip_hi;
                 
-                // ★ 新增：检查是否与merged_ip_table中规则完全相同
                 if (is_duplicate_of_merged_rule(px, px, py, py)) {
-                    goto skip_point_4;  // 跳过完全相同的cell
+                    goto skip_point_4;  
                 }
                 
                 vector<size_t> covered;
@@ -372,7 +341,7 @@ void collect_line_and_point_cells(
                 }
             }
             skip_point_4:
-            ; // empty statement for label
+            ; 
         } // ib
     } // ia
 }
@@ -386,54 +355,60 @@ static void build_ancestors(
 )
 {
     vector<size_t> rem = remaining;
-    // -------------------------------------
-    // Step 0: 把 Rmax 移除（关键！你之前漏掉的）
-    // -------------------------------------
+    // Remove Rmax
     rem.erase(std::remove(rem.begin(), rem.end(), rmax_id), rem.end());
 
-    ancestors.clear();
+    unordered_map<size_t, unordered_set<size_t>> ancestors_set;
     for (size_t rid : rem) {
-        ancestors[rid] = vector<size_t>();
+        ancestors_set[rid] = unordered_set<size_t>();
     }
 
-    // Step 1: 直接父
+    // Simultaneously record the direct children of each node for topological traversal
+    unordered_map<size_t, vector<size_t>> children;
     for (size_t a : rem) {
         for (size_t b : rem) {
             if (a == b) continue;
             if (covers(merged_ip_table[a], merged_ip_table[b])) {
-                ancestors[b].push_back(a);
+                ancestors_set[b].insert(a);
+                children[a].push_back(b);
             }
         }
     }
 
-    // Step 2: 传递闭包
-    bool changed = true;
-    size_t closure_iter = 0;
-    while (changed) {
-        changed = false;
-        for (auto& kv : ancestors) {
-            size_t node = kv.first;
-            auto& vec = kv.second;
-
-            vector<size_t> to_add;
-            for (size_t p : vec) {
-                auto itp = ancestors.find(p);
-                if (itp == ancestors.end()) continue;
-                for (size_t gp : itp->second) {
-                    if (gp == node) continue;
-                    if (find(vec.begin(), vec.end(), gp) == vec.end()) {
-                        to_add.push_back(gp);
+    // For each node, start BFS from its direct parents to collect all ancestors
+    for (size_t node : rem) {
+        if (ancestors_set[node].empty()) continue;
+        
+        unordered_set<size_t> visited = ancestors_set[node]; // Known direct parents
+        queue<size_t> q;
+        
+        for (size_t parent : ancestors_set[node]) {
+            q.push(parent);
+        }
+        
+        // BFS 
+        while (!q.empty()) {
+            size_t current = q.front();
+            q.pop();
+            
+            // Check parents of current
+            auto it = ancestors_set.find(current);
+            if (it != ancestors_set.end()) {
+                for (size_t grandparent : it->second) {
+                    if (grandparent == node) continue; // Avoid self-loop
+                    if (visited.insert(grandparent).second) {
+                        // New ancestor, add to queue for further exploration
+                        ancestors_set[node].insert(grandparent);
+                        q.push(grandparent);
                     }
                 }
             }
-            if (!to_add.empty()) {
-                for (size_t x : to_add) vec.push_back(x);
-                changed = true;
-            }
         }
     }
-    if (closure_iter > 0) {
-        std::cout << "[build_ancestors] Closure converged after " << closure_iter << " iterations" << std::endl;
+
+    ancestors.clear();
+    for (const auto& kv : ancestors_set) {
+        ancestors[kv.first] = vector<size_t>(kv.second.begin(), kv.second.end());
     }
 }
 
@@ -447,7 +422,7 @@ static bool cell_is_invalid(
 {
     if (covered.size() < 2) return true;
 
-    // ----------------- Step 1: 祖先冗余判定 -----------------
+    // Ancestor redundancy check
     auto redundant_via_ancestors = [&](const vector<size_t>& cov)->bool {
         for (size_t r : cov) {
 
@@ -474,7 +449,7 @@ static bool cell_is_invalid(
         return true;
     }
 
-    // ----------------- Step 2: 正确 minimal 判定 -----------------
+    // Minimality check
     vector<size_t> minimal;
     minimal.reserve(covered.size());
 
@@ -495,7 +470,7 @@ static bool cell_is_invalid(
         for (size_t s : covered) {
             if (r == s) continue;
 
-            // 只有更小的规则才可以支配更大的规则
+            // Only smaller rules can dominate larger rules
             if (strictly_smaller(merged_ip_table[s], merged_ip_table[r])) {
                 dominated = true;
                 break;
@@ -503,12 +478,12 @@ static bool cell_is_invalid(
         }
 
         if (!dominated) {
-            minimal.push_back(r);  // r 是 minimal
+            minimal.push_back(r);  // r is minimal
         }
     }
 
     out_minimal = minimal;
-    // ----------------- 判断是否可用 -----------------
+    // Validity check
     return (minimal.size() < 2);
 }
 
@@ -532,9 +507,7 @@ void Map_cell_to_origID(
     out_orig_ids.assign(uniq.begin(), uniq.end());
 }
 
-// ==================== find_intersections_per_proto 辅助函数 ====================
 
-// 辅助结构：存储处理上下文
 struct ProtoProcessContext {
     uint8_t proto;
     size_t best_rid;
@@ -546,7 +519,6 @@ struct ProtoProcessContext {
     const unordered_map<size_t, vector<size_t>>& ancestors;
 };
 
-// 1. 计算Rmax覆盖的规则集合S
 static inline vector<size_t> compute_covered_set(
     const IPRule& Rmax,
     const vector<size_t>& remaining,
@@ -563,7 +535,7 @@ static inline vector<size_t> compute_covered_set(
     return S;
 }
 
-// 2. 查找端点在Rmax范围内的索引区间
+//Find the index range of endpoints within Rmax range
 struct IntervalBounds {
     size_t start_idx;
     size_t end_idx;
@@ -576,14 +548,12 @@ static inline IntervalBounds find_endpoint_bounds(
 {
     IntervalBounds bounds{0, 0};
     
-    // 使用二分查找优化（更高效）
     bounds.start_idx = std::lower_bound(endpoints.begin(), endpoints.end(), range_lo) - endpoints.begin();
     bounds.end_idx = std::upper_bound(endpoints.begin(), endpoints.end(), range_hi) - endpoints.begin();
     
     return bounds;
 }
 
-// 3. 检查cell是否与S中某个规则完全相同
 static inline bool is_duplicate_in_set(
     uint32_t src_lo, uint32_t src_hi,
     uint32_t dst_lo, uint32_t dst_hi,
@@ -600,7 +570,7 @@ static inline bool is_duplicate_in_set(
     return false;
 }
 
-// 4. 收集elementary cells（面交）
+// Collect elementary cells (face intersections)
 static void collect_elementary_cells(
     const ProtoProcessContext& ctx,
     const vector<uint32_t>& src_ep,
@@ -609,7 +579,7 @@ static void collect_elementary_cells(
     auto src_bounds = find_endpoint_bounds(src_ep, ctx.Rmax.src_ip_lo, ctx.Rmax.src_ip_hi);
     auto dst_bounds = find_endpoint_bounds(dst_ep, ctx.Rmax.dst_ip_lo, ctx.Rmax.dst_ip_hi);
     
-    // 枚举elementary cells
+    // Enumerate elementary cells
     for (size_t si = src_bounds.start_idx; si + 1 < src_ep.size() && si + 1 <= src_bounds.end_idx; ++si) {
         uint32_t cell_src_lo = src_ep[si];
         uint32_t next_src = src_ep[si + 1];
@@ -626,12 +596,12 @@ static void collect_elementary_cells(
             if (cell_dst_lo < ctx.Rmax.dst_ip_lo || cell_dst_hi > ctx.Rmax.dst_ip_hi || cell_dst_hi < cell_dst_lo)
                 continue;
 
-            // 检查是否与已有规则重复
+            // Check if identical to any existing rule
             if (is_duplicate_in_set(cell_src_lo, cell_src_hi, cell_dst_lo, cell_dst_hi, 
                                    ctx.S, ctx.merged_ip_table))
                 continue;
 
-            // 查找覆盖此cell的规则
+            // Find rules covering this cell
             vector<size_t> covered;
             covered.reserve(8);
             for (size_t rid : ctx.S) {
@@ -642,12 +612,12 @@ static void collect_elementary_cells(
                 }
             }
 
-            // 验证cell有效性
+            // Validate cell
             vector<size_t> minimal;
             if (cell_is_invalid(covered, ctx.ancestors, ctx.merged_ip_table, minimal) || covered.size() < 2)
                 continue;
 
-            // 去重并添加
+            // Deduplicate and add
             string key = to_string(cell_src_lo) + "-" + to_string(cell_src_hi) + "-" +
                         to_string(cell_dst_lo) + "-" + to_string(cell_dst_hi) + "-" +
                         to_string(ctx.proto);
@@ -662,7 +632,7 @@ static void collect_elementary_cells(
     }
 }
 
-// 5. 收集pairwise intersections（点交、线交）
+// 5. Collect pairwise intersections (point and line intersections)
 static void collect_pairwise_intersections(const ProtoProcessContext& ctx)
 {
     const size_t n = ctx.S.size();
@@ -717,7 +687,6 @@ static void remove_processed_rules(vector<size_t>& remaining, const vector<size_
 }
 
 
-// 主函数：查找交集cells（重构版本）
 void find_intersections_per_proto(
     const std::vector<IPRule>& merged_ip_table,
     const std::map<uint8_t, std::vector<uint32_t>>& src_intervals_per_proto,
@@ -727,15 +696,14 @@ void find_intersections_per_proto(
 {
     size_t global_before = intersections.size();
 
-    // 1. 按协议分组规则（预先分配容量优化）
+    //1) per-protocol rule indices
     map<uint8_t, vector<size_t>> proto_to_rule_indices;
     for (size_t i = 0; i < merged_ip_table.size(); ++i) {
         proto_to_rule_indices[merged_ip_table[i].proto].push_back(i);
     }
 
-    // 2. 逐协议处理
+    //2) process each protocol separately
     for (const auto& [proto, initial_remaining] : proto_to_rule_indices) {
-        // 获取该协议的端点集合
         auto it_src = src_intervals_per_proto.find(proto);
         auto it_dst = dst_intervals_per_proto.find(proto);
         if (it_src == src_intervals_per_proto.end() || it_dst == dst_intervals_per_proto.end()) {
@@ -744,33 +712,31 @@ void find_intersections_per_proto(
         const auto& src_ep = it_src->second;
         const auto& dst_ep = it_dst->second;
 
-        // 跳过规则数不足的协议
         if (initial_remaining.size() < 2) {
             cout << "[find_intersections] Proto=" << (int)proto << " not enough rules, skip\n";
             continue;
         }
 
-        // 局部累加器
         vector<IntersectionCell> local_cells;
         unordered_set<string> seen_keys;
         vector<size_t> remaining = initial_remaining;
       
-        // 3. 迭代处理Rmax覆盖的子集
+        //3) Find intersections within this protocol region
         while (remaining.size() >= 2) {
-            // 3.1 找到最佳覆盖规则Rmax
+            // 3.1 Find Rmax and kick off
             size_t best_pos = find_best_cover_rule_in_set(merged_ip_table, remaining);
             size_t best_rid = remaining[best_pos];
             const auto& Rmax = merged_ip_table[best_rid];
             rmax_rule_ids.push_back(best_rid);
 
-            // 3.2 构建祖先关系
+            // 3.2 build ancestors
             unordered_map<size_t, vector<size_t>> ancestors;        
             build_ancestors(remaining, merged_ip_table, ancestors, best_rid);
             
-            // 3.3 收集线交和点交（边界情况）
+            // 3.3 Collect line and point intersections in R (boundary cases)
             collect_line_and_point_cells(merged_ip_table, remaining, proto, local_cells, seen_keys, best_rid);  
 
-            // 3.4 计算Rmax覆盖的规则集合S
+            // 3.4 Compute the set of rules covered by Rmax
             vector<size_t> S = compute_covered_set(Rmax, remaining, merged_ip_table);
             
             if (S.size() < 2) {
@@ -778,23 +744,23 @@ void find_intersections_per_proto(
                 continue;
             }
 
-            // 3.5 构建处理上下文
+            // 3.5 Build processing context
             ProtoProcessContext ctx{
                 proto, best_rid, Rmax, S, merged_ip_table, 
                 seen_keys, local_cells, ancestors
             };
 
-            // 3.6 收集elementary cells（面交）
+            // 3.6 Collect elementary cells (region intersections in S)
             collect_elementary_cells(ctx, src_ep, dst_ep);
 
-            // 3.7 收集pairwise intersections（点交、线交）
+            // 3.7 Collect pairwise intersections (point and line intersections in S)
             collect_pairwise_intersections(ctx);
 
-            // 3.8 移除已处理的规则
+            // 3.8 Remove processed rules
             remove_processed_rules(remaining, S);
         }
 
-        // 4. 合并到全局结果
+        // 4. Merge into global results
         intersections.insert(intersections.end(), local_cells.begin(), local_cells.end());
     }
 
@@ -1161,26 +1127,46 @@ void write_final_table_in_cidr(
 
     fout << "Final IP Table (CIDR only) - " << final_ip_table.size() << " entries\n";
 
+    // ★ 添加统计信息
+    size_t total_long_src = 0, total_long_dst = 0;
+    const size_t CIDR_THRESHOLD = 5;  // 超过5个CIDR块认为是"长"范围
+
     for (size_t i = 0; i < final_ip_table.size(); ++i) {
         const auto& r = final_ip_table[i];
 
         fout << "R[" << i << "] PROTO=" << int(r.proto) << " ";
 
-        // SRC
-        fout << "SRC{";
+        // SRC - ★ 优化显示：超过阈值时显示摘要
         auto src_list = range_to_cidrs(r.src_lo, r.src_hi);
-        for (size_t k = 0; k < src_list.size(); ++k) {
-            fout << src_list[k];
-            if (k + 1 < src_list.size()) fout << ", ";
+        fout << "SRC{";
+        if (src_list.size() > CIDR_THRESHOLD) {
+            total_long_src++;
+            // 显示前2个和后2个，中间用省略号
+            fout << src_list[0] << ", " << src_list[1] << ", ... (total " << src_list.size() 
+                 << " blocks), " << src_list[src_list.size()-2] << ", " << src_list[src_list.size()-1];
+            // 同时输出范围摘要
+            fout << " [" << ip_to_string(r.src_lo) << " - " << ip_to_string(r.src_hi) << "]";
+        } else {
+            for (size_t k = 0; k < src_list.size(); ++k) {
+                fout << src_list[k];
+                if (k + 1 < src_list.size()) fout << ", ";
+            }
         }
         fout << "} ";
 
-        // DST
-        fout << "DST{";
+        // DST - ★ 同样的优化
         auto dst_list = range_to_cidrs(r.dst_lo, r.dst_hi);
-        for (size_t k = 0; k < dst_list.size(); ++k) {
-            fout << dst_list[k];
-            if (k + 1 < dst_list.size()) fout << ", ";
+        fout << "DST{";
+        if (dst_list.size() > CIDR_THRESHOLD) {
+            total_long_dst++;
+            fout << dst_list[0] << ", " << dst_list[1] << ", ... (total " << dst_list.size() 
+                 << " blocks), " << dst_list[dst_list.size()-2] << ", " << dst_list[dst_list.size()-1];
+            fout << " [" << ip_to_string(r.dst_lo) << " - " << ip_to_string(r.dst_hi) << "]";
+        } else {
+            for (size_t k = 0; k < dst_list.size(); ++k) {
+                fout << dst_list[k];
+                if (k + 1 < dst_list.size()) fout << ", ";
+            }
         }
         fout << "} ";
 
@@ -1191,11 +1177,14 @@ void write_final_table_in_cidr(
             if (k + 1 < r.group_ids.size()) fout << ", ";
         }
         fout << "}\n";
-        // cout << "Writing rule " << i << "/" << final_ip_table.size() << endl;
     }
 
     fout.close();
     cout << "CIDR-format table written to " << filename << endl;
+    if (total_long_src > 0 || total_long_dst > 0) {
+        cout << "  Note: " << total_long_src << " rules with >5 SRC CIDR blocks, "
+             << total_long_dst << " rules with >5 DST CIDR blocks (summarized)" << endl;
+    }
 }
 
 

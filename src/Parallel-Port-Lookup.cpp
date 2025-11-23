@@ -966,18 +966,19 @@ void laod_and_create_IP_table(vector<IPRule>& ip_table,
     find_intersections_per_proto(merged_ip_table, src_intervals_per_proto, 
         dst_intervals_per_proto, intersections, rmax_rule_ids);
 
-    vector<IPRule> extra_rules;
+    //5)Independent set partitioning
+    vector<IPRule> extra_rules; // pass now , filled later
     extract_and_split_cells(merged_ip_table, intersections, extra_rules);
     cout << "[INFO] Extra rules (range only, no CIDR): " << extra_rules.size() << endl;
 
-    // 7) merge intersection cells + merged IP table into final table
+    //6) merge intersection cells + merged IP table into final table
     vector<FinalIPRule> final_ip_table;
     merge_cells_and_ip_table(Rmax_merged_ip_table, intersections, final_ip_table);    
 
-    //8) transfer rule into mask type
-    // export final IP table
-
+    //7) transfer rule into mask type
     Create_Metainfo_for_port(port_table, merged_ip_table, intersections, final_ip_table, mateifno);
+    
+    //8) write final ip table into file
     write_final_table_in_cidr(final_ip_table, "final_ip_table_cidr.txt");
 }
 
