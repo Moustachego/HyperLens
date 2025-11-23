@@ -371,10 +371,6 @@ static void build_ancestors(
     size_t closure_iter = 0;
     while (changed) {
         changed = false;
-        closure_iter++;
-        if (closure_iter % 5 == 0) {
-            std::cout << "[build_ancestors] Closure iteration " << closure_iter << " (rem.size=" << rem.size() << ")" << std::endl;
-        }
         for (auto& kv : ancestors) {
             size_t node = kv.first;
             auto& vec = kv.second;
@@ -401,15 +397,7 @@ static void build_ancestors(
     }
 }
 
-// -------------------------------------------------------
-// 判定一个 cell 是否无效
-// 输入:
-//   covered = 所有覆盖该 cell 的规则 ID 列表
-//   ancestors = 每条规则的祖先列表（由 build_ancestors 构建）
-//   merged_ip_table = 规则表，用于 covers 判定
-// 返回:
-//   true = cell 应过滤掉
-// -------------------------------------------------------
+
 static bool cell_is_invalid(
     const vector<size_t>& covered,
     const unordered_map<size_t, vector<size_t>>& ancestors,
@@ -536,15 +524,10 @@ void find_intersections_per_proto(
         auto it_src = src_intervals_per_proto.find(proto);
         auto it_dst = dst_intervals_per_proto.find(proto);
         if (it_src == src_intervals_per_proto.end() || it_dst == dst_intervals_per_proto.end()) {
-            // cout << "[find_intersections] Proto=" << (int)proto << " no intervals found\n";
             continue;
         }
         const auto& src_ep = it_src->second;
         const auto& dst_ep = it_dst->second;
-
-        // cout << "[find_intersections] Proto=" << (int)proto
-        //      << " start total_rules=" << remaining.size()
-        //      << " endpoints src=" << src_ep.size() << " dst=" << dst_ep.size() << endl;
 
         if (remaining.size() < 2) {
             cout << "[find_intersections] Proto=" << (int)proto << " not enough rules, skip\n";
@@ -554,16 +537,10 @@ void find_intersections_per_proto(
         // local accumulator for this proto
         vector<IntersectionCell> local_cells;
         unordered_set<string> seen_keys;
-        // cout << "[find_intersections] Proto=" << (int)proto 
-        //     << " line/point cells collected = " << local_cells.size() << endl;
       
         // Iteratively peel off subsets dominated by a best-cover rule (R0)
         size_t peel_iter = 0;
         while (remaining.size() >= 2) {
-            peel_iter++;
-            if (peel_iter % 3 == 0) {
-                std::cout << "[find_intersections] Peel iteration " << peel_iter << " (remaining=" << remaining.size() << ")" << std::endl;
-            }
             size_t best_pos = find_best_cover_rule_in_set(merged_ip_table, remaining);
             size_t best_rid = remaining[best_pos];
             const auto &Rmax = merged_ip_table[best_rid];
@@ -718,12 +695,6 @@ void find_intersections_per_proto(
             }
             remaining.swap(new_remaining);
 
-            // debug log per iteration:
-            // cout << "[find_intersections] Proto=" << (int)proto
-            //      << " peeled Rmax=" << best_rid << " covered_count=" << S.size()
-            //      << " remaining_after=" << remaining.size()
-            //      << " local_cells_now=" << local_cells.size() << endl;
-
             // continue loop until remaining < 2
         } // end while remaining
 
@@ -732,8 +703,6 @@ void find_intersections_per_proto(
         intersections.insert(intersections.end(), local_cells.begin(), local_cells.end());
         size_t added = intersections.size() - before_append;
 
-        // cout << "[find_intersections] Proto=" << (int)proto
-        //      << " Added cells=" << added << " (local found=" << local_cells.size() << ")\n";
     } // end for each proto
 
     size_t global_added = intersections.size() - global_before;
@@ -952,7 +921,6 @@ void extract_and_split_cells(
 }
 
 
-// 计算 rid 在 remaining 中能 cover 哪些 rule（按照 remaining 的内容）
 static vector<size_t> get_cover_set(
     const vector<IPRule> &merged_ip_table,
     size_t rid,
@@ -973,74 +941,75 @@ void find_Rmax_for_merged_ip_table(
     const vector<IPRule>& merged_ip_table,
     vector<Rmax_IPRule>& Rmax_merged_ip_table)
 {
+    const size_t N = merged_ip_table.size();
     Rmax_merged_ip_table.clear();
-    size_t N = merged_ip_table.size();
-    Rmax_merged_ip_table.resize(N);
-        for (size_t i = 0; i < N; ++i) {
-        const auto &r = merged_ip_table[i];
-        auto &dst = Rmax_merged_ip_table[i];
-
-        dst.src_ip_lo = r.src_ip_lo;
-        dst.src_ip_hi = r.src_ip_hi;
-        dst.dst_ip_lo = r.dst_ip_lo;
-        dst.dst_ip_hi = r.dst_ip_hi;
-        dst.proto = r.proto;
-        dst.priority = r.priority;
-        dst.src_prefix_len = r.src_prefix_len;
-        dst.dst_prefix_len = r.dst_prefix_len;
-        dst.merged_R = r.merged_R;
-
-        dst.rmax_id = SIZE_MAX; // 默认无 Rmax
+    Rmax_merged_ip_table.reserve(N);
+    
+    // Step 1: Initialize Rmax_merged_ip_table (each rule is its own Rmax by default)
+    for (size_t i = 0; i < N; ++i) {
+        const auto &src = merged_ip_table[i];
+        Rmax_IPRule dst;
+        
+        // Copy IP rule fields
+        dst.src_ip_lo = src.src_ip_lo;
+        dst.src_ip_hi = src.src_ip_hi;
+        dst.dst_ip_lo = src.dst_ip_lo;
+        dst.dst_ip_hi = src.dst_ip_hi;
+        dst.proto = src.proto;
+        dst.priority = src.priority;
+        dst.src_prefix_len = src.src_prefix_len;
+        dst.dst_prefix_len = src.dst_prefix_len;
+        dst.merged_R = src.merged_R;
+        dst.rmax_id = i;  // Default: each rule is its own Rmax
+        
+        Rmax_merged_ip_table.push_back(std::move(dst));
     }
 
-    // 1) bucket rules by proto: map proto -> indices (indices correspond to ip_table)
+    // Step 2: Group rules by protocol for independent processing
     map<uint8_t, vector<size_t>> proto_to_rule_indices;
-    for (size_t i = 0; i < merged_ip_table.size(); ++i) {
+    for (size_t i = 0; i < N; ++i) {
         proto_to_rule_indices[merged_ip_table[i].proto].push_back(i);
     }
 
-    // 2) process each proto separately
-    for (const auto& kv : proto_to_rule_indices) {
-        uint8_t proto = kv.first;
-        vector<size_t> remaining = kv.second; // remaining rules for this proto
-
-        if (remaining.size() < 2) {
-            cout << "[find_intersections] Proto=" << (int)proto << " not enough rules, skip\n";
+    // Step 3: Process each protocol independently
+    for (const auto& [proto, initial_rules] : proto_to_rule_indices) {
+        if (initial_rules.size() < 2) {
+            // Single rule: no Rmax computation needed
             continue;
         }
 
-        // 反复找 Rmax
+        vector<size_t> remaining = initial_rules;
+
+        // Iteratively peel off Rmax-dominated subsets
         while (remaining.size() >= 2) {
-            // 找最佳覆盖规则
+            // Find best cover rule (Rmax) in remaining set
             size_t best_pos = find_best_cover_rule_in_set(merged_ip_table, remaining);
             size_t best_rid = remaining[best_pos];
 
-            // 找它覆盖的所有规则 S
-            auto S = get_cover_set(merged_ip_table, best_rid, remaining);
+            // Get all rules covered by this Rmax
+            auto covered_set = get_cover_set(merged_ip_table, best_rid, remaining);
 
-            // 给每个 S[x] 标记 rmax_id
-            for (size_t covered_rid : S) {
+            // Assign Rmax ID to all covered rules
+            for (size_t covered_rid : covered_set) {
                 Rmax_merged_ip_table[covered_rid].rmax_id = best_rid;
             }
-
+            
+            // Mark Rmax as its own leader
             Rmax_merged_ip_table[best_rid].rmax_id = best_rid;
-            // 构造 set 用于删除
-            unordered_set<size_t> sset(S.begin(), S.end());
-            sset.insert(best_rid); // Rmax 本身也踢掉
 
-            // 更新 remaining
-            vector<size_t> new_remain;
-            new_remain.reserve(remaining.size() - sset.size());
-            for (size_t rid : remaining) {
-                if (sset.count(rid) == 0)
-                    new_remain.push_back(rid);
-            }
-            remaining.swap(new_remain);
+            // Remove processed rules (covered set + Rmax itself) from remaining
+            unordered_set<size_t> to_remove(covered_set.begin(), covered_set.end());
+            to_remove.insert(best_rid);
+
+            // Update remaining list using erase-remove idiom
+            remaining.erase(
+                std::remove_if(remaining.begin(), remaining.end(),
+                    [&to_remove](size_t rid) { return to_remove.count(rid) > 0; }),
+                remaining.end()
+            );
         }
     }
 
-    // cout << "[find_Rmax_for_merged_ip_table] Rmax rules filled for "
-    //      << Rmax_merged_ip_table.size() << " entries\n";
 }
 
 // --------------- 工具：uint32 → 点分十进制 ----------------
