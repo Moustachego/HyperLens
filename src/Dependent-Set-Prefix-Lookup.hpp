@@ -46,7 +46,7 @@ struct Rmax_IPRule {
 };
 
 struct Metainfo_for_SRC_port{
-    uint32_t Inital_Number;
+    vector<uint32_t> Inital_Number;  // 存储 cell 的 Extraction（merged_ip_table 索引列表）
     uint16_t Src_lo;
     uint16_t Src_hi;
     uint16_t Dst_lo;

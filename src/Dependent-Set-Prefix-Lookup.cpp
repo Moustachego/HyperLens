@@ -201,8 +201,9 @@ void collect_line_and_point_cells(
                 if (covered.size() >= 2) {
                     string key = make_cell_key(proto, px, px, dlo, dhi);
                     if (seen_keys.insert(key).second) {
-                        vector<size_t> src_ids = { proto_rules[ia], proto_rules[ib] };
-                        local_cells.push_back({px, px, dlo, dhi, proto, rmax_id, covered, src_ids});
+                        // ★ Extraction 应存储 merged_ip_table 索引，而非原始规则 ID
+                        vector<size_t> Extraction = {proto_rules[ia], proto_rules[ib]};
+                        local_cells.push_back({px, px, dlo, dhi, proto, rmax_id, covered, Extraction});
                     }
                 }
             }
@@ -229,8 +230,8 @@ void collect_line_and_point_cells(
                 if (covered.size() >= 2) {
                     string key = make_cell_key(proto, slo, shi, py, py);
                     if (seen_keys.insert(key).second) {
-                        vector<size_t> src_ids = { proto_rules[ia], proto_rules[ib] };
-                        local_cells.push_back({slo, shi, py, py, proto, rmax_id, covered, src_ids});
+                        vector<size_t> Extraction = {proto_rules[ia], proto_rules[ib]};
+                        local_cells.push_back({slo, shi, py, py, proto, rmax_id, covered, Extraction});
                     }
                 }
             }
@@ -262,8 +263,8 @@ void collect_line_and_point_cells(
                 if (covered.size() >= 2) {
                     string key = make_cell_key(proto, px, px, py, py);
                     if (seen_keys.insert(key).second) {
-                        vector<size_t> src_ids = { proto_rules[ia], proto_rules[ib] };
-                        local_cells.push_back({px, px, py, py, proto, rmax_id, covered, src_ids});
+                        vector<size_t> Extraction = {proto_rules[ia], proto_rules[ib]};
+                        local_cells.push_back({px, px, py, py, proto, rmax_id, covered, Extraction});
                     }
                 }
             }
@@ -287,8 +288,8 @@ void collect_line_and_point_cells(
                 if (covered.size() >= 2) {
                     string key = make_cell_key(proto, px, px, py, py);
                     if (seen_keys.insert(key).second) {
-                        vector<size_t> src_ids = { proto_rules[ia], proto_rules[ib] };
-                        local_cells.push_back({px, px, py, py, proto, rmax_id, covered, src_ids});
+                        vector<size_t> Extraction = {proto_rules[ia], proto_rules[ib]};
+                        local_cells.push_back({px, px, py, py, proto, rmax_id, covered, Extraction});
                     }
                 }
             }
@@ -311,8 +312,8 @@ void collect_line_and_point_cells(
                 if (covered.size() >= 2) {
                     string key = make_cell_key(proto, px, px, py, py);
                     if (seen_keys.insert(key).second) {
-                        vector<size_t> src_ids = { proto_rules[ia], proto_rules[ib] };
-                        local_cells.push_back({px, px, py, py, proto, rmax_id, covered, src_ids});
+                        vector<size_t> Extraction = {proto_rules[ia], proto_rules[ib]};
+                        local_cells.push_back({px, px, py, py, proto, rmax_id, covered, Extraction});
                     }
                 }
             }
@@ -335,8 +336,8 @@ void collect_line_and_point_cells(
                 if (covered.size() >= 2) {
                     string key = make_cell_key(proto, px, px, py, py);
                     if (seen_keys.insert(key).second) {
-                        vector<size_t> src_ids = { proto_rules[ia], proto_rules[ib] };
-                        local_cells.push_back({px, px, py, py, proto, rmax_id, covered, src_ids});
+                        vector<size_t> Extraction = {proto_rules[ia], proto_rules[ib]};
+                        local_cells.push_back({px, px, py, py, proto, rmax_id, covered, Extraction});
                     }
                 }
             }
@@ -355,60 +356,50 @@ static void build_ancestors(
 )
 {
     vector<size_t> rem = remaining;
-    // Remove Rmax
+    // -------------------------------------
+    // Step 0: 把 Rmax 移除（关键！你之前漏掉的）
+    // -------------------------------------
     rem.erase(std::remove(rem.begin(), rem.end(), rmax_id), rem.end());
 
-    unordered_map<size_t, unordered_set<size_t>> ancestors_set;
+    ancestors.clear();
     for (size_t rid : rem) {
-        ancestors_set[rid] = unordered_set<size_t>();
+        ancestors[rid] = vector<size_t>();
     }
 
-    // Simultaneously record the direct children of each node for topological traversal
-    unordered_map<size_t, vector<size_t>> children;
+    // Step 1: 直接父
     for (size_t a : rem) {
         for (size_t b : rem) {
             if (a == b) continue;
             if (covers(merged_ip_table[a], merged_ip_table[b])) {
-                ancestors_set[b].insert(a);
-                children[a].push_back(b);
+                ancestors[b].push_back(a);
             }
         }
     }
 
-    // For each node, start BFS from its direct parents to collect all ancestors
-    for (size_t node : rem) {
-        if (ancestors_set[node].empty()) continue;
-        
-        unordered_set<size_t> visited = ancestors_set[node]; // Known direct parents
-        queue<size_t> q;
-        
-        for (size_t parent : ancestors_set[node]) {
-            q.push(parent);
-        }
-        
-        // BFS 
-        while (!q.empty()) {
-            size_t current = q.front();
-            q.pop();
-            
-            // Check parents of current
-            auto it = ancestors_set.find(current);
-            if (it != ancestors_set.end()) {
-                for (size_t grandparent : it->second) {
-                    if (grandparent == node) continue; // Avoid self-loop
-                    if (visited.insert(grandparent).second) {
-                        // New ancestor, add to queue for further exploration
-                        ancestors_set[node].insert(grandparent);
-                        q.push(grandparent);
+    // Step 2: 传递闭包
+    bool changed = true;
+    while (changed) {
+        changed = false;
+        for (auto& kv : ancestors) {
+            size_t node = kv.first;
+            auto& vec = kv.second;
+
+            vector<size_t> to_add;
+            for (size_t p : vec) {
+                auto itp = ancestors.find(p);
+                if (itp == ancestors.end()) continue;
+                for (size_t gp : itp->second) {
+                    if (gp == node) continue;
+                    if (find(vec.begin(), vec.end(), gp) == vec.end()) {
+                        to_add.push_back(gp);
                     }
                 }
             }
+            if (!to_add.empty()) {
+                for (size_t x : to_add) vec.push_back(x);
+                changed = true;
+            }
         }
-    }
-
-    ancestors.clear();
-    for (const auto& kv : ancestors_set) {
-        ancestors[kv.first] = vector<size_t>(kv.second.begin(), kv.second.end());
     }
 }
 
@@ -421,6 +412,17 @@ static bool cell_is_invalid(
 )
 {
     if (covered.size() < 2) return true;
+
+    // ★ 修复1: 先去重 covered 列表
+    vector<size_t> unique_covered;
+    unordered_set<size_t> seen;
+    for (size_t rid : covered) {
+        if (seen.insert(rid).second) {
+            unique_covered.push_back(rid);
+        }
+    }
+    
+    if (unique_covered.size() < 2) return true;
 
     // Ancestor redundancy check
     auto redundant_via_ancestors = [&](const vector<size_t>& cov)->bool {
@@ -445,32 +447,32 @@ static bool cell_is_invalid(
         return false;
     };
 
-    if (redundant_via_ancestors(covered)) {
+    if (redundant_via_ancestors(unique_covered)) {
         return true;
     }
 
-    // Minimality check
+    // ★ 恢复正确逻辑: 更小的规则决定更大的规则
     vector<size_t> minimal;
-    minimal.reserve(covered.size());
+    minimal.reserve(unique_covered.size());
 
-    auto strictly_covers = [&](const IPRule& big, const IPRule& small) {
-        return (big.src_ip_lo <= small.src_ip_lo &&
-                big.src_ip_hi >= small.src_ip_hi &&
-                big.dst_ip_lo <= small.dst_ip_lo &&
-                big.dst_ip_hi >= small.dst_ip_hi);
+    auto strictly_smaller = [&](const IPRule& small, const IPRule& big) {
+        return (small.src_ip_lo >= big.src_ip_lo &&
+                small.src_ip_hi <= big.src_ip_hi &&
+                small.dst_ip_lo >= big.dst_ip_lo &&
+                small.dst_ip_hi <= big.dst_ip_hi) &&
+               !(small.src_ip_lo == big.src_ip_lo &&
+                 small.src_ip_hi == big.src_ip_hi &&
+                 small.dst_ip_lo == big.dst_ip_lo &&
+                 small.dst_ip_hi == big.dst_ip_hi);  // 不能完全相同
     };
 
-    auto strictly_smaller = [&](const IPRule& a, const IPRule& b) {
-        return strictly_covers(b, a) && !strictly_covers(a, b);
-    };
-
-    for (size_t r : covered) {
+    for (size_t r : unique_covered) {
         bool dominated = false;
 
-        for (size_t s : covered) {
+        for (size_t s : unique_covered) {
             if (r == s) continue;
 
-            // Only smaller rules can dominate larger rules
+            // ★ 恢复原逻辑：小规则覆盖大规则（移除被小规则包含的大规则）
             if (strictly_smaller(merged_ip_table[s], merged_ip_table[r])) {
                 dominated = true;
                 break;
@@ -478,7 +480,7 @@ static bool cell_is_invalid(
         }
 
         if (!dominated) {
-            minimal.push_back(r);  // r is minimal
+            minimal.push_back(r);  // r is minimal (不被其他更小规则包含)
         }
     }
 
@@ -622,7 +624,9 @@ static void collect_elementary_cells(
                         to_string(cell_dst_lo) + "-" + to_string(cell_dst_hi) + "-" +
                         to_string(ctx.proto);
             
-            if (ctx.seen_keys.insert(key).second) {
+            bool is_new = ctx.seen_keys.insert(key).second;
+            
+            if (is_new) {
                 vector<size_t> Extraction;
                 Map_cell_to_origID(ctx.merged_ip_table, minimal, Extraction);
                 ctx.local_cells.push_back({cell_src_lo, cell_src_hi, cell_dst_lo, cell_dst_hi, 
@@ -830,7 +834,7 @@ void merge_cells_and_ip_table(
         fr.is_cell = true;
         fr.is_rmax = false;
         fr.merged_R = cell.rule_indices; // optional
-        fr.original_merged_index = std::numeric_limits<uint32_t>::max();
+        fr.original_merged_index = cell.Extraction.empty() ? SIZE_MAX : cell.Extraction[0];
 
         int own_new_idx = static_cast<int>(final_ip_table.size()); // 当前将被放置的位置
         int rmax_new_idx = NO_RMAX;
@@ -861,7 +865,7 @@ void merge_cells_and_ip_table(
         fr.is_cell = false;
         fr.is_rmax = false;
         fr.merged_R = r.merged_R;
-        fr.original_merged_index = idx;
+        fr.original_merged_index = idx;   //WTF?
 
         int own_new_idx = static_cast<int>(final_ip_table.size());
         int rmax_new_idx = NO_RMAX;
@@ -1292,7 +1296,28 @@ void Generate_cell_GID_to_metaifno(
 
             // 创建一个新的 metainfo entry
             Metainfo_for_SRC_port new_entry;
-            new_entry.Inital_Number = por.rid;   // 或者 por.init_num，按你的结构体
+            // ★ 修改：使用 cell 的完整 Extraction（指向 merged_ip_table 的索引列表）
+            new_entry.Inital_Number.reserve(ic.Extraction.size());
+            
+            // 添加调试：检查 Extraction 是否有重复
+            unordered_set<uint32_t> seen_ext;
+            bool has_dup_ext = false;
+            for (size_t mid : ic.Extraction) {
+                uint32_t mid_u32 = static_cast<uint32_t>(mid);
+                if (!seen_ext.insert(mid_u32).second) {
+                    has_dup_ext = true;
+                }
+                new_entry.Inital_Number.push_back(mid_u32);
+            }
+            
+            if (has_dup_ext) {
+                std::cout << "[GEN_CELL] DUP in Extraction! GID=" << gid << " Extraction={";
+                for (size_t e : ic.Extraction) std::cout << e << ",";
+                std::cout << "} InitNum={";
+                for (uint32_t n : new_entry.Inital_Number) std::cout << n << ",";
+                std::cout << "}\n";
+            }
+            
             new_entry.Src_lo   = por.src_port_lo;
             new_entry.Src_hi   = por.src_port_hi;
             new_entry.Dst_lo   = por.dst_port_lo;
@@ -1358,7 +1383,7 @@ void Create_Metainfo_for_port(
     for (size_t i = 0; i < port_table.size(); ++i) {
         const auto& p = port_table[i];
 
-        meta[i].Inital_Number = static_cast<uint32_t>(i);   // 当前规则序号
+        meta[i].Inital_Number = {static_cast<uint32_t>(i)};   // 当前规则序号（单元素vector）
         meta[i].Src_lo        = p.src_port_lo;
         meta[i].Src_hi        = p.src_port_hi;
         meta[i].Dst_lo        = p.dst_port_lo;
@@ -1371,7 +1396,7 @@ void Create_Metainfo_for_port(
     }
     
     Generate_MergedR_GID_to_metaifno(final_ip_table, port_table, meta);
-
+    
     Generate_cell_GID_to_metaifno(IntersectionCell, merged_ip_table, port_table, final_ip_table, meta);
 
     // ---------- Step: 按 G-ID 排序 meta_src ----------
@@ -1386,6 +1411,7 @@ void Create_Metainfo_for_port(
             if (ga != gb) return ga < gb;
             if (a.Src_lo != b.Src_lo) return a.Src_lo < b.Src_lo;
             if (a.Src_hi != b.Src_hi) return a.Src_hi < b.Src_hi;
+            // 比较 Inital_Number vector（字典序）
             return a.Inital_Number < b.Inital_Number;
         }
     );
@@ -1417,7 +1443,15 @@ void Create_Metainfo_for_port(
 
         // 累积 Idx（重排后的行号） 和 InitNum
         merged_map[key].idx_list.push_back(i + 1);  // ★ 修复 m.Idx → (i+1)
-        merged_map[key].initnum_list.push_back(m.Inital_Number);
+        // 将 Inital_Number vector 的所有元素追加到 initnum_list（去重）
+        for (uint32_t num : m.Inital_Number) {
+            // 只添加不存在的元素（保持插入顺序）
+            if (std::find(merged_map[key].initnum_list.begin(), 
+                         merged_map[key].initnum_list.end(), 
+                         num) == merged_map[key].initnum_list.end()) {
+                merged_map[key].initnum_list.push_back(num);
+            }
+        }
     }
 
     // ★ 修复：将map转换为vector并按原始GID1排序，而不是按map的key顺序

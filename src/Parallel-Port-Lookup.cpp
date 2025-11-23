@@ -959,7 +959,7 @@ void laod_and_create_IP_table(vector<IPRule>& ip_table,
     map<uint8_t, vector<uint32_t>> dst_intervals_per_proto;
     build_elementary_intervals_per_proto(merged_ip_table,
         src_intervals_per_proto, dst_intervals_per_proto);
-
+        
     //4) find intersection cells (per-proto)
     vector<IntersectionCell> intersections;
     vector<size_t> rmax_rule_ids;
@@ -982,44 +982,10 @@ void laod_and_create_IP_table(vector<IPRule>& ip_table,
     write_final_table_in_cidr(final_ip_table, "final_ip_table_cidr.txt");
 }
 
-/*************************************************************
- * Step 5: main (protected with COMPILE_AS_STANDALONE_MAIN)
- *************************************************************/
+
 #ifdef COMPILE_AS_STANDALONE_MAIN
 int main(int argc, char **argv)  // accept optional path argument
 {
-    string rules_path = "src/ACL_rules/test_port.rules";
-    if (argc >= 2) rules_path = string(argv[1]);
-
-    vector<Rule5D> rules;
-    vector<IPRule> merged_ip_table;
-    // attempt to load rules; load_rules_from_file will exit(1) on failure
-    load_rules_from_file(rules_path, rules);
-
-    // Optional: show a quick summary so user knows program progressed
-    cout << "[Parallel-Port-Lookup] Loaded " << rules.size() << " rules from '" << rules_path << "'\n";
-
-    // Example continuation: split rules and prepare merged ip table (non-mandatory)
-    vector<IPRule> ip_table;
-    vector<PortRule> port_table;
-    std::map<std::tuple<std::vector<int>, int, int>, MergedItem> mateifno;
-
-    split_rules(rules, ip_table, port_table);
-    merge_same_ip_entry(ip_table, merged_ip_table);
-
-    laod_and_create_IP_table(ip_table, port_table, merged_ip_table, mateifno);
-
-    // make block for mateifno
-
-    cout << "[Parallel-Port-Lookup] IP entries=" << ip_table.size()
-         << ", Port entries=" << port_table.size()
-         << ", Merged IP=" << merged_ip_table.size() << "\n";
-
-    // Call the refactored function and capture results
-    create_Table_for_port(port_table, merged_ip_table, mateifno);
-
-
-
     return 0;
 }
 #endif
