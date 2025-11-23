@@ -81,7 +81,7 @@ int main(int argc, char **argv)
     create_Table_for_port(port_table, merged_ip_table, mateifno);
     cout << "[SUCCESS] Port lookup tables generated\n\n";
 
-    cout << "===========================================================================\n";
+    cout << "============================================================================\n";
     cout << "P4Lens processing completed successfully!\n";
     cout << "Output files generated:\n";
     cout << "  - SRC_TCAM_Table.txt\n";
@@ -90,7 +90,7 @@ int main(int argc, char **argv)
     cout << "  - DST_SRAM_Table.txt\n";
     cout << "  - final_ip_table_cidr.txt\n";
     cout << "  - meta_merged.txt\n";
-    cout << "===========================================================================\n";
+    cout << "============================================================================\n";
 
     return 0;
 }

@@ -767,23 +767,28 @@ void split_mateinfo_into_src_dst(
 }
 
 // 给 src 表条目分配顺序的 GID2（第二个 group id）
-// 接受 vector<SRC_Port_Item>，按顺序从 1 开始赋值到 group_ids2
-void create_GID2_for_src_port_table(std::vector<SRC_Port_Item> &items) {
-    int gid2 = 1;
-    for (auto &it : items) {
-        if (it.group_ids2.size() >= 1) it.group_ids2[0] = gid2;
-        else it.group_ids2.push_back(gid2);
-        ++gid2;
+// ★ 修改：使用idx_list作为GID2，而不是重新分配顺序ID
+void create_GID2_for_src_port_table(std::vector<SRC_Port_Item> &items, const std::vector<Mate_SRC_LIST> &mate_src) {
+    size_t n = std::min(items.size(), mate_src.size());
+    for (size_t i = 0; i < n; ++i) {
+        if (!mate_src[i].idx_list.empty()) {
+            int gid2 = mate_src[i].idx_list[0];  // ★ 使用idx_list[0]作为GID2
+            if (items[i].group_ids2.size() >= 1) items[i].group_ids2[0] = gid2;
+            else items[i].group_ids2.push_back(gid2);
+        }
     }
 }
 
 // 给 dst 表条目分配顺序的 GID2（对称于 src）
-void create_GID2_for_dst_port_table(std::vector<DST_Port_Item> &items) {
-    int gid2 = 1;
-    for (auto &it : items) {
-        if (it.group_ids2.size() >= 1) it.group_ids2[0] = gid2;
-        else it.group_ids2.push_back(gid2);
-        ++gid2;
+// ★ 修改：使用idx_list作为GID2
+void create_GID2_for_dst_port_table(std::vector<DST_Port_Item> &items, const std::vector<Mate_DST_LIST> &mate_dst) {
+    size_t n = std::min(items.size(), mate_dst.size());
+    for (size_t i = 0; i < n; ++i) {
+        if (!mate_dst[i].idx_list.empty()) {
+            int gid2 = mate_dst[i].idx_list[0];  // ★ 使用idx_list[0]作为GID2
+            if (items[i].group_ids2.size() >= 1) items[i].group_ids2[0] = gid2;
+            else items[i].group_ids2.push_back(gid2);
+        }
     }
 }
 
@@ -897,8 +902,8 @@ void create_Table_for_port(
 
     // build SRC_Port_Item list directly from mate_src and assign GID2s
     auto src_items = build_src_items_from_mate_src_list(mate_src);
-    // assign GID2 sequentially
-    create_GID2_for_src_port_table(src_items);
+    // assign GID2 from idx_list (meta_merged.txt row number)
+    create_GID2_for_src_port_table(src_items, mate_src);
 
     output_src_items_to_txt(src_items);
     //create tcam sram for SRC port table
@@ -920,8 +925,8 @@ void create_Table_for_port(
     std::vector<DST_TCAM_Table> dst_tcam_table;
 
     auto dst_items = build_dst_items_from_mate_dst_list(mate_dst);
-    // assign GID2 sequentially for DST table as well (if needed downstream)
-    create_GID2_for_dst_port_table(dst_items);
+    // assign GID2 from idx_list (meta_merged.txt row number)
+    create_GID2_for_dst_port_table(dst_items, mate_dst);
     auto split_result_dst = split_port_range_into_blocks_for_dst(dst_items);
     auto &blocks_dst = split_result_dst.blocks;
     auto &full_range_items_dst = split_result_dst.full_range_items_dst;
