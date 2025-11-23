@@ -304,6 +304,7 @@ vector<MergedItem> convert_mateifno_to_vector(
         mi.dst_hi = d.dst_hi;
         mi.idx_list = d.idx_list;
         mi.initnum_list = d.initnum_list;
+        mi.action = d.action;  // 传递 action 字段
         result.push_back(std::move(mi));
     }
     return result;
@@ -939,22 +940,22 @@ void laod_and_create_IP_table(vector<IPRule>& ip_table,
     vector<IPRule>& merged_ip_table,
     std::map<std::tuple<std::vector<int>, int, int>, MergedItem>& mateifno)
 {
-    // 2) merge identical IP entries
+    //1) merge identical IP entries
     merge_same_ip_entry(ip_table, merged_ip_table);
 
     cout << "[Main] Merged IP rules = " << merged_ip_table.size() << endl;
 
-    // 3.5) find Rmax for merged_ip_table
+    //2) find Rmax for merged_ip_table
     vector<Rmax_IPRule> Rmax_merged_ip_table;
     find_Rmax_for_merged_ip_table(merged_ip_table, Rmax_merged_ip_table);
 
-    // 3) per-protocol elementary intervals (half-open endpoints)
+    //3) per-protocol elementary intervals (half-open endpoints)
     map<uint8_t, vector<uint32_t>> src_intervals_per_proto;
     map<uint8_t, vector<uint32_t>> dst_intervals_per_proto;
     build_elementary_intervals_per_proto(merged_ip_table,
         src_intervals_per_proto, dst_intervals_per_proto);
 
-    // 4) find intersection cells (per-proto)
+    //4) find intersection cells (per-proto)
     vector<IntersectionCell> intersections;
     vector<size_t> rmax_rule_ids;
     find_intersections_per_proto(merged_ip_table, src_intervals_per_proto, 

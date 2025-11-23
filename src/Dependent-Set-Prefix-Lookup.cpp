@@ -172,13 +172,7 @@ static inline string make_cell_key(uint8_t proto,
     return oss.str();
 }
 
-/*************************************************************
- * Name: collect_line_and_point_cells
- * Fucttion: Judge whether the cells of R1 and R2 have a 
- * line-and-point intersection.  
- * @ input: ip_table, proto_rules, proto
- * @ output: local_cells, seen_keys
- *************************************************************/
+
 void collect_line_and_point_cells(
     const vector<IPRule>& ip_table,
     const vector<size_t>& proto_rules,
@@ -188,6 +182,18 @@ void collect_line_and_point_cells(
     size_t rmax_id
  )
 {
+    // Helper: 检查cell是否与merged_ip_table中某个规则完全相同
+    auto is_duplicate_of_merged_rule = [&](uint32_t s_lo, uint32_t s_hi, 
+                                           uint32_t d_lo, uint32_t d_hi) -> bool {
+        for (size_t rid : proto_rules) {
+            const IPRule &R = ip_table[rid];
+            if (R.src_ip_lo == s_lo && R.src_ip_hi == s_hi &&
+                R.dst_ip_lo == d_lo && R.dst_ip_hi == d_hi) {
+                return true;  // 找到完全相同的规则
+            }
+        }
+        return false;
+    };
 
     size_t n = proto_rules.size();
 
@@ -200,14 +206,17 @@ void collect_line_and_point_cells(
 
             // --- 1) src boundary touch cases ---
             // A.src_hi == B.src_lo  or B.src_hi == A.src_lo
-
-
             if (A.src_ip_hi == B.src_ip_lo || B.src_ip_hi == A.src_ip_lo) {
             uint32_t px = (A.src_ip_hi == B.src_ip_lo) ? A.src_ip_hi : B.src_ip_hi; // the touching point
             // compute dst overlap (closed interval) between A and B
             uint32_t dlo = std::max(A.dst_ip_lo, B.dst_ip_lo);
             uint32_t dhi = std::min(A.dst_ip_hi, B.dst_ip_hi);
             if (dhi >= dlo) { 
+                // ★ 新增：检查是否与merged_ip_table中规则完全相同
+                if (is_duplicate_of_merged_rule(px, px, dlo, dhi)) {
+                    continue;  // 跳过完全相同的cell
+                }
+                
                 vector<size_t> covered;
                 for (size_t rid : proto_rules) {
                     const auto &R = ip_table[rid];
@@ -232,6 +241,11 @@ void collect_line_and_point_cells(
             uint32_t slo = std::max(A.src_ip_lo, B.src_ip_lo);
             uint32_t shi = std::min(A.src_ip_hi, B.src_ip_hi);
                 if (shi >= slo) { // overlap length >= 1 -> line along dst point py
+                    // ★ 新增：检查是否与merged_ip_table中规则完全相同
+                    if (is_duplicate_of_merged_rule(slo, shi, py, py)) {
+                        continue;  // 跳过完全相同的cell
+                    }
+                    
                     vector<size_t> covered;
                     for (size_t rid : proto_rules) {
                         const auto &R = ip_table[rid];
@@ -258,6 +272,12 @@ void collect_line_and_point_cells(
             // four combos:
             if (src_touch_ab && dst_touch_ab) {
                 uint32_t px = A.src_ip_hi, py = A.dst_ip_hi;
+                
+                // ★ 新增：检查是否与merged_ip_table中规则完全相同
+                if (is_duplicate_of_merged_rule(px, px, py, py)) {
+                    goto skip_point_1;  // 跳过完全相同的cell
+                }
+                
                 // check containment among proto rules
                 vector<size_t> covered;
                 covered.reserve(8);
@@ -276,8 +296,15 @@ void collect_line_and_point_cells(
                     }
                 }
             }
+            skip_point_1:
             if (src_touch_ab && dst_touch_ba) {
                 uint32_t px = A.src_ip_hi, py = B.dst_ip_hi;
+                
+                // ★ 新增：检查是否与merged_ip_table中规则完全相同
+                if (is_duplicate_of_merged_rule(px, px, py, py)) {
+                    goto skip_point_2;  // 跳过完全相同的cell
+                }
+                
                 vector<size_t> covered;
                 for (size_t rid : proto_rules) {
                     const auto &R = ip_table[rid];
@@ -294,8 +321,15 @@ void collect_line_and_point_cells(
                     }
                 }
             }
+            skip_point_2:
             if (src_touch_ba && dst_touch_ab) {
                 uint32_t px = B.src_ip_hi, py = A.dst_ip_hi;
+                
+                // ★ 新增：检查是否与merged_ip_table中规则完全相同
+                if (is_duplicate_of_merged_rule(px, px, py, py)) {
+                    goto skip_point_3;  // 跳过完全相同的cell
+                }
+                
                 vector<size_t> covered;
                 for (size_t rid : proto_rules) {
                     const auto &R = ip_table[rid];
@@ -312,8 +346,15 @@ void collect_line_and_point_cells(
                     }
                 }
             }
+            skip_point_3:
             if (src_touch_ba && dst_touch_ba) {
                 uint32_t px = B.src_ip_hi, py = B.dst_ip_hi;
+                
+                // ★ 新增：检查是否与merged_ip_table中规则完全相同
+                if (is_duplicate_of_merged_rule(px, px, py, py)) {
+                    goto skip_point_4;  // 跳过完全相同的cell
+                }
+                
                 vector<size_t> covered;
                 for (size_t rid : proto_rules) {
                     const auto &R = ip_table[rid];
@@ -330,14 +371,13 @@ void collect_line_and_point_cells(
                     }
                 }
             }
+            skip_point_4:
+            ; // empty statement for label
         } // ib
     } // ia
 }
 
-// -------------------------------------------------------
-// Build ancestors: 对 remaining 中的每条规则，构建其"祖先规则集合"
-// ancestors[r] = 所有能直接或间接 covers(r) 的规则列表
-// -------------------------------------------------------
+
 static void build_ancestors(
     const vector<size_t>& remaining,
     const vector<IPRule>& merged_ip_table,
@@ -493,20 +533,12 @@ void Map_cell_to_origID(
 }
 
 
-
-
-/*************************************************************
- * Name: find_intersections_per_proto
- * Fucttion: find intersection cells per protocol
- * @ input: ip table
- * @ output: src_intervals_per_proto, dst_intervals_per_proto
- *************************************************************/
 void find_intersections_per_proto(
     const std::vector<IPRule>& merged_ip_table,
     const std::map<uint8_t, std::vector<uint32_t>>& src_intervals_per_proto,
     const std::map<uint8_t, std::vector<uint32_t>>& dst_intervals_per_proto,
     std::vector<IntersectionCell>& intersections,
-    std::vector<size_t>& rmax_rule_ids)   // global container (will be appended)
+    std::vector<size_t>& rmax_rule_ids)  
 {
     size_t global_before = intersections.size();
 
@@ -539,7 +571,6 @@ void find_intersections_per_proto(
         unordered_set<string> seen_keys;
       
         // Iteratively peel off subsets dominated by a best-cover rule (R0)
-        size_t peel_iter = 0;
         while (remaining.size() >= 2) {
             size_t best_pos = find_best_cover_rule_in_set(merged_ip_table, remaining);
             size_t best_rid = remaining[best_pos];
@@ -606,20 +637,12 @@ void find_intersections_per_proto(
                     }
                     if (cell_dst_hi < cell_dst_lo) continue;
 
-                    // collect which rules in S cover this cell (use your specified containment test)
-                    // cout << "Cell: " << cell_src_lo << "-" << cell_src_hi 
-                    // << " , " << cell_dst_lo << "-" << cell_dst_hi
-                    // << "   [src_ep idx = " << si << ", dst_ep idx = " << dj << "]"  
-                    // << endl;
                     vector<size_t> covered;
                     covered.reserve(8);
                     for (size_t rid : S) {
                         const auto& rule = merged_ip_table[rid];
                         if ((rule.src_ip_lo <= cell_src_lo && cell_src_hi <= rule.src_ip_hi) &&
                             (rule.dst_ip_lo <= cell_dst_lo && cell_dst_hi <= rule.dst_ip_hi)) {
-                            // cout << "Cover Rule: (rid=" << rid << "): " << rule.src_ip_lo << "-" << rule.src_ip_hi 
-                            // << " , " << rule.dst_ip_lo<< "-" << rule.dst_ip_hi
-                            // << endl;
                             covered.push_back(rid);
                         }
                     }
@@ -644,6 +667,18 @@ void find_intersections_per_proto(
                 }
             }
 
+            // Helper: 检查cell是否与merged_ip_table中某个规则完全相同
+            auto is_dup_in_S = [&](uint32_t s_lo, uint32_t s_hi, uint32_t d_lo, uint32_t d_hi) -> bool {
+                for (size_t rid : S) {
+                    const IPRule &R = merged_ip_table[rid];
+                    if (R.src_ip_lo == s_lo && R.src_ip_hi == s_hi &&
+                        R.dst_ip_lo == d_lo && R.dst_ip_hi == d_hi) {
+                        return true;
+                    }
+                }
+                return false;
+            };
+
             for (size_t i = 0; i < S.size(); i++) {
                 for (size_t j = i + 1; j < S.size(); j++) {
                     const auto &A = merged_ip_table[S[i]];
@@ -655,6 +690,10 @@ void find_intersections_per_proto(
                     uint32_t dst_hi = min(A.dst_ip_hi, B.dst_ip_hi);
 
                     if (src_lo > src_hi || dst_lo > dst_hi) continue;
+                    
+                    // ★ 检查是否与merged_ip_table中规则完全相同
+                    if (is_dup_in_S(src_lo, src_hi, dst_lo, dst_hi)) continue;
+                    
                     string key = make_cell_key(proto, src_lo, src_hi, dst_lo, dst_hi);
 
                     // ✅ 1. 点交：src、dst 都是单点
@@ -844,8 +883,7 @@ void merge_cells_and_ip_table(
 
         final_ip_table.push_back(std::move(fr));
     }
-    // DEBUG 输出行（可选）
-    // cout << "[merge_cells_and_ip_table] final entries = " << final_ip_table.size() << endl;
+    
 }
 
 vector<IPRule> split_rule_by_cell(const IPRule &rule, const IntersectionCell &cell) {
@@ -1351,7 +1389,7 @@ void Create_Metainfo_for_port(
         return;
     }
 
-    fout << "GroupIDs\tSrc_lo\tSrc_hi\tDst_lo\tDst_hi\tIdx_list\tInitNum_list\n";
+    fout << "GroupIDs\tSrc_lo\tSrc_hi\tDst_lo\tDst_hi\tIdx_list\tInitNum_list\tAction\n";
 
 
     for (const auto& kv : merged_map) {
@@ -1384,10 +1422,11 @@ void Create_Metainfo_for_port(
             << std::setw(12) << group_str
             << std::setw(8)  << item.src_lo
             << std::setw(8)  << item.src_hi
-            << std::setw(8)  << item.dst_lo       // ★ 新增
-            << std::setw(8)  << item.dst_hi       // ★ 新增
+            << std::setw(8)  << item.dst_lo
+            << std::setw(8)  << item.dst_hi
             << std::setw(18) << idx_str
             << std::setw(20) << initnum_str
+            << std::setw(8)  << item.action
             << "\n";
 
     }
