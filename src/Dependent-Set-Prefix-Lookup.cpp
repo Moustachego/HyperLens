@@ -1125,66 +1125,70 @@ void write_final_table_in_cidr(
         return;
     }
 
-    fout << "Final IP Table (CIDR only) - " << final_ip_table.size() << " entries\n";
+    // 统计展开后的总表项数
+    size_t total_expanded_entries = 0;
+    
+    // 先计算总数
+    for (const auto& r : final_ip_table) {
+        auto src_list = range_to_cidrs(r.src_lo, r.src_hi);
+        auto dst_list = range_to_cidrs(r.dst_lo, r.dst_hi);
+        total_expanded_entries += src_list.size() * dst_list.size();
+    }
 
-    // ★ 添加统计信息
-    size_t total_long_src = 0, total_long_dst = 0;
-    const size_t CIDR_THRESHOLD = 5;  // 超过5个CIDR块认为是"长"范围
+    fout << "Final IP Table (CIDR expanded for P4) - " << total_expanded_entries 
+         << " entries (from " << final_ip_table.size() << " rules)\n";
+    fout << "Format: PROTO=X SRC{cidr} DST{cidr} GIDs{...} [Original_Rule]\n\n";
 
+    size_t entry_count = 0;
+    
     for (size_t i = 0; i < final_ip_table.size(); ++i) {
         const auto& r = final_ip_table[i];
 
-        fout << "R[" << i << "] PROTO=" << int(r.proto) << " ";
-
-        // SRC - ★ 优化显示：超过阈值时显示摘要
+        // 生成SRC和DST的CIDR列表
         auto src_list = range_to_cidrs(r.src_lo, r.src_hi);
-        fout << "SRC{";
-        if (src_list.size() > CIDR_THRESHOLD) {
-            total_long_src++;
-            // 显示前2个和后2个，中间用省略号
-            fout << src_list[0] << ", " << src_list[1] << ", ... (total " << src_list.size() 
-                 << " blocks), " << src_list[src_list.size()-2] << ", " << src_list[src_list.size()-1];
-            // 同时输出范围摘要
-            fout << " [" << ip_to_string(r.src_lo) << " - " << ip_to_string(r.src_hi) << "]";
-        } else {
-            for (size_t k = 0; k < src_list.size(); ++k) {
-                fout << src_list[k];
-                if (k + 1 < src_list.size()) fout << ", ";
-            }
-        }
-        fout << "} ";
-
-        // DST - ★ 同样的优化
         auto dst_list = range_to_cidrs(r.dst_lo, r.dst_hi);
-        fout << "DST{";
-        if (dst_list.size() > CIDR_THRESHOLD) {
-            total_long_dst++;
-            fout << dst_list[0] << ", " << dst_list[1] << ", ... (total " << dst_list.size() 
-                 << " blocks), " << dst_list[dst_list.size()-2] << ", " << dst_list[dst_list.size()-1];
-            fout << " [" << ip_to_string(r.dst_lo) << " - " << ip_to_string(r.dst_hi) << "]";
-        } else {
-            for (size_t k = 0; k < dst_list.size(); ++k) {
-                fout << dst_list[k];
-                if (k + 1 < dst_list.size()) fout << ", ";
+
+        // 笛卡尔积：每个SRC CIDR × 每个DST CIDR = 一条独立表项
+        for (const auto& src_cidr : src_list) {
+            for (const auto& dst_cidr : dst_list) {
+                // 使用新的顺序编号，放在行首，去掉原始[R...]标记
+                fout << "R[" << entry_count << "] ";
+                fout << "PROTO=" << int(r.proto) 
+                     << " SRC{" << src_cidr << "}"
+                     << " DST{" << dst_cidr << "}";
+
+                // GIDs保持不变
+                fout << " GIDs{";
+                for (size_t k = 0; k < r.group_ids.size(); ++k) {
+                    fout << r.group_ids[k];
+                    if (k + 1 < r.group_ids.size()) fout << ", ";
+                }
+                fout << "}";
+
+                fout << "\n";
+
+                entry_count++;
             }
         }
-        fout << "} ";
-
-        // Group IDs
-        fout << "GIDs{";
-        for (size_t k = 0; k < r.group_ids.size(); ++k) {
-            fout << r.group_ids[k];
-            if (k + 1 < r.group_ids.size()) fout << ", ";
-        }
-        fout << "}\n";
     }
 
     fout.close();
-    cout << "CIDR-format table written to " << filename << endl;
-    if (total_long_src > 0 || total_long_dst > 0) {
-        cout << "  Note: " << total_long_src << " rules with >5 SRC CIDR blocks, "
-             << total_long_dst << " rules with >5 DST CIDR blocks (summarized)" << endl;
+    
+    cout << "CIDR-expanded table written to " << filename << endl;
+    
+    // 统计展开倍数最大的规则
+    size_t max_expansion = 0;
+    size_t max_expansion_rule = 0;
+    for (size_t i = 0; i < final_ip_table.size(); ++i) {
+        auto src_cnt = range_to_cidrs(final_ip_table[i].src_lo, final_ip_table[i].src_hi).size();
+        auto dst_cnt = range_to_cidrs(final_ip_table[i].dst_lo, final_ip_table[i].dst_hi).size();
+        size_t expansion = src_cnt * dst_cnt;
+        if (expansion > max_expansion) {
+            max_expansion = expansion;
+            max_expansion_rule = i;
+        }
     }
+    
 }
 
 
