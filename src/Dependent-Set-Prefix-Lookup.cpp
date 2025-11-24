@@ -1257,8 +1257,8 @@ void Generate_cell_GID_to_metaifno(
         }
         const IntersectionCell &ic = intersection_cells[itc->second];
 
-        // 5) ic.Extraction 假设是 merged_ip_table 索引（你明确说明了这一点）
-        //    对每个 mid, 取 merged_ip_table[mid].merged_R（原始 rule id 列表）
+        // 5) ★修复：ic.Extraction 已经存储的是 merged_ip_table 的索引，不需要再映射到 merged_R
+        //    直接从 ic.Extraction 中提取 merged_ip_table 索引对应的原始规则ID
         std::vector<size_t> orig_rids; orig_rids.reserve(16);
         for (size_t mid : ic.Extraction) {
             if (mid >= merged_ip_table.size()) {
@@ -1266,7 +1266,7 @@ void Generate_cell_GID_to_metaifno(
                 continue;
             }
             const IPRule &mip = merged_ip_table[mid];
-            // mip.merged_R 中应该是原始 rule ids（all_rules 索引）
+            // mip.merged_R 中存储的是原始 rule ids（all_rules 索引）
             for (size_t orid : mip.merged_R) orig_rids.push_back(orid);
         }
 
@@ -1279,9 +1279,8 @@ void Generate_cell_GID_to_metaifno(
         std::sort(orig_rids.begin(), orig_rids.end());
         orig_rids.erase(std::unique(orig_rids.begin(), orig_rids.end()), orig_rids.end());
 
-        // 6) 对于此 R 的每一个 orig_rid → pidx，
-        //    不再往 meta_src[pidx] 追加 gid，
-        //    而是创建新的 MetaInfo entry，形成独立规则。
+        // 6) 对于此 cell 的每一个 orig_rid → pidx，
+        //    创建新的 MetaInfo entry，Inital_Number 直接使用 ic.Extraction（merged_ip_table索引）
         for (size_t orid : orig_rids) {
             auto itp = origRid_to_portIndex.find(orid);
             if (itp == origRid_to_portIndex.end()) {
@@ -1296,26 +1295,10 @@ void Generate_cell_GID_to_metaifno(
 
             // 创建一个新的 metainfo entry
             Metainfo_for_SRC_port new_entry;
-            // ★ 修改：使用 cell 的完整 Extraction（指向 merged_ip_table 的索引列表）
+            // ★ 核心修复：直接使用 ic.Extraction 作为 Inital_Number（merged_ip_table 索引）
             new_entry.Inital_Number.reserve(ic.Extraction.size());
-            
-            // 添加调试：检查 Extraction 是否有重复
-            unordered_set<uint32_t> seen_ext;
-            bool has_dup_ext = false;
             for (size_t mid : ic.Extraction) {
-                uint32_t mid_u32 = static_cast<uint32_t>(mid);
-                if (!seen_ext.insert(mid_u32).second) {
-                    has_dup_ext = true;
-                }
-                new_entry.Inital_Number.push_back(mid_u32);
-            }
-            
-            if (has_dup_ext) {
-                std::cout << "[GEN_CELL] DUP in Extraction! GID=" << gid << " Extraction={";
-                for (size_t e : ic.Extraction) std::cout << e << ",";
-                std::cout << "} InitNum={";
-                for (uint32_t n : new_entry.Inital_Number) std::cout << n << ",";
-                std::cout << "}\n";
+                new_entry.Inital_Number.push_back(static_cast<uint32_t>(mid));
             }
             
             new_entry.Src_lo   = por.src_port_lo;
@@ -1378,7 +1361,7 @@ void Create_Metainfo_for_port(
     vector<Metainfo_for_SRC_port> meta;
 
     meta.clear();
-    meta.resize(port_table.size());
+    meta.resize(port_table.size());                //this way,may be have to be checked later
 
     for (size_t i = 0; i < port_table.size(); ++i) {
         const auto& p = port_table[i];
