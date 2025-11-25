@@ -3,6 +3,7 @@
  * Purpose:   Show the basic forwarding function of Tofino2
  * Author:    weijzh (weijzh@pcl.ac.cn)
  * Created:   2025-10-23
+ * Modified:  2025-11-25
  * Copyright: weijzh (https://www.pcl.ac.cn)
  **************************************************************/
 
@@ -78,9 +79,18 @@ struct headers {
 
 // user defined metadata
 struct user_metadata_t {
-    bit<9> Group_id;
-    // bit<16> lrm_id1;
-    // bit<16> lrm_id2;
+    bit<9> Group_id;      // GID1 from Stage-1
+    bit<9> Group_id2;     // GID2 from Stage-2
+    bit<11> src_quotient; // Source port quotient (high 11 bits)
+    bit<11> dst_quotient; // Dest port quotient (high 11 bits)
+    bit<5> src_remainder; // Source port remainder (low 5 bits)
+    bit<5> dst_remainder; // Dest port remainder (low 5 bits)
+    bit<32> src_bitmap;   // Source port bitmap from SRAM
+    bit<32> dst_bitmap;   // Dest port bitmap from SRAM
+    bool src_tcam_hit;    // SRC_TCAM hit flag
+    bool src_sram_hit;    // SRC_SRAM hit flag
+    bool dst_tcam_hit;    // DST_TCAM hit flag
+    bool dst_sram_hit;    // DST_SRAM hit flag
  }
 
 struct eg_metadata_t {
@@ -100,6 +110,21 @@ parser SwitchIngressParser(
     state start {
         pkt.extract(ig_intr_md);
         pkt.advance(PORT_METADATA_SIZE);
+        
+        // Initialize metadata
+        ig_md.Group_id = 0;
+        ig_md.Group_id2 = 0;
+        ig_md.src_quotient = 0;
+        ig_md.dst_quotient = 0;
+        ig_md.src_remainder = 0;
+        ig_md.dst_remainder = 0;
+        ig_md.src_bitmap = 0;
+        ig_md.dst_bitmap = 0;
+        ig_md.src_tcam_hit = false;
+        ig_md.src_sram_hit = false;
+        ig_md.dst_tcam_hit = false;
+        ig_md.dst_sram_hit = false;
+        
         transition parse_ethernet;
     }
 
@@ -152,12 +177,21 @@ control SwitchIngress(
             
     bit<16> vrf;
 
+    // ========== Common Actions ==========
     action drop() {
-    ig_dprsr_md.drop_ctl = 0x1;  // 丢包
+        ig_dprsr_md.drop_ctl = 0x1;
     }
 
-    action get_coupling_info(bit<9> Group_id) {              
-        ig_md.Group_id = Group_id;
+    action forward(bit<9> port) {
+        ig_tm_md.ucast_egress_port = port;
+    }
+
+    action nop() {
+    }
+
+    // ========== Stage-1: IP Table ==========
+    action set_gid1(bit<9> gid1) {              
+        ig_md.Group_id = gid1;
     }
 
     table ip_table {
@@ -168,37 +202,131 @@ control SwitchIngress(
             p.ipv4.proto : exact;
         }
         actions = {
-            drop; 
-            get_coupling_info;
+            set_gid1;
+            drop;
         }
         default_action = drop;
-        size = 1024; 
-
+        size = 1024;
     }
 
-    action forward(bit<9> port) {
-        // 使用 ingress_tm metadata 设置 egress port
-        ig_tm_md.ucast_egress_port = port;
+    // ========== Stage-2: SRC Port Matching ==========
+    
+    // SRC_TCAM: Ternary matching for sparse port rules
+    action set_gid2_from_tcam(bit<9> gid2) {
+        ig_md.Group_id2 = gid2;
+        ig_md.src_tcam_hit = true;
     }
 
-    table port_table {
-    key = {
-        ig_md.Group_id : exact;
-        p.udp.sport   : exact;
-        p.udp.dport   : exact;
-    }
-    actions = {
-        forward;
-        drop;
-    }
-    default_action = drop;
-    size = 1024;
+    table src_tcam_table {
+        key = {
+            ig_md.Group_id : exact;
+            p.udp.sport : ternary;  // 16-bit ternary for wildcards
+        }
+        actions = {
+            set_gid2_from_tcam;
+            nop;
+        }
+        default_action = nop;
+        size = 2048;
     }
 
-    apply{
+    // SRC_SRAM: Exact matching with bitmap for dense port sets
+    action set_src_bitmap(bit<32> bitmap, bit<9> gid2) {
+        ig_md.src_bitmap = bitmap;
+        ig_md.Group_id2 = gid2;
+        // Bitmap check will be done in control flow
+        // Set hit flag, actual bit check needs to happen in apply block
+    }
+
+    table src_sram_table {
+        key = {
+            ig_md.Group_id : exact;
+            ig_md.src_quotient : exact;  // High 11 bits of port
+        }
+        actions = {
+            set_src_bitmap;
+            nop;
+        }
+        default_action = nop;
+        size = 4096;
+    }
+
+    // ========== Stage-3: DST Port Matching ==========
+    
+    // DST_TCAM: Ternary matching for sparse port rules
+    action set_action_from_tcam(bit<9> egress_port) {
+        ig_tm_md.ucast_egress_port = egress_port;
+        ig_md.dst_tcam_hit = true;
+    }
+
+    table dst_tcam_table {
+        key = {
+            ig_md.Group_id2 : exact;
+            p.udp.dport : ternary;  // 16-bit ternary for wildcards
+        }
+        actions = {
+            set_action_from_tcam;
+            drop;
+            nop;
+        }
+        default_action = nop;
+        size = 2048;
+    }
+
+    // DST_SRAM: Exact matching with bitmap for dense port sets
+    action set_dst_bitmap(bit<32> bitmap, bit<9> egress_port) {
+        ig_md.dst_bitmap = bitmap;
+        ig_tm_md.ucast_egress_port = egress_port;
+        // Bitmap check will be done in control flow
+    }
+
+    table dst_sram_table {
+        key = {
+            ig_md.Group_id2 : exact;
+            ig_md.dst_quotient : exact;  // High 11 bits of port
+        }
+        actions = {
+            set_dst_bitmap;
+            drop;
+            nop;
+        }
+        default_action = nop;
+        size = 4096;
+    }
+
+    // ========== Apply Block ==========
+    apply {
         vrf = 16w0;
-        ip_table.apply();
-        port_table.apply();
+
+        // Stage-1: IP + Protocol Matching
+        if (ip_table.apply().hit) {
+            
+            // Calculate port quotient for SRAM lookup
+            ig_md.src_quotient = p.udp.sport[15:5];  // High 11 bits
+            ig_md.dst_quotient = p.udp.dport[15:5];
+
+            // Stage-2: SRC Port Matching (Parallel TCAM + SRAM)
+            bool src_tcam_match = src_tcam_table.apply().hit;
+            bool src_sram_match = src_sram_table.apply().hit;
+
+            // Stage-2 Decision: Prefer TCAM, fallback to SRAM
+            // Note: SRAM bitmap check is done by control plane - only valid entries are installed
+            if (src_tcam_match || src_sram_match) {
+                
+                // Stage-3: DST Port Matching (Parallel TCAM + SRAM)
+                bool dst_tcam_match = dst_tcam_table.apply().hit;
+                bool dst_sram_match = dst_sram_table.apply().hit;
+
+                // Stage-3 Decision: Prefer TCAM, fallback to SRAM
+                if (!dst_tcam_match && !dst_sram_match) {
+                    drop();
+                }
+            } else {
+                drop();
+            }
+        } else {
+            drop();
+        }
     }
 }
 

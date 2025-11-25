@@ -21,7 +21,7 @@ cd $BUILDPATH
 
 cmake $SDE/p4studio/ -DTOFINO=OFF -DTOFINO2=ON \
    -DCMAKE_INSTALL_PREFIX=$SDE_INSTALL -DCMAKE_MODULE_PATH=$SDE/cmake \
-   -DP4_NAME=tofino2 -DP4_PATH=${ROOTPATH}/tofino2.p4
+   -DP4_NAME=tofino2 -DP4_PATH=${ROOTPATH}/P4/tofino2.p4
 
 make tofino2
 

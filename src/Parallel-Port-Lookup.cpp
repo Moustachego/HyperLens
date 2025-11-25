@@ -891,8 +891,8 @@ void output_src_items_to_txt(const std::vector<SRC_Port_Item> &src_items)
 
 //-------------------- Step 9: Main function to build SRC port tables --------------------
 void create_Table_for_port(
-    const vector<PortRule>& port_table,
-    const vector<IPRule>& merged_ip_table,
+    const vector<PortRule>& /* port_table */,
+    const vector<IPRule>& /* merged_ip_table */,
     std::map<std::tuple<std::vector<int>, int, int>, MergedItem>& mateifno
 ){  
     vector<Mate_SRC_LIST> mate_src;

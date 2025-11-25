@@ -1,0 +1,995 @@
+FindDependencyGraph : After Instruction Selection
+ingress: [16] 0
+  tbl_tofino2l299
+  ip_table_0
+    $hit: [17] 0 00 000
+      tbl_tofino2l305
+      src_tcam_table_0
+        $hit: [18]
+          tbl_act
+        $miss: [19]
+          tbl_act_0
+      src_sram_table_0
+        $hit: [20]
+          tbl_act_1
+        $miss: [21]
+          tbl_act_2
+      cond-3(ingress::src_tcam_match_0 => $true, ingress::src_sram_match_0 => $true, 1 => $false)
+        $true: [22] 0 00
+          dst_tcam_table_0
+            $hit: [23]
+              tbl_act_3
+            $miss: [24]
+              tbl_act_4
+          dst_sram_table_0
+            $hit: [25]
+              tbl_act_5
+            $miss: [26]
+              tbl_act_6
+          cond-4(!ingress::dst_tcam_match_0 && !ingress::dst_sram_match_0; => $true, 1 => $false)
+            $true: [27]
+              tbl_drop
+        $false: [28]
+          tbl_drop_0
+    $miss: [29]
+      tbl_drop_1
+egress: [30]
+
+DepStagesThruDomFrontier postorder : tbl_tofino2l299
+DepStagesThruDomFrontier postorder : tbl_tofino2l305
+DepStagesThruDomFrontier postorder : tbl_act
+DepStagesThruDomFrontier postorder : tbl_act_0
+DepStagesThruDomFrontier postorder : src_tcam_table_0
+DepStagesThruDomFrontier postorder : tbl_act_1
+DepStagesThruDomFrontier postorder : tbl_act_2
+DepStagesThruDomFrontier postorder : src_sram_table_0
+DepStagesThruDomFrontier postorder : tbl_act_3
+DepStagesThruDomFrontier postorder : tbl_act_4
+DepStagesThruDomFrontier postorder : dst_tcam_table_0
+DepStagesThruDomFrontier postorder : tbl_act_5
+DepStagesThruDomFrontier postorder : tbl_act_6
+DepStagesThruDomFrontier postorder : dst_sram_table_0
+DepStagesThruDomFrontier postorder : tbl_drop
+DepStagesThruDomFrontier postorder : cond-4
+DepStagesThruDomFrontier postorder : tbl_drop_0
+DepStagesThruDomFrontier postorder : cond-3
+DepStagesThruDomFrontier postorder : tbl_drop_1
+DepStagesThruDomFrontier postorder : ip_table_0
+    Maximum stage number according to dependences: 
+      INGRESS: 6
+      EGRESS: -1
+GRAPH
+    ip_table_0 -- CONTROL_TABLE_HIT --> tbl_tofino2l305
+    ip_table_0 -- CONTROL_TABLE_HIT --> src_tcam_table_0
+    ip_table_0 -- CONTROL_TABLE_HIT --> src_sram_table_0
+    ip_table_0 -- CONTROL_TABLE_HIT --> cond-3
+    src_tcam_table_0 -- CONTROL_TABLE_HIT --> tbl_act
+    src_tcam_table_0 -- CONTROL_TABLE_MISS --> tbl_act_0
+    src_sram_table_0 -- CONTROL_TABLE_HIT --> tbl_act_1
+    src_sram_table_0 -- CONTROL_TABLE_MISS --> tbl_act_2
+    cond-3 -- CONTROL_COND_TRUE --> dst_tcam_table_0
+    cond-3 -- CONTROL_COND_TRUE --> dst_sram_table_0
+    cond-3 -- CONTROL_COND_TRUE --> cond-4
+    dst_tcam_table_0 -- CONTROL_TABLE_HIT --> tbl_act_3
+    dst_tcam_table_0 -- CONTROL_TABLE_MISS --> tbl_act_4
+    dst_sram_table_0 -- CONTROL_TABLE_HIT --> tbl_act_5
+    dst_sram_table_0 -- CONTROL_TABLE_MISS --> tbl_act_6
+    cond-4 -- CONTROL_COND_TRUE --> tbl_drop
+    cond-3 -- CONTROL_COND_FALSE --> tbl_drop_0
+    ip_table_0 -- CONTROL_TABLE_MISS --> tbl_drop_1
+    tbl_tofino2l299 -- IXBAR_READ --> ip_table_0
+    ip_table_0 -- IXBAR_READ --> src_tcam_table_0
+    ip_table_0 -- IXBAR_READ --> src_sram_table_0
+    src_tcam_table_0 -- OUTPUT --> src_sram_table_0
+    tbl_act -- ACTION_READ --> cond-3
+    tbl_act_0 -- ACTION_READ --> cond-3
+    tbl_act_1 -- ACTION_READ --> cond-3
+    tbl_act_2 -- ACTION_READ --> cond-3
+    src_sram_table_0 -- IXBAR_READ --> dst_tcam_table_0
+    src_tcam_table_0 -- IXBAR_READ --> dst_tcam_table_0
+    ip_table_0 -- OUTPUT --> dst_tcam_table_0
+    src_sram_table_0 -- IXBAR_READ --> dst_sram_table_0
+    src_tcam_table_0 -- IXBAR_READ --> dst_sram_table_0
+    dst_tcam_table_0 -- OUTPUT --> dst_sram_table_0
+    ip_table_0 -- OUTPUT --> dst_sram_table_0
+    tbl_act_3 -- ACTION_READ --> cond-4
+    tbl_act_4 -- ACTION_READ --> cond-4
+    tbl_act_5 -- ACTION_READ --> cond-4
+    tbl_act_6 -- ACTION_READ --> cond-4
+    ip_table_0 -- OUTPUT --> tbl_drop
+    dst_tcam_table_0 -- OUTPUT --> tbl_drop
+    dst_sram_table_0 -- OUTPUT --> tbl_drop
+    ip_table_0 -- OUTPUT --> tbl_drop_0
+    ip_table_0 -- OUTPUT --> tbl_drop_1
+MIN STAGE INFO
+    Each table also indicates its dependency chain length
+    First number refers to a dependency chain from which each tables are not split
+    Second number refers to a dependency chain from which each tables are split as on  last allocation pass
+ Stage #0
+     tbl_tofino2l299 (tbl_tofino2l299) 6 6
+ Stage #1
+     ip_table_0 (SwitchIngress.ip_table) 5 5
+	- Edge IXBAR_READ tbl_tofino2l299 ( tbl_tofino2l299 )
+     tbl_tofino2l305 (tbl_tofino2l305) 0 0
+	- Edge CONTROL_TABLE_HIT ip_table_0 ( SwitchIngress.ip_table )
+ Stage #2
+     src_tcam_table_0 (SwitchIngress.src_tcam_table) 4 4
+	- Edge IXBAR_READ ip_table_0 ( SwitchIngress.ip_table )
+     tbl_act (tbl_act) 3 3
+	- Edge CONTROL_TABLE_HIT src_tcam_table_0 ( SwitchIngress.src_tcam_table )
+     tbl_act_0 (tbl_act_0) 3 3
+	- Edge CONTROL_TABLE_MISS src_tcam_table_0 ( SwitchIngress.src_tcam_table )
+     tbl_drop_1 (tbl_drop_1) 0 0
+	- Edge OUTPUT ip_table_0 ( SwitchIngress.ip_table )
+ Stage #3
+     src_sram_table_0 (SwitchIngress.src_sram_table) 3 3
+	- Edge OUTPUT src_tcam_table_0 ( SwitchIngress.src_tcam_table )
+     tbl_act_1 (tbl_act_1) 3 3
+	- Edge CONTROL_TABLE_HIT src_sram_table_0 ( SwitchIngress.src_sram_table )
+     tbl_act_2 (tbl_act_2) 3 3
+	- Edge CONTROL_TABLE_MISS src_sram_table_0 ( SwitchIngress.src_sram_table )
+ Stage #4
+     cond-3 (cond-3) 2 2
+	- Edge ACTION_READ tbl_act_1 ( tbl_act_1 )
+	- Edge ACTION_READ tbl_act_2 ( tbl_act_2 )
+     dst_tcam_table_0 (SwitchIngress.dst_tcam_table) 2 2
+	- Edge CONTROL_COND_TRUE cond-3 ( cond-3 )
+	- Edge IXBAR_READ src_sram_table_0 ( SwitchIngress.src_sram_table )
+     tbl_act_3 (tbl_act_3) 1 1
+	- Edge CONTROL_TABLE_HIT dst_tcam_table_0 ( SwitchIngress.dst_tcam_table )
+     tbl_act_4 (tbl_act_4) 1 1
+	- Edge CONTROL_TABLE_MISS dst_tcam_table_0 ( SwitchIngress.dst_tcam_table )
+     tbl_drop_0 (tbl_drop_0) 0 0
+	- Edge CONTROL_COND_FALSE cond-3 ( cond-3 )
+ Stage #5
+     dst_sram_table_0 (SwitchIngress.dst_sram_table) 1 1
+	- Edge OUTPUT dst_tcam_table_0 ( SwitchIngress.dst_tcam_table )
+     tbl_act_5 (tbl_act_5) 1 1
+	- Edge CONTROL_TABLE_HIT dst_sram_table_0 ( SwitchIngress.dst_sram_table )
+     tbl_act_6 (tbl_act_6) 1 1
+	- Edge CONTROL_TABLE_MISS dst_sram_table_0 ( SwitchIngress.dst_sram_table )
+ Stage #6
+     cond-4 (cond-4) 0 0
+	- Edge ACTION_READ tbl_act_5 ( tbl_act_5 )
+	- Edge ACTION_READ tbl_act_6 ( tbl_act_6 )
+     tbl_drop (tbl_drop) 0 0
+	- Edge CONTROL_COND_TRUE cond-4 ( cond-4 )
+	- Edge OUTPUT dst_sram_table_0 ( SwitchIngress.dst_sram_table )
+
+FindDependencyGraph : Just Before PHV allocation
+ingress: [16]
+  ip_table_0
+    $hit: [17] 0 00
+      src_tcam_table_0
+        $hit: [18]
+          tbl_act
+        $miss: [19]
+      src_sram_table_0
+        $hit: [20]
+          tbl_act_1
+        $miss: [21]
+      cond-3(ingress::src_tcam_match_0 => $true, ingress::src_sram_match_0 => $true, 1 => $false)
+        $true: [22] 0 00
+          dst_tcam_table_0
+            $hit: [23]
+              tbl_act_3
+            $miss: [24]
+          dst_sram_table_0
+            $hit: [25]
+              tbl_act_5
+            $miss: [26]
+          cond-4(!ingress::dst_tcam_match_0 && !ingress::dst_sram_match_0; => $true, 1 => $false)
+            $true: [27]
+              tbl_drop
+        $false: [28]
+          tbl_drop_0
+    $miss: [29]
+      tbl_drop_1
+egress: [30]
+
+DepStagesThruDomFrontier postorder : tbl_act
+DepStagesThruDomFrontier postorder : src_tcam_table_0
+DepStagesThruDomFrontier postorder : tbl_act_1
+DepStagesThruDomFrontier postorder : src_sram_table_0
+DepStagesThruDomFrontier postorder : tbl_act_3
+DepStagesThruDomFrontier postorder : dst_tcam_table_0
+DepStagesThruDomFrontier postorder : tbl_act_5
+DepStagesThruDomFrontier postorder : dst_sram_table_0
+DepStagesThruDomFrontier postorder : tbl_drop
+DepStagesThruDomFrontier postorder : cond-4
+DepStagesThruDomFrontier postorder : tbl_drop_0
+DepStagesThruDomFrontier postorder : cond-3
+DepStagesThruDomFrontier postorder : tbl_drop_1
+DepStagesThruDomFrontier postorder : ip_table_0
+    Maximum stage number according to dependences: 
+      INGRESS: 5
+      EGRESS: -1
+GRAPH
+    ip_table_0 -- CONTROL_TABLE_HIT --> src_tcam_table_0
+    ip_table_0 -- CONTROL_TABLE_HIT --> src_sram_table_0
+    ip_table_0 -- CONTROL_TABLE_HIT --> cond-3
+    src_tcam_table_0 -- CONTROL_TABLE_HIT --> tbl_act
+    src_sram_table_0 -- CONTROL_TABLE_HIT --> tbl_act_1
+    cond-3 -- CONTROL_COND_TRUE --> dst_tcam_table_0
+    cond-3 -- CONTROL_COND_TRUE --> dst_sram_table_0
+    cond-3 -- CONTROL_COND_TRUE --> cond-4
+    dst_tcam_table_0 -- CONTROL_TABLE_HIT --> tbl_act_3
+    dst_sram_table_0 -- CONTROL_TABLE_HIT --> tbl_act_5
+    cond-4 -- CONTROL_COND_TRUE --> tbl_drop
+    cond-3 -- CONTROL_COND_FALSE --> tbl_drop_0
+    ip_table_0 -- CONTROL_TABLE_MISS --> tbl_drop_1
+    ip_table_0 -- IXBAR_READ --> src_tcam_table_0
+    ip_table_0 -- IXBAR_READ --> src_sram_table_0
+    src_tcam_table_0 -- OUTPUT --> src_sram_table_0
+    tbl_act -- ACTION_READ --> cond-3
+    tbl_act_1 -- ACTION_READ --> cond-3
+    src_sram_table_0 -- IXBAR_READ --> dst_tcam_table_0
+    src_tcam_table_0 -- IXBAR_READ --> dst_tcam_table_0
+    ip_table_0 -- OUTPUT --> dst_tcam_table_0
+    src_sram_table_0 -- IXBAR_READ --> dst_sram_table_0
+    src_tcam_table_0 -- IXBAR_READ --> dst_sram_table_0
+    dst_tcam_table_0 -- OUTPUT --> dst_sram_table_0
+    ip_table_0 -- OUTPUT --> dst_sram_table_0
+    tbl_act_3 -- ACTION_READ --> cond-4
+    tbl_act_5 -- ACTION_READ --> cond-4
+    ip_table_0 -- OUTPUT --> tbl_drop
+    dst_tcam_table_0 -- OUTPUT --> tbl_drop
+    dst_sram_table_0 -- OUTPUT --> tbl_drop
+    ip_table_0 -- OUTPUT --> tbl_drop_0
+    ip_table_0 -- OUTPUT --> tbl_drop_1
+MIN STAGE INFO
+    Each table also indicates its dependency chain length
+    First number refers to a dependency chain from which each tables are not split
+    Second number refers to a dependency chain from which each tables are split as on  last allocation pass
+ Stage #0
+     ip_table_0 (SwitchIngress.ip_table) 5 5
+ Stage #1
+     src_tcam_table_0 (SwitchIngress.src_tcam_table) 4 4
+	- Edge IXBAR_READ ip_table_0 ( SwitchIngress.ip_table )
+     tbl_act (tbl_act) 3 3
+	- Edge CONTROL_TABLE_HIT src_tcam_table_0 ( SwitchIngress.src_tcam_table )
+     tbl_drop_1 (tbl_drop_1) 0 0
+	- Edge OUTPUT ip_table_0 ( SwitchIngress.ip_table )
+ Stage #2
+     src_sram_table_0 (SwitchIngress.src_sram_table) 3 3
+	- Edge OUTPUT src_tcam_table_0 ( SwitchIngress.src_tcam_table )
+     tbl_act_1 (tbl_act_1) 3 3
+	- Edge CONTROL_TABLE_HIT src_sram_table_0 ( SwitchIngress.src_sram_table )
+ Stage #3
+     cond-3 (cond-3) 2 2
+	- Edge ACTION_READ tbl_act_1 ( tbl_act_1 )
+     dst_tcam_table_0 (SwitchIngress.dst_tcam_table) 2 2
+	- Edge CONTROL_COND_TRUE cond-3 ( cond-3 )
+	- Edge IXBAR_READ src_sram_table_0 ( SwitchIngress.src_sram_table )
+     tbl_act_3 (tbl_act_3) 1 1
+	- Edge CONTROL_TABLE_HIT dst_tcam_table_0 ( SwitchIngress.dst_tcam_table )
+     tbl_drop_0 (tbl_drop_0) 0 0
+	- Edge CONTROL_COND_FALSE cond-3 ( cond-3 )
+ Stage #4
+     dst_sram_table_0 (SwitchIngress.dst_sram_table) 1 1
+	- Edge OUTPUT dst_tcam_table_0 ( SwitchIngress.dst_tcam_table )
+     tbl_act_5 (tbl_act_5) 1 1
+	- Edge CONTROL_TABLE_HIT dst_sram_table_0 ( SwitchIngress.dst_sram_table )
+ Stage #5
+     cond-4 (cond-4) 0 0
+	- Edge ACTION_READ tbl_act_5 ( tbl_act_5 )
+     tbl_drop (tbl_drop) 0 0
+	- Edge CONTROL_COND_TRUE cond-4 ( cond-4 )
+	- Edge OUTPUT dst_sram_table_0 ( SwitchIngress.dst_sram_table )
+
+FindDependencyGraph : Before Uninitialized Read Check
+ingress: [16]
+  ip_table_0
+    $hit: [17] 0 00
+      src_tcam_table_0
+        $hit: [18]
+          tbl_act
+        $miss: [19]
+      src_sram_table_0
+        $hit: [20]
+          tbl_act_1
+        $miss: [21]
+      cond-3(ingress::src_tcam_match_0 => $true, ingress::src_sram_match_0 => $true, 1 => $false)
+        $true: [22] 0 00
+          dst_tcam_table_0
+            $hit: [23]
+              tbl_act_3
+            $miss: [24]
+          dst_sram_table_0
+            $hit: [25]
+              tbl_act_5
+            $miss: [26]
+          cond-4(!ingress::dst_tcam_match_0 && !ingress::dst_sram_match_0; => $true, 1 => $false)
+            $true: [27]
+              tbl_drop
+            $false: [31]
+        $false: [28]
+          tbl_drop_0
+    $miss: [29]
+      tbl_drop_1
+egress: [30]
+
+DepStagesThruDomFrontier postorder : tbl_act
+DepStagesThruDomFrontier postorder : src_tcam_table_0
+DepStagesThruDomFrontier postorder : tbl_act_1
+DepStagesThruDomFrontier postorder : src_sram_table_0
+DepStagesThruDomFrontier postorder : tbl_act_3
+DepStagesThruDomFrontier postorder : dst_tcam_table_0
+DepStagesThruDomFrontier postorder : tbl_act_5
+DepStagesThruDomFrontier postorder : dst_sram_table_0
+DepStagesThruDomFrontier postorder : tbl_drop
+DepStagesThruDomFrontier postorder : cond-4
+DepStagesThruDomFrontier postorder : tbl_drop_0
+DepStagesThruDomFrontier postorder : cond-3
+DepStagesThruDomFrontier postorder : tbl_drop_1
+DepStagesThruDomFrontier postorder : ip_table_0
+    Maximum stage number according to dependences: 
+      INGRESS: 5
+      EGRESS: -1
+GRAPH
+    ip_table_0 -- CONTROL_TABLE_HIT --> src_tcam_table_0
+    ip_table_0 -- CONTROL_TABLE_HIT --> src_sram_table_0
+    ip_table_0 -- CONTROL_TABLE_HIT --> cond-3
+    src_tcam_table_0 -- CONTROL_TABLE_HIT --> tbl_act
+    src_sram_table_0 -- CONTROL_TABLE_HIT --> tbl_act_1
+    cond-3 -- CONTROL_COND_TRUE --> dst_tcam_table_0
+    cond-3 -- CONTROL_COND_TRUE --> dst_sram_table_0
+    cond-3 -- CONTROL_COND_TRUE --> cond-4
+    dst_tcam_table_0 -- CONTROL_TABLE_HIT --> tbl_act_3
+    dst_sram_table_0 -- CONTROL_TABLE_HIT --> tbl_act_5
+    cond-4 -- CONTROL_COND_TRUE --> tbl_drop
+    cond-3 -- CONTROL_COND_FALSE --> tbl_drop_0
+    ip_table_0 -- CONTROL_TABLE_MISS --> tbl_drop_1
+    ip_table_0 -- IXBAR_READ --> src_tcam_table_0
+    ip_table_0 -- IXBAR_READ --> src_sram_table_0
+    src_tcam_table_0 -- OUTPUT --> src_sram_table_0
+    tbl_act -- ACTION_READ --> cond-3
+    tbl_act_1 -- ACTION_READ --> cond-3
+    src_sram_table_0 -- IXBAR_READ --> dst_tcam_table_0
+    src_tcam_table_0 -- IXBAR_READ --> dst_tcam_table_0
+    ip_table_0 -- OUTPUT --> dst_tcam_table_0
+    src_sram_table_0 -- IXBAR_READ --> dst_sram_table_0
+    src_tcam_table_0 -- IXBAR_READ --> dst_sram_table_0
+    dst_tcam_table_0 -- OUTPUT --> dst_sram_table_0
+    ip_table_0 -- OUTPUT --> dst_sram_table_0
+    tbl_act_3 -- ACTION_READ --> cond-4
+    tbl_act_5 -- ACTION_READ --> cond-4
+    ip_table_0 -- OUTPUT --> tbl_drop
+    dst_tcam_table_0 -- OUTPUT --> tbl_drop
+    dst_sram_table_0 -- OUTPUT --> tbl_drop
+    ip_table_0 -- OUTPUT --> tbl_drop_0
+    ip_table_0 -- OUTPUT --> tbl_drop_1
+MIN STAGE INFO
+    Each table also indicates its dependency chain length
+    First number refers to a dependency chain from which each tables are not split
+    Second number refers to a dependency chain from which each tables are split as on  last allocation pass
+ Stage #0
+     ip_table_0 (SwitchIngress.ip_table) 5 5
+ Stage #1
+     src_tcam_table_0 (SwitchIngress.src_tcam_table) 4 4
+	- Edge IXBAR_READ ip_table_0 ( SwitchIngress.ip_table )
+     tbl_act (tbl_act) 3 3
+	- Edge CONTROL_TABLE_HIT src_tcam_table_0 ( SwitchIngress.src_tcam_table )
+     tbl_drop_1 (tbl_drop_1) 0 0
+	- Edge OUTPUT ip_table_0 ( SwitchIngress.ip_table )
+ Stage #2
+     src_sram_table_0 (SwitchIngress.src_sram_table) 3 3
+	- Edge OUTPUT src_tcam_table_0 ( SwitchIngress.src_tcam_table )
+     tbl_act_1 (tbl_act_1) 3 3
+	- Edge CONTROL_TABLE_HIT src_sram_table_0 ( SwitchIngress.src_sram_table )
+ Stage #3
+     cond-3 (cond-3) 2 2
+	- Edge ACTION_READ tbl_act_1 ( tbl_act_1 )
+     dst_tcam_table_0 (SwitchIngress.dst_tcam_table) 2 2
+	- Edge CONTROL_COND_TRUE cond-3 ( cond-3 )
+	- Edge IXBAR_READ src_sram_table_0 ( SwitchIngress.src_sram_table )
+     tbl_act_3 (tbl_act_3) 1 1
+	- Edge CONTROL_TABLE_HIT dst_tcam_table_0 ( SwitchIngress.dst_tcam_table )
+     tbl_drop_0 (tbl_drop_0) 0 0
+	- Edge CONTROL_COND_FALSE cond-3 ( cond-3 )
+ Stage #4
+     dst_sram_table_0 (SwitchIngress.dst_sram_table) 1 1
+	- Edge OUTPUT dst_tcam_table_0 ( SwitchIngress.dst_tcam_table )
+     tbl_act_5 (tbl_act_5) 1 1
+	- Edge CONTROL_TABLE_HIT dst_sram_table_0 ( SwitchIngress.dst_sram_table )
+ Stage #5
+     cond-4 (cond-4) 0 0
+	- Edge ACTION_READ tbl_act_5 ( tbl_act_5 )
+     tbl_drop (tbl_drop) 0 0
+	- Edge CONTROL_COND_TRUE cond-4 ( cond-4 )
+	- Edge OUTPUT dst_sram_table_0 ( SwitchIngress.dst_sram_table )
+
+ingress: [16]
+  ip_table_0{ T 88+1, 2 1K }
+    $hit: [17] 1 11
+      src_tcam_table_0{ T 25+1, 2 2K }
+        $hit: [18]
+          tbl_act
+        $miss: [19]
+      src_sram_table_0{ E 10+1, 2 4K }
+        $hit: [20]
+          tbl_act_1
+        $miss: [21]
+      cond-3(ingress::src_tcam_match_0 => $true, ingress::src_sram_match_0 => $true, 1 => $false)
+        $true: [22] 1 11
+          dst_tcam_table_0{ T 25+2, 2 2K }
+            $hit: [23]
+              tbl_act_3
+            $miss: [24]
+          dst_sram_table_0{ E 10+2, 2 4K }
+            $hit: [25]
+              tbl_act_5
+            $miss: [26]
+          cond-4(!ingress::dst_tcam_match_0 && !ingress::dst_sram_match_0; => $true, 1 => $false)
+            $true: [27]
+              tbl_drop
+            $false: [31]
+        $false: [28]
+          tbl_drop_0
+    $miss: [29]
+      tbl_drop_1
+egress: [30]
+
+DepStagesThruDomFrontier postorder : tbl_act
+DepStagesThruDomFrontier postorder : src_tcam_table_0
+DepStagesThruDomFrontier postorder : tbl_act_1
+DepStagesThruDomFrontier postorder : src_sram_table_0
+DepStagesThruDomFrontier postorder : tbl_act_3
+DepStagesThruDomFrontier postorder : dst_tcam_table_0
+DepStagesThruDomFrontier postorder : tbl_act_5
+DepStagesThruDomFrontier postorder : dst_sram_table_0
+DepStagesThruDomFrontier postorder : tbl_drop
+DepStagesThruDomFrontier postorder : cond-4
+DepStagesThruDomFrontier postorder : tbl_drop_0
+DepStagesThruDomFrontier postorder : cond-3
+DepStagesThruDomFrontier postorder : tbl_drop_1
+DepStagesThruDomFrontier postorder : ip_table_0
+    Maximum stage number according to dependences: 
+      INGRESS: 5
+      EGRESS: -1
+GRAPH
+    ip_table_0 -- CONTROL_TABLE_HIT --> src_tcam_table_0
+    ip_table_0 -- CONTROL_TABLE_HIT --> src_sram_table_0
+    ip_table_0 -- CONTROL_TABLE_HIT --> cond-3
+    src_tcam_table_0 -- CONTROL_TABLE_HIT --> tbl_act
+    src_sram_table_0 -- CONTROL_TABLE_HIT --> tbl_act_1
+    cond-3 -- CONTROL_COND_TRUE --> dst_tcam_table_0
+    cond-3 -- CONTROL_COND_TRUE --> dst_sram_table_0
+    cond-3 -- CONTROL_COND_TRUE --> cond-4
+    dst_tcam_table_0 -- CONTROL_TABLE_HIT --> tbl_act_3
+    dst_sram_table_0 -- CONTROL_TABLE_HIT --> tbl_act_5
+    cond-4 -- CONTROL_COND_TRUE --> tbl_drop
+    cond-3 -- CONTROL_COND_FALSE --> tbl_drop_0
+    ip_table_0 -- CONTROL_TABLE_MISS --> tbl_drop_1
+    ip_table_0 -- IXBAR_READ --> src_tcam_table_0
+    ip_table_0 -- IXBAR_READ --> src_sram_table_0
+    src_tcam_table_0 -- OUTPUT --> src_sram_table_0
+    tbl_act -- ACTION_READ --> cond-3
+    tbl_act_1 -- ACTION_READ --> cond-3
+    src_sram_table_0 -- IXBAR_READ --> dst_tcam_table_0
+    src_tcam_table_0 -- IXBAR_READ --> dst_tcam_table_0
+    ip_table_0 -- OUTPUT --> dst_tcam_table_0
+    src_sram_table_0 -- IXBAR_READ --> dst_sram_table_0
+    src_tcam_table_0 -- IXBAR_READ --> dst_sram_table_0
+    dst_tcam_table_0 -- OUTPUT --> dst_sram_table_0
+    ip_table_0 -- OUTPUT --> dst_sram_table_0
+    tbl_act_3 -- ACTION_READ --> cond-4
+    tbl_act_5 -- ACTION_READ --> cond-4
+    ip_table_0 -- OUTPUT --> tbl_drop
+    dst_tcam_table_0 -- OUTPUT --> tbl_drop
+    dst_sram_table_0 -- OUTPUT --> tbl_drop
+    ip_table_0 -- OUTPUT --> tbl_drop_0
+    ip_table_0 -- OUTPUT --> tbl_drop_1
+MIN STAGE INFO
+    Each table also indicates its dependency chain length
+    First number refers to a dependency chain from which each tables are not split
+    Second number refers to a dependency chain from which each tables are split as on  last allocation pass
+ Stage #0
+     ip_table_0 (SwitchIngress.ip_table) 5 5
+ Stage #1
+     src_tcam_table_0 (SwitchIngress.src_tcam_table) 4 4
+	- Edge IXBAR_READ ip_table_0 ( SwitchIngress.ip_table )
+     tbl_act (tbl_act) 3 3
+	- Edge CONTROL_TABLE_HIT src_tcam_table_0 ( SwitchIngress.src_tcam_table )
+     tbl_drop_1 (tbl_drop_1) 0 0
+	- Edge OUTPUT ip_table_0 ( SwitchIngress.ip_table )
+ Stage #2
+     src_sram_table_0 (SwitchIngress.src_sram_table) 3 3
+	- Edge OUTPUT src_tcam_table_0 ( SwitchIngress.src_tcam_table )
+     tbl_act_1 (tbl_act_1) 3 3
+	- Edge CONTROL_TABLE_HIT src_sram_table_0 ( SwitchIngress.src_sram_table )
+ Stage #3
+     cond-3 (cond-3) 2 2
+	- Edge ACTION_READ tbl_act_1 ( tbl_act_1 )
+     dst_tcam_table_0 (SwitchIngress.dst_tcam_table) 2 2
+	- Edge CONTROL_COND_TRUE cond-3 ( cond-3 )
+	- Edge IXBAR_READ src_sram_table_0 ( SwitchIngress.src_sram_table )
+     tbl_act_3 (tbl_act_3) 1 1
+	- Edge CONTROL_TABLE_HIT dst_tcam_table_0 ( SwitchIngress.dst_tcam_table )
+     tbl_drop_0 (tbl_drop_0) 0 0
+	- Edge CONTROL_COND_FALSE cond-3 ( cond-3 )
+ Stage #4
+     dst_sram_table_0 (SwitchIngress.dst_sram_table) 1 1
+	- Edge OUTPUT dst_tcam_table_0 ( SwitchIngress.dst_tcam_table )
+     tbl_act_5 (tbl_act_5) 1 1
+	- Edge CONTROL_TABLE_HIT dst_sram_table_0 ( SwitchIngress.dst_sram_table )
+ Stage #5
+     cond-4 (cond-4) 0 0
+	- Edge ACTION_READ tbl_act_5 ( tbl_act_5 )
+     tbl_drop (tbl_drop) 0 0
+	- Edge CONTROL_COND_TRUE cond-4 ( cond-4 )
+	- Edge OUTPUT dst_sram_table_0 ( SwitchIngress.dst_sram_table )
+
+FindDependencyGraph : Before Table Placement
+ingress: [16]
+  ip_table_0{ T 88+1, 2 1K }
+    $hit: [17] 1 11
+      src_tcam_table_0{ T 25+1, 2 2K }
+        $hit: [18]
+          tbl_act
+        $miss: [19]
+      src_sram_table_0{ E 10+1, 2 4K }
+        $hit: [20]
+          tbl_act_1
+        $miss: [21]
+      cond-3(ingress::src_tcam_match_0 => $true, ingress::src_sram_match_0 => $true, 1 => $false)
+        $true: [22] 1 11
+          dst_tcam_table_0{ T 25+2, 2 2K }
+            $hit: [23]
+              tbl_act_3
+            $miss: [24]
+          dst_sram_table_0{ E 10+2, 2 4K }
+            $hit: [25]
+              tbl_act_5
+            $miss: [26]
+          cond-4(!ingress::dst_tcam_match_0 && !ingress::dst_sram_match_0; => $true, 1 => $false)
+            $true: [27]
+              tbl_drop
+            $false: [31]
+        $false: [28]
+          tbl_drop_0
+    $miss: [29]
+      tbl_drop_1
+egress: [30]
+
+DepStagesThruDomFrontier postorder : tbl_act
+DepStagesThruDomFrontier postorder : src_tcam_table_0
+DepStagesThruDomFrontier postorder : tbl_act_1
+DepStagesThruDomFrontier postorder : src_sram_table_0
+DepStagesThruDomFrontier postorder : tbl_act_3
+DepStagesThruDomFrontier postorder : dst_tcam_table_0
+DepStagesThruDomFrontier postorder : tbl_act_5
+DepStagesThruDomFrontier postorder : dst_sram_table_0
+DepStagesThruDomFrontier postorder : tbl_drop
+DepStagesThruDomFrontier postorder : cond-4
+DepStagesThruDomFrontier postorder : tbl_drop_0
+DepStagesThruDomFrontier postorder : cond-3
+DepStagesThruDomFrontier postorder : tbl_drop_1
+DepStagesThruDomFrontier postorder : ip_table_0
+    Maximum stage number according to dependences: 
+      INGRESS: 5
+      EGRESS: -1
+GRAPH
+    ip_table_0 -- CONTROL_TABLE_HIT --> src_tcam_table_0
+    ip_table_0 -- CONTROL_TABLE_HIT --> src_sram_table_0
+    ip_table_0 -- CONTROL_TABLE_HIT --> cond-3
+    src_tcam_table_0 -- CONTROL_TABLE_HIT --> tbl_act
+    src_sram_table_0 -- CONTROL_TABLE_HIT --> tbl_act_1
+    cond-3 -- CONTROL_COND_TRUE --> dst_tcam_table_0
+    cond-3 -- CONTROL_COND_TRUE --> dst_sram_table_0
+    cond-3 -- CONTROL_COND_TRUE --> cond-4
+    dst_tcam_table_0 -- CONTROL_TABLE_HIT --> tbl_act_3
+    dst_sram_table_0 -- CONTROL_TABLE_HIT --> tbl_act_5
+    cond-4 -- CONTROL_COND_TRUE --> tbl_drop
+    cond-3 -- CONTROL_COND_FALSE --> tbl_drop_0
+    ip_table_0 -- CONTROL_TABLE_MISS --> tbl_drop_1
+    ip_table_0 -- IXBAR_READ --> src_tcam_table_0
+    ip_table_0 -- IXBAR_READ --> src_sram_table_0
+    src_tcam_table_0 -- OUTPUT --> src_sram_table_0
+    tbl_act -- ACTION_READ --> cond-3
+    tbl_act_1 -- ACTION_READ --> cond-3
+    src_sram_table_0 -- IXBAR_READ --> dst_tcam_table_0
+    src_tcam_table_0 -- IXBAR_READ --> dst_tcam_table_0
+    ip_table_0 -- OUTPUT --> dst_tcam_table_0
+    src_sram_table_0 -- IXBAR_READ --> dst_sram_table_0
+    src_tcam_table_0 -- IXBAR_READ --> dst_sram_table_0
+    dst_tcam_table_0 -- OUTPUT --> dst_sram_table_0
+    ip_table_0 -- OUTPUT --> dst_sram_table_0
+    tbl_act_3 -- ACTION_READ --> cond-4
+    tbl_act_5 -- ACTION_READ --> cond-4
+    ip_table_0 -- OUTPUT --> tbl_drop
+    dst_tcam_table_0 -- OUTPUT --> tbl_drop
+    dst_sram_table_0 -- OUTPUT --> tbl_drop
+    ip_table_0 -- OUTPUT --> tbl_drop_0
+    ip_table_0 -- OUTPUT --> tbl_drop_1
+MIN STAGE INFO
+    Each table also indicates its dependency chain length
+    First number refers to a dependency chain from which each tables are not split
+    Second number refers to a dependency chain from which each tables are split as on  last allocation pass
+ Stage #0
+     ip_table_0 (SwitchIngress.ip_table) 5 5
+ Stage #1
+     src_tcam_table_0 (SwitchIngress.src_tcam_table) 4 4
+	- Edge IXBAR_READ ip_table_0 ( SwitchIngress.ip_table )
+     tbl_act (tbl_act) 3 3
+	- Edge CONTROL_TABLE_HIT src_tcam_table_0 ( SwitchIngress.src_tcam_table )
+     tbl_drop_1 (tbl_drop_1) 0 0
+	- Edge OUTPUT ip_table_0 ( SwitchIngress.ip_table )
+ Stage #2
+     src_sram_table_0 (SwitchIngress.src_sram_table) 3 3
+	- Edge OUTPUT src_tcam_table_0 ( SwitchIngress.src_tcam_table )
+     tbl_act_1 (tbl_act_1) 3 3
+	- Edge CONTROL_TABLE_HIT src_sram_table_0 ( SwitchIngress.src_sram_table )
+ Stage #3
+     cond-3 (cond-3) 2 2
+	- Edge ACTION_READ tbl_act_1 ( tbl_act_1 )
+     dst_tcam_table_0 (SwitchIngress.dst_tcam_table) 2 2
+	- Edge CONTROL_COND_TRUE cond-3 ( cond-3 )
+	- Edge IXBAR_READ src_sram_table_0 ( SwitchIngress.src_sram_table )
+     tbl_act_3 (tbl_act_3) 1 1
+	- Edge CONTROL_TABLE_HIT dst_tcam_table_0 ( SwitchIngress.dst_tcam_table )
+     tbl_drop_0 (tbl_drop_0) 0 0
+	- Edge CONTROL_COND_FALSE cond-3 ( cond-3 )
+ Stage #4
+     dst_sram_table_0 (SwitchIngress.dst_sram_table) 1 1
+	- Edge OUTPUT dst_tcam_table_0 ( SwitchIngress.dst_tcam_table )
+     tbl_act_5 (tbl_act_5) 1 1
+	- Edge CONTROL_TABLE_HIT dst_sram_table_0 ( SwitchIngress.dst_sram_table )
+ Stage #5
+     cond-4 (cond-4) 0 0
+	- Edge ACTION_READ tbl_act_5 ( tbl_act_5 )
+     tbl_drop (tbl_drop) 0 0
+	- Edge CONTROL_COND_TRUE cond-4 ( cond-4 )
+	- Edge OUTPUT dst_sram_table_0 ( SwitchIngress.dst_sram_table )
+
+FindDependencyGraph : After Table Placement
+ingress: [16]
+  0: ip_table_0{ T 88+10, 2 1K }
+    $hit: [17] 0 00
+      10: src_tcam_table_0{ T 25+10, 2 2K }
+        $hit: [18]
+          11: tbl_act
+        $miss: [19]
+      20: src_sram_table_0{ E 10+10, 2 [1x4 4K 4K 4K 4K] }
+        $hit: [20]
+          21: tbl_act_1
+        $miss: [21]
+      30: dst_tcam_table_0(ingress::src_tcam_match_0, ingress::src_sram_match_0, 1 => $false){ GT 25+11, 2 2K }
+        $false: [28]
+          32: tbl_drop_0
+        $hit: [23] 0 00
+          31: tbl_act_3
+          40: dst_sram_table_0{ E 10+11, 2 [1x4 4K 4K 4K 4K] }
+            $hit: [25]
+              41: tbl_act_5
+            $miss: [26]
+          50: tbl_drop(!ingress::dst_tcam_match_0 && !ingress::dst_sram_match_0;, 1 => $false)
+            $false: [31]
+        $miss: [24] 0
+          40: dst_sram_table_0{ E 10+11, 2 [1x4 4K 4K 4K 4K] }
+            $hit: [25]...
+            $miss: [26]...
+          50: tbl_drop(!ingress::dst_tcam_match_0 && !ingress::dst_sram_match_0;, 1 => $false)
+            $false: [31]...
+    $miss: [29]
+      12: tbl_drop_1
+egress: [30]
+
+DepStagesThruDomFrontier postorder : tbl_act
+DepStagesThruDomFrontier postorder : src_tcam_table_0
+DepStagesThruDomFrontier postorder : tbl_act_1
+DepStagesThruDomFrontier postorder : src_sram_table_0
+DepStagesThruDomFrontier postorder : tbl_drop_0
+DepStagesThruDomFrontier postorder : tbl_act_3
+DepStagesThruDomFrontier postorder : tbl_act_5
+DepStagesThruDomFrontier postorder : dst_sram_table_0
+DepStagesThruDomFrontier postorder : tbl_drop
+DepStagesThruDomFrontier postorder : dst_tcam_table_0
+DepStagesThruDomFrontier postorder : tbl_drop_1
+DepStagesThruDomFrontier postorder : ip_table_0
+    Maximum stage number according to dependences: 
+      INGRESS: 5
+      EGRESS: -1
+GRAPH
+    ip_table_0 -- CONTROL_TABLE_HIT --> src_tcam_table_0
+    ip_table_0 -- CONTROL_TABLE_HIT --> src_sram_table_0
+    ip_table_0 -- CONTROL_TABLE_HIT --> dst_tcam_table_0
+    src_tcam_table_0 -- CONTROL_TABLE_HIT --> tbl_act
+    src_sram_table_0 -- CONTROL_TABLE_HIT --> tbl_act_1
+    dst_tcam_table_0 -- CONTROL_COND_FALSE --> tbl_drop_0
+    dst_tcam_table_0 -- CONTROL_TABLE_HIT --> tbl_act_3
+    dst_tcam_table_0 -- CONTROL_TABLE_HIT --> dst_sram_table_0
+    dst_tcam_table_0 -- CONTROL_TABLE_HIT --> tbl_drop
+    dst_sram_table_0 -- CONTROL_TABLE_HIT --> tbl_act_5
+    dst_tcam_table_0 -- CONTROL_TABLE_MISS --> dst_sram_table_0
+    dst_tcam_table_0 -- CONTROL_TABLE_MISS --> tbl_drop
+    ip_table_0 -- CONTROL_TABLE_MISS --> tbl_drop_1
+    ip_table_0 -- IXBAR_READ --> src_tcam_table_0
+    ip_table_0 -- IXBAR_READ --> src_sram_table_0
+    src_tcam_table_0 -- OUTPUT --> src_sram_table_0
+    tbl_act -- ACTION_READ --> dst_tcam_table_0
+    tbl_act_1 -- ACTION_READ --> dst_tcam_table_0
+    src_sram_table_0 -- IXBAR_READ --> dst_tcam_table_0
+    src_tcam_table_0 -- IXBAR_READ --> dst_tcam_table_0
+    ip_table_0 -- OUTPUT --> dst_tcam_table_0
+    ip_table_0 -- OUTPUT --> tbl_drop_0
+    src_sram_table_0 -- IXBAR_READ --> dst_sram_table_0
+    src_tcam_table_0 -- IXBAR_READ --> dst_sram_table_0
+    dst_tcam_table_0 -- OUTPUT --> dst_sram_table_0
+    ip_table_0 -- OUTPUT --> dst_sram_table_0
+    tbl_act_3 -- ACTION_READ --> tbl_drop
+    tbl_act_5 -- ACTION_READ --> tbl_drop
+    ip_table_0 -- OUTPUT --> tbl_drop
+    dst_tcam_table_0 -- OUTPUT --> tbl_drop
+    dst_sram_table_0 -- OUTPUT --> tbl_drop
+    ip_table_0 -- OUTPUT --> tbl_drop_1
+MIN STAGE INFO
+    Each table also indicates its dependency chain length
+    First number refers to a dependency chain from which each tables are not split
+    Second number refers to a dependency chain from which each tables are split as on  last allocation pass
+ Stage #0
+     ip_table_0 (SwitchIngress.ip_table) 5 5
+ Stage #1
+     src_tcam_table_0 (SwitchIngress.src_tcam_table) 4 4
+	- Edge IXBAR_READ ip_table_0 ( SwitchIngress.ip_table )
+     tbl_act (tbl_act) 3 3
+	- Edge CONTROL_TABLE_HIT src_tcam_table_0 ( SwitchIngress.src_tcam_table )
+     tbl_drop_1 (tbl_drop_1) 0 0
+	- Edge OUTPUT ip_table_0 ( SwitchIngress.ip_table )
+ Stage #2
+     src_sram_table_0 (SwitchIngress.src_sram_table) 3 3
+	- Edge OUTPUT src_tcam_table_0 ( SwitchIngress.src_tcam_table )
+     tbl_act_1 (tbl_act_1) 3 3
+	- Edge CONTROL_TABLE_HIT src_sram_table_0 ( SwitchIngress.src_sram_table )
+ Stage #3
+     dst_tcam_table_0 (SwitchIngress.dst_tcam_table) 2 2
+	- Edge ACTION_READ tbl_act_1 ( tbl_act_1 )
+	- Edge IXBAR_READ src_sram_table_0 ( SwitchIngress.src_sram_table )
+     tbl_drop_0 (tbl_drop_0) 0 0
+	- Edge CONTROL_COND_FALSE dst_tcam_table_0 ( SwitchIngress.dst_tcam_table )
+     tbl_act_3 (tbl_act_3) 1 1
+	- Edge CONTROL_TABLE_HIT dst_tcam_table_0 ( SwitchIngress.dst_tcam_table )
+ Stage #4
+     dst_sram_table_0 (SwitchIngress.dst_sram_table) 1 1
+	- Edge OUTPUT dst_tcam_table_0 ( SwitchIngress.dst_tcam_table )
+     tbl_act_5 (tbl_act_5) 1 1
+	- Edge CONTROL_TABLE_HIT dst_sram_table_0 ( SwitchIngress.dst_sram_table )
+ Stage #5
+     tbl_drop (tbl_drop) 0 0
+	- Edge ACTION_READ tbl_act_5 ( tbl_act_5 )
+	- Edge OUTPUT dst_sram_table_0 ( SwitchIngress.dst_sram_table )
+
+FindDependencyGraph : After Table Placement
+ingress: [16]
+  0: ip_table_0{ T 88+10, 2 1K }
+    $hit: [17] 1 11
+      10: src_tcam_table_0{ T 25+10, 2 2K }
+        $hit: [18]
+          11: tbl_act
+        $miss: [19]
+      20: src_sram_table_0{ E 10+10, 2 [1x4 4K 4K 4K 4K] }
+        $hit: [20]
+          21: tbl_act_1
+        $miss: [21]
+      30: dst_tcam_table_0(ingress::src_tcam_match_0, ingress::src_sram_match_0, 1 => $false){ GT 25+11, 2 2K }
+        $false: [28]
+          32: tbl_drop_0
+        $hit: [23] 0 11
+          31: tbl_act_3
+          40: dst_sram_table_0{ E 10+11, 2 [1x4 4K 4K 4K 4K] }
+            $hit: [25]
+              41: tbl_act_5
+            $miss: [26]
+          50: tbl_drop(!ingress::dst_tcam_match_0 && !ingress::dst_sram_match_0;, 1 => $false)
+            $false: [31]
+        $miss: [24] 1
+          40: dst_sram_table_0{ E 10+11, 2 [1x4 4K 4K 4K 4K] }
+            $hit: [25]...
+            $miss: [26]...
+          50: tbl_drop(!ingress::dst_tcam_match_0 && !ingress::dst_sram_match_0;, 1 => $false)
+            $false: [31]...
+    $miss: [29]
+      12: tbl_drop_1
+egress: [30]
+
+DepStagesThruDomFrontier postorder : tbl_act
+DepStagesThruDomFrontier postorder : src_tcam_table_0
+DepStagesThruDomFrontier postorder : tbl_act_1
+DepStagesThruDomFrontier postorder : src_sram_table_0
+DepStagesThruDomFrontier postorder : tbl_drop_0
+DepStagesThruDomFrontier postorder : tbl_act_3
+DepStagesThruDomFrontier postorder : tbl_act_5
+DepStagesThruDomFrontier postorder : dst_sram_table_0
+DepStagesThruDomFrontier postorder : tbl_drop
+DepStagesThruDomFrontier postorder : dst_tcam_table_0
+DepStagesThruDomFrontier postorder : tbl_drop_1
+DepStagesThruDomFrontier postorder : ip_table_0
+    Maximum stage number according to dependences: 
+      INGRESS: 5
+      EGRESS: -1
+GRAPH
+    ip_table_0 -- CONTROL_TABLE_HIT --> src_tcam_table_0
+    ip_table_0 -- CONTROL_TABLE_HIT --> src_sram_table_0
+    ip_table_0 -- CONTROL_TABLE_HIT --> dst_tcam_table_0
+    src_tcam_table_0 -- CONTROL_TABLE_HIT --> tbl_act
+    src_sram_table_0 -- CONTROL_TABLE_HIT --> tbl_act_1
+    dst_tcam_table_0 -- CONTROL_COND_FALSE --> tbl_drop_0
+    dst_tcam_table_0 -- CONTROL_TABLE_HIT --> tbl_act_3
+    dst_tcam_table_0 -- CONTROL_TABLE_HIT --> dst_sram_table_0
+    dst_tcam_table_0 -- CONTROL_TABLE_HIT --> tbl_drop
+    dst_sram_table_0 -- CONTROL_TABLE_HIT --> tbl_act_5
+    dst_tcam_table_0 -- CONTROL_TABLE_MISS --> dst_sram_table_0
+    dst_tcam_table_0 -- CONTROL_TABLE_MISS --> tbl_drop
+    ip_table_0 -- CONTROL_TABLE_MISS --> tbl_drop_1
+    ip_table_0 -- IXBAR_READ --> src_tcam_table_0
+    ip_table_0 -- IXBAR_READ --> src_sram_table_0
+    src_tcam_table_0 -- OUTPUT --> src_sram_table_0
+    tbl_act -- ACTION_READ --> dst_tcam_table_0
+    tbl_act_1 -- ACTION_READ --> dst_tcam_table_0
+    src_sram_table_0 -- IXBAR_READ --> dst_tcam_table_0
+    src_tcam_table_0 -- IXBAR_READ --> dst_tcam_table_0
+    ip_table_0 -- OUTPUT --> dst_tcam_table_0
+    ip_table_0 -- OUTPUT --> tbl_drop_0
+    src_sram_table_0 -- IXBAR_READ --> dst_sram_table_0
+    src_tcam_table_0 -- IXBAR_READ --> dst_sram_table_0
+    dst_tcam_table_0 -- OUTPUT --> dst_sram_table_0
+    ip_table_0 -- OUTPUT --> dst_sram_table_0
+    tbl_act_3 -- ACTION_READ --> tbl_drop
+    tbl_act_5 -- ACTION_READ --> tbl_drop
+    ip_table_0 -- OUTPUT --> tbl_drop
+    dst_tcam_table_0 -- OUTPUT --> tbl_drop
+    dst_sram_table_0 -- OUTPUT --> tbl_drop
+    ip_table_0 -- OUTPUT --> tbl_drop_1
+MIN STAGE INFO
+    Each table also indicates its dependency chain length
+    First number refers to a dependency chain from which each tables are not split
+    Second number refers to a dependency chain from which each tables are split as on  last allocation pass
+ Stage #0
+     ip_table_0 (SwitchIngress.ip_table) 5 5
+ Stage #1
+     src_tcam_table_0 (SwitchIngress.src_tcam_table) 4 4
+	- Edge IXBAR_READ ip_table_0 ( SwitchIngress.ip_table )
+     tbl_act (tbl_act) 3 3
+	- Edge CONTROL_TABLE_HIT src_tcam_table_0 ( SwitchIngress.src_tcam_table )
+     tbl_drop_1 (tbl_drop_1) 0 0
+	- Edge OUTPUT ip_table_0 ( SwitchIngress.ip_table )
+ Stage #2
+     src_sram_table_0 (SwitchIngress.src_sram_table) 3 3
+	- Edge OUTPUT src_tcam_table_0 ( SwitchIngress.src_tcam_table )
+     tbl_act_1 (tbl_act_1) 3 3
+	- Edge CONTROL_TABLE_HIT src_sram_table_0 ( SwitchIngress.src_sram_table )
+ Stage #3
+     dst_tcam_table_0 (SwitchIngress.dst_tcam_table) 2 2
+	- Edge ACTION_READ tbl_act_1 ( tbl_act_1 )
+	- Edge IXBAR_READ src_sram_table_0 ( SwitchIngress.src_sram_table )
+     tbl_drop_0 (tbl_drop_0) 0 0
+	- Edge CONTROL_COND_FALSE dst_tcam_table_0 ( SwitchIngress.dst_tcam_table )
+     tbl_act_3 (tbl_act_3) 1 1
+	- Edge CONTROL_TABLE_HIT dst_tcam_table_0 ( SwitchIngress.dst_tcam_table )
+ Stage #4
+     dst_sram_table_0 (SwitchIngress.dst_sram_table) 1 1
+	- Edge OUTPUT dst_tcam_table_0 ( SwitchIngress.dst_tcam_table )
+     tbl_act_5 (tbl_act_5) 1 1
+	- Edge CONTROL_TABLE_HIT dst_sram_table_0 ( SwitchIngress.dst_sram_table )
+ Stage #5
+     tbl_drop (tbl_drop) 0 0
+	- Edge ACTION_READ tbl_act_5 ( tbl_act_5 )
+	- Edge OUTPUT dst_sram_table_0 ( SwitchIngress.dst_sram_table )
+
+FindDependencyGraph : Power Calculation
+ingress: [16]
+  0: ip_table_0{ T 88+10, 2 1K }
+    $hit: [17] 1 11
+      10: src_tcam_table_0{ T 25+10, 2 2K }
+        $hit: [18]
+          11: tbl_act
+        $miss: [19]
+      20: src_sram_table_0{ E 10+10, 2 [1x4 4K 4K 4K 4K] }
+        $hit: [20]
+          21: tbl_act_1
+        $miss: [21]
+      30: dst_tcam_table_0(ingress::src_tcam_match_0, ingress::src_sram_match_0, 1 => $false){ GT 25+11, 2 2K }
+        $false: [28]
+          32: tbl_drop_0
+        $hit: [23] 0 11
+          31: tbl_act_3
+          40: dst_sram_table_0{ E 10+11, 2 [1x4 4K 4K 4K 4K] }
+            $hit: [25]
+              41: tbl_act_5
+            $miss: [26]
+          50: tbl_drop(!ingress::dst_tcam_match_0 && !ingress::dst_sram_match_0;, 1 => $false)
+            $false: [31]
+        $miss: [24] 1
+          40: dst_sram_table_0{ E 10+11, 2 [1x4 4K 4K 4K 4K] }
+            $hit: [25]...
+            $miss: [26]...
+          50: tbl_drop(!ingress::dst_tcam_match_0 && !ingress::dst_sram_match_0;, 1 => $false)
+            $false: [31]...
+    $miss: [29]
+      12: tbl_drop_1
+egress: [30]
+
+DepStagesThruDomFrontier postorder : tbl_act
+DepStagesThruDomFrontier postorder : src_tcam_table_0
+DepStagesThruDomFrontier postorder : tbl_act_1
+DepStagesThruDomFrontier postorder : src_sram_table_0
+DepStagesThruDomFrontier postorder : tbl_drop_0
+DepStagesThruDomFrontier postorder : tbl_act_3
+DepStagesThruDomFrontier postorder : tbl_act_5
+DepStagesThruDomFrontier postorder : dst_sram_table_0
+DepStagesThruDomFrontier postorder : tbl_drop
+DepStagesThruDomFrontier postorder : dst_tcam_table_0
+DepStagesThruDomFrontier postorder : tbl_drop_1
+DepStagesThruDomFrontier postorder : ip_table_0
+    Maximum stage number according to dependences: 
+      INGRESS: 5
+      EGRESS: -1
+GRAPH
+    ip_table_0 -- CONTROL_TABLE_HIT --> src_tcam_table_0
+    ip_table_0 -- CONTROL_TABLE_HIT --> src_sram_table_0
+    ip_table_0 -- CONTROL_TABLE_HIT --> dst_tcam_table_0
+    src_tcam_table_0 -- CONTROL_TABLE_HIT --> tbl_act
+    src_sram_table_0 -- CONTROL_TABLE_HIT --> tbl_act_1
+    dst_tcam_table_0 -- CONTROL_COND_FALSE --> tbl_drop_0
+    dst_tcam_table_0 -- CONTROL_TABLE_HIT --> tbl_act_3
+    dst_tcam_table_0 -- CONTROL_TABLE_HIT --> dst_sram_table_0
+    dst_tcam_table_0 -- CONTROL_TABLE_HIT --> tbl_drop
+    dst_sram_table_0 -- CONTROL_TABLE_HIT --> tbl_act_5
+    dst_tcam_table_0 -- CONTROL_TABLE_MISS --> dst_sram_table_0
+    dst_tcam_table_0 -- CONTROL_TABLE_MISS --> tbl_drop
+    ip_table_0 -- CONTROL_TABLE_MISS --> tbl_drop_1
+    ip_table_0 -- IXBAR_READ --> src_tcam_table_0
+    ip_table_0 -- IXBAR_READ --> src_sram_table_0
+    src_tcam_table_0 -- OUTPUT --> src_sram_table_0
+    tbl_act -- ACTION_READ --> dst_tcam_table_0
+    tbl_act_1 -- ACTION_READ --> dst_tcam_table_0
+    src_sram_table_0 -- IXBAR_READ --> dst_tcam_table_0
+    src_tcam_table_0 -- IXBAR_READ --> dst_tcam_table_0
+    ip_table_0 -- OUTPUT --> dst_tcam_table_0
+    ip_table_0 -- OUTPUT --> tbl_drop_0
+    src_sram_table_0 -- IXBAR_READ --> dst_sram_table_0
+    src_tcam_table_0 -- IXBAR_READ --> dst_sram_table_0
+    dst_tcam_table_0 -- OUTPUT --> dst_sram_table_0
+    ip_table_0 -- OUTPUT --> dst_sram_table_0
+    tbl_act_3 -- ACTION_READ --> tbl_drop
+    tbl_act_5 -- ACTION_READ --> tbl_drop
+    ip_table_0 -- OUTPUT --> tbl_drop
+    dst_tcam_table_0 -- OUTPUT --> tbl_drop
+    dst_sram_table_0 -- OUTPUT --> tbl_drop
+    ip_table_0 -- OUTPUT --> tbl_drop_1
+MIN STAGE INFO
+    Each table also indicates its dependency chain length
+    First number refers to a dependency chain from which each tables are not split
+    Second number refers to a dependency chain from which each tables are split as on  last allocation pass
+ Stage #0
+     ip_table_0 (SwitchIngress.ip_table) 5 5
+ Stage #1
+     src_tcam_table_0 (SwitchIngress.src_tcam_table) 4 4
+	- Edge IXBAR_READ ip_table_0 ( SwitchIngress.ip_table )
+     tbl_act (tbl_act) 3 3
+	- Edge CONTROL_TABLE_HIT src_tcam_table_0 ( SwitchIngress.src_tcam_table )
+     tbl_drop_1 (tbl_drop_1) 0 0
+	- Edge OUTPUT ip_table_0 ( SwitchIngress.ip_table )
+ Stage #2
+     src_sram_table_0 (SwitchIngress.src_sram_table) 3 3
+	- Edge OUTPUT src_tcam_table_0 ( SwitchIngress.src_tcam_table )
+     tbl_act_1 (tbl_act_1) 3 3
+	- Edge CONTROL_TABLE_HIT src_sram_table_0 ( SwitchIngress.src_sram_table )
+ Stage #3
+     dst_tcam_table_0 (SwitchIngress.dst_tcam_table) 2 2
+	- Edge ACTION_READ tbl_act_1 ( tbl_act_1 )
+	- Edge IXBAR_READ src_sram_table_0 ( SwitchIngress.src_sram_table )
+     tbl_drop_0 (tbl_drop_0) 0 0
+	- Edge CONTROL_COND_FALSE dst_tcam_table_0 ( SwitchIngress.dst_tcam_table )
+     tbl_act_3 (tbl_act_3) 1 1
+	- Edge CONTROL_TABLE_HIT dst_tcam_table_0 ( SwitchIngress.dst_tcam_table )
+ Stage #4
+     dst_sram_table_0 (SwitchIngress.dst_sram_table) 1 1
+	- Edge OUTPUT dst_tcam_table_0 ( SwitchIngress.dst_tcam_table )
+     tbl_act_5 (tbl_act_5) 1 1
+	- Edge CONTROL_TABLE_HIT dst_sram_table_0 ( SwitchIngress.dst_sram_table )
+ Stage #5
+     tbl_drop (tbl_drop) 0 0
+	- Edge ACTION_READ tbl_act_5 ( tbl_act_5 )
+	- Edge OUTPUT dst_sram_table_0 ( SwitchIngress.dst_sram_table )
+

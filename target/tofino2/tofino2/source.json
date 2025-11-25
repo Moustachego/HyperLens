@@ -1,0 +1,1538 @@
+{
+    "schema_version": "1.0.0",
+    "symbols": [
+        {
+            "references": [
+                {
+                    "file": "tofino2.p4",
+                    "line": 425,
+                    "column": 8
+                }
+            ],
+            "symbol_name": "pipe",
+            "declaration": {
+                "file": "tofino2.p4",
+                "line": 423,
+                "column": 34
+            },
+            "symbol_type": "Declaration_Instance_Type_Specialized"
+        },
+        {
+            "references": [
+                {
+                    "file": "tofino2.p4",
+                    "line": 318,
+                    "column": 22
+                },
+                {
+                    "file": "tofino2.p4",
+                    "line": 321,
+                    "column": 41
+                }
+            ],
+            "symbol_name": "SwitchIngress.dst_sram_match",
+            "declaration": {
+                "file": "tofino2.p4",
+                "line": 318,
+                "column": 17
+            },
+            "symbol_type": "Declaration_Variable_Type_Boolean"
+        },
+        {
+            "references": [
+                {
+                    "file": "tofino2.p4",
+                    "line": 317,
+                    "column": 22
+                },
+                {
+                    "file": "tofino2.p4",
+                    "line": 321,
+                    "column": 22
+                }
+            ],
+            "symbol_name": "SwitchIngress.dst_tcam_match",
+            "declaration": {
+                "file": "tofino2.p4",
+                "line": 317,
+                "column": 17
+            },
+            "symbol_type": "Declaration_Variable_Type_Boolean"
+        },
+        {
+            "references": [
+                {
+                    "file": "tofino2.p4",
+                    "line": 310,
+                    "column": 18
+                },
+                {
+                    "file": "tofino2.p4",
+                    "line": 314,
+                    "column": 35
+                }
+            ],
+            "symbol_name": "SwitchIngress.src_sram_match",
+            "declaration": {
+                "file": "tofino2.p4",
+                "line": 310,
+                "column": 13
+            },
+            "symbol_type": "Declaration_Variable_Type_Boolean"
+        },
+        {
+            "references": [
+                {
+                    "file": "tofino2.p4",
+                    "line": 309,
+                    "column": 18
+                },
+                {
+                    "file": "tofino2.p4",
+                    "line": 314,
+                    "column": 17
+                }
+            ],
+            "symbol_name": "SwitchIngress.src_tcam_match",
+            "declaration": {
+                "file": "tofino2.p4",
+                "line": 309,
+                "column": 13
+            },
+            "symbol_type": "Declaration_Variable_Type_Boolean"
+        },
+        {
+            "references": [
+                {
+                    "file": "tofino2.p4",
+                    "line": 199,
+                    "column": 13
+                },
+                {
+                    "file": "tofino2.p4",
+                    "line": 299,
+                    "column": 9
+                }
+            ],
+            "symbol_name": "SwitchIngress.vrf",
+            "declaration": {
+                "file": "tofino2.p4",
+                "line": 178,
+                "column": 5
+            },
+            "symbol_type": "Declaration_Variable_Type_Bits"
+        },
+        {
+            "references": [
+                {
+                    "file": "tofino2.p4",
+                    "line": 206,
+                    "column": 13
+                },
+                {
+                    "file": "tofino2.p4",
+                    "line": 208,
+                    "column": 26
+                },
+                {
+                    "file": "tofino2.p4",
+                    "line": 269,
+                    "column": 13
+                },
+                {
+                    "file": "tofino2.p4",
+                    "line": 290,
+                    "column": 13
+                },
+                {
+                    "file": "tofino2.p4",
+                    "line": 322,
+                    "column": 21
+                },
+                {
+                    "file": "tofino2.p4",
+                    "line": 325,
+                    "column": 17
+                },
+                {
+                    "file": "tofino2.p4",
+                    "line": 328,
+                    "column": 13
+                }
+            ],
+            "symbol_name": "SwitchIngress.drop",
+            "declaration": {
+                "file": "tofino2.p4",
+                "line": 181,
+                "column": 12
+            },
+            "symbol_type": "P4Action"
+        },
+        {
+            "references": [
+                {
+                    "file": "tofino2.p4",
+                    "line": 227,
+                    "column": 13
+                },
+                {
+                    "file": "tofino2.p4",
+                    "line": 229,
+                    "column": 26
+                },
+                {
+                    "file": "tofino2.p4",
+                    "line": 248,
+                    "column": 13
+                },
+                {
+                    "file": "tofino2.p4",
+                    "line": 250,
+                    "column": 26
+                },
+                {
+                    "file": "tofino2.p4",
+                    "line": 270,
+                    "column": 13
+                },
+                {
+                    "file": "tofino2.p4",
+                    "line": 272,
+                    "column": 26
+                },
+                {
+                    "file": "tofino2.p4",
+                    "line": 291,
+                    "column": 13
+                },
+                {
+                    "file": "tofino2.p4",
+                    "line": 293,
+                    "column": 26
+                }
+            ],
+            "symbol_name": "SwitchIngress.nop",
+            "declaration": {
+                "file": "tofino2.p4",
+                "line": 189,
+                "column": 12
+            },
+            "symbol_type": "P4Action"
+        },
+        {
+            "references": [
+                {
+                    "file": "tofino2.p4",
+                    "line": 268,
+                    "column": 13
+                }
+            ],
+            "symbol_name": "SwitchIngress.set_action_from_tcam",
+            "declaration": {
+                "file": "tofino2.p4",
+                "line": 257,
+                "column": 12
+            },
+            "symbol_type": "P4Action"
+        },
+        {
+            "references": [
+                {
+                    "file": "tofino2.p4",
+                    "line": 289,
+                    "column": 13
+                }
+            ],
+            "symbol_name": "SwitchIngress.set_dst_bitmap",
+            "declaration": {
+                "file": "tofino2.p4",
+                "line": 277,
+                "column": 12
+            },
+            "symbol_type": "P4Action"
+        },
+        {
+            "references": [
+                {
+                    "file": "tofino2.p4",
+                    "line": 205,
+                    "column": 13
+                }
+            ],
+            "symbol_name": "SwitchIngress.set_gid1",
+            "declaration": {
+                "file": "tofino2.p4",
+                "line": 193,
+                "column": 12
+            },
+            "symbol_type": "P4Action"
+        },
+        {
+            "references": [
+                {
+                    "file": "tofino2.p4",
+                    "line": 226,
+                    "column": 13
+                }
+            ],
+            "symbol_name": "SwitchIngress.set_gid2_from_tcam",
+            "declaration": {
+                "file": "tofino2.p4",
+                "line": 215,
+                "column": 12
+            },
+            "symbol_type": "P4Action"
+        },
+        {
+            "references": [
+                {
+                    "file": "tofino2.p4",
+                    "line": 247,
+                    "column": 13
+                }
+            ],
+            "symbol_name": "SwitchIngress.set_src_bitmap",
+            "declaration": {
+                "file": "tofino2.p4",
+                "line": 234,
+                "column": 12
+            },
+            "symbol_type": "P4Action"
+        },
+        {
+            "references": [
+                {
+                    "file": "tofino2.p4",
+                    "line": 299,
+                    "column": 13
+                }
+            ],
+            "symbol_name": "tofino2l299",
+            "declaration": {
+                "file": "tofino2.p4",
+                "line": 299,
+                "column": 13
+            },
+            "symbol_type": "P4Action"
+        },
+        {
+            "references": [
+                {
+                    "file": "tofino2.p4",
+                    "line": 305,
+                    "column": 32,
+                    "end_line": 306
+                }
+            ],
+            "symbol_name": "tofino2l305",
+            "declaration": {
+                "file": "tofino2.p4",
+                "line": 305,
+                "column": 32,
+                "end_line": 306
+            },
+            "symbol_type": "P4Action"
+        },
+        {
+            "references": [
+                {
+                    "file": "tofino2.p4",
+                    "line": 318,
+                    "column": 39
+                }
+            ],
+            "symbol_name": "SwitchIngress.dst_sram_table",
+            "declaration": {
+                "file": "tofino2.p4",
+                "line": 283,
+                "column": 11
+            },
+            "symbol_type": "P4Table"
+        },
+        {
+            "references": [
+                {
+                    "file": "tofino2.p4",
+                    "line": 317,
+                    "column": 39
+                }
+            ],
+            "symbol_name": "SwitchIngress.dst_tcam_table",
+            "declaration": {
+                "file": "tofino2.p4",
+                "line": 262,
+                "column": 11
+            },
+            "symbol_type": "P4Table"
+        },
+        {
+            "references": [
+                {
+                    "file": "tofino2.p4",
+                    "line": 302,
+                    "column": 13
+                }
+            ],
+            "symbol_name": "SwitchIngress.ip_table",
+            "declaration": {
+                "file": "tofino2.p4",
+                "line": 197,
+                "column": 11
+            },
+            "symbol_type": "P4Table"
+        },
+        {
+            "references": [
+                {
+                    "file": "tofino2.p4",
+                    "line": 310,
+                    "column": 35
+                }
+            ],
+            "symbol_name": "SwitchIngress.src_sram_table",
+            "declaration": {
+                "file": "tofino2.p4",
+                "line": 241,
+                "column": 11
+            },
+            "symbol_type": "P4Table"
+        },
+        {
+            "references": [
+                {
+                    "file": "tofino2.p4",
+                    "line": 309,
+                    "column": 35
+                }
+            ],
+            "symbol_name": "SwitchIngress.src_tcam_table",
+            "declaration": {
+                "file": "tofino2.p4",
+                "line": 220,
+                "column": 11
+            },
+            "symbol_type": "P4Table"
+        },
+        {
+            "references": [],
+            "symbol_name": "tbl_drop",
+            "declaration": {
+                "file": "tofino2.p4",
+                "line": 322,
+                "column": 21
+            },
+            "symbol_type": "P4Table"
+        },
+        {
+            "references": [],
+            "symbol_name": "tbl_drop_0",
+            "declaration": {
+                "file": "tofino2.p4",
+                "line": 325,
+                "column": 17
+            },
+            "symbol_type": "P4Table"
+        },
+        {
+            "references": [],
+            "symbol_name": "tbl_drop_1",
+            "declaration": {
+                "file": "tofino2.p4",
+                "line": 328,
+                "column": 13
+            },
+            "symbol_type": "P4Table"
+        },
+        {
+            "references": [],
+            "symbol_name": "tbl_tofino2l299",
+            "declaration": {
+                "file": "tofino2.p4",
+                "line": 299,
+                "column": 13
+            },
+            "symbol_type": "P4Table"
+        },
+        {
+            "references": [],
+            "symbol_name": "tbl_tofino2l305",
+            "declaration": {
+                "file": "tofino2.p4",
+                "line": 305,
+                "column": 32,
+                "end_line": 306
+            },
+            "symbol_type": "P4Table"
+        },
+        {
+            "references": [
+                {
+                    "file": "tofino2.p4",
+                    "line": 410,
+                    "column": 18
+                }
+            ],
+            "symbol_name": "SwitchEgressDeparser.p.ethernet",
+            "declaration": {
+                "file": "tofino2.p4",
+                "line": 404,
+                "column": 23
+            },
+            "symbol_type": "Parameter_Type_Struct"
+        },
+        {
+            "references": [
+                {
+                    "file": "tofino2.p4",
+                    "line": 410,
+                    "column": 18
+                }
+            ],
+            "symbol_name": "SwitchEgressDeparser.p.ipv4",
+            "declaration": {
+                "file": "tofino2.p4",
+                "line": 404,
+                "column": 23
+            },
+            "symbol_type": "Parameter_Type_Struct"
+        },
+        {
+            "references": [
+                {
+                    "file": "tofino2.p4",
+                    "line": 410,
+                    "column": 18
+                }
+            ],
+            "symbol_name": "SwitchEgressDeparser.p.tcp",
+            "declaration": {
+                "file": "tofino2.p4",
+                "line": 404,
+                "column": 23
+            },
+            "symbol_type": "Parameter_Type_Struct"
+        },
+        {
+            "references": [
+                {
+                    "file": "tofino2.p4",
+                    "line": 410,
+                    "column": 18
+                }
+            ],
+            "symbol_name": "SwitchEgressDeparser.p.udp",
+            "declaration": {
+                "file": "tofino2.p4",
+                "line": 404,
+                "column": 23
+            },
+            "symbol_type": "Parameter_Type_Struct"
+        },
+        {
+            "references": [
+                {
+                    "file": "tofino2.p4",
+                    "line": 410,
+                    "column": 9
+                }
+            ],
+            "symbol_name": "SwitchEgressDeparser.pkt",
+            "declaration": {
+                "file": "tofino2.p4",
+                "line": 402,
+                "column": 20
+            },
+            "symbol_type": "Parameter_Type_Extern"
+        },
+        {
+            "references": [
+                {
+                    "file": "tofino2.p4",
+                    "line": 359,
+                    "column": 21
+                }
+            ],
+            "symbol_name": "SwitchEgressParser.eg_intr_md",
+            "declaration": {
+                "file": "tofino2.p4",
+                "line": 356,
+                "column": 41
+            },
+            "symbol_type": "Parameter_Type_Header"
+        },
+        {
+            "references": [
+                {
+                    "file": "tofino2.p4",
+                    "line": 364,
+                    "column": 21
+                }
+            ],
+            "symbol_name": "SwitchEgressParser.p.ethernet",
+            "declaration": {
+                "file": "tofino2.p4",
+                "line": 354,
+                "column": 21
+            },
+            "symbol_type": "Parameter_Type_Struct"
+        },
+        {
+            "references": [
+                {
+                    "file": "tofino2.p4",
+                    "line": 365,
+                    "column": 27
+                }
+            ],
+            "symbol_name": "SwitchEgressParser.p.ethernet.etherType",
+            "declaration": {
+                "file": "tofino2.p4",
+                "line": 354,
+                "column": 21
+            },
+            "symbol_type": "Parameter_Type_Struct"
+        },
+        {
+            "references": [
+                {
+                    "file": "tofino2.p4",
+                    "line": 372,
+                    "column": 21
+                }
+            ],
+            "symbol_name": "SwitchEgressParser.p.ipv4",
+            "declaration": {
+                "file": "tofino2.p4",
+                "line": 354,
+                "column": 21
+            },
+            "symbol_type": "Parameter_Type_Struct"
+        },
+        {
+            "references": [
+                {
+                    "file": "tofino2.p4",
+                    "line": 359,
+                    "column": 9
+                },
+                {
+                    "file": "tofino2.p4",
+                    "line": 364,
+                    "column": 9
+                },
+                {
+                    "file": "tofino2.p4",
+                    "line": 372,
+                    "column": 9
+                }
+            ],
+            "symbol_name": "SwitchEgressParser.pkt",
+            "declaration": {
+                "file": "tofino2.p4",
+                "line": 353,
+                "column": 19
+            },
+            "symbol_type": "Parameter_Type_Extern"
+        },
+        {
+            "references": [
+                {
+                    "file": "tofino2.p4",
+                    "line": 182,
+                    "column": 9
+                }
+            ],
+            "symbol_name": "SwitchIngress.ig_dprsr_md.drop_ctl",
+            "declaration": {
+                "file": "tofino2.p4",
+                "line": 175,
+                "column": 57
+            },
+            "symbol_type": "Parameter_Type_Struct"
+        },
+        {
+            "references": [
+                {
+                    "file": "tofino2.p4",
+                    "line": 194,
+                    "column": 9
+                },
+                {
+                    "file": "tofino2.p4",
+                    "line": 222,
+                    "column": 13
+                },
+                {
+                    "file": "tofino2.p4",
+                    "line": 243,
+                    "column": 13
+                }
+            ],
+            "symbol_name": "SwitchIngress.ig_md.Group_id",
+            "declaration": {
+                "file": "tofino2.p4",
+                "line": 172,
+                "column": 31
+            },
+            "symbol_type": "Parameter_Type_Struct"
+        },
+        {
+            "references": [
+                {
+                    "file": "tofino2.p4",
+                    "line": 216,
+                    "column": 9
+                },
+                {
+                    "file": "tofino2.p4",
+                    "line": 236,
+                    "column": 9
+                },
+                {
+                    "file": "tofino2.p4",
+                    "line": 264,
+                    "column": 13
+                },
+                {
+                    "file": "tofino2.p4",
+                    "line": 285,
+                    "column": 13
+                }
+            ],
+            "symbol_name": "SwitchIngress.ig_md.Group_id2",
+            "declaration": {
+                "file": "tofino2.p4",
+                "line": 172,
+                "column": 31
+            },
+            "symbol_type": "Parameter_Type_Struct"
+        },
+        {
+            "references": [
+                {
+                    "file": "tofino2.p4",
+                    "line": 278,
+                    "column": 9
+                }
+            ],
+            "symbol_name": "SwitchIngress.ig_md.dst_bitmap",
+            "declaration": {
+                "file": "tofino2.p4",
+                "line": 172,
+                "column": 31
+            },
+            "symbol_type": "Parameter_Type_Struct"
+        },
+        {
+            "references": [
+                {
+                    "file": "tofino2.p4",
+                    "line": 306,
+                    "column": 13
+                }
+            ],
+            "symbol_name": "SwitchIngress.ig_md.dst_quotient",
+            "declaration": {
+                "file": "tofino2.p4",
+                "line": 172,
+                "column": 31
+            },
+            "symbol_type": "Parameter_Type_Struct"
+        },
+        {
+            "references": [
+                {
+                    "file": "tofino2.p4",
+                    "line": 259,
+                    "column": 9
+                }
+            ],
+            "symbol_name": "SwitchIngress.ig_md.dst_tcam_hit",
+            "declaration": {
+                "file": "tofino2.p4",
+                "line": 172,
+                "column": 31
+            },
+            "symbol_type": "Parameter_Type_Struct"
+        },
+        {
+            "references": [
+                {
+                    "file": "tofino2.p4",
+                    "line": 235,
+                    "column": 9
+                }
+            ],
+            "symbol_name": "SwitchIngress.ig_md.src_bitmap",
+            "declaration": {
+                "file": "tofino2.p4",
+                "line": 172,
+                "column": 31
+            },
+            "symbol_type": "Parameter_Type_Struct"
+        },
+        {
+            "references": [
+                {
+                    "file": "tofino2.p4",
+                    "line": 305,
+                    "column": 13
+                }
+            ],
+            "symbol_name": "SwitchIngress.ig_md.src_quotient",
+            "declaration": {
+                "file": "tofino2.p4",
+                "line": 172,
+                "column": 31
+            },
+            "symbol_type": "Parameter_Type_Struct"
+        },
+        {
+            "references": [
+                {
+                    "file": "tofino2.p4",
+                    "line": 217,
+                    "column": 9
+                }
+            ],
+            "symbol_name": "SwitchIngress.ig_md.src_tcam_hit",
+            "declaration": {
+                "file": "tofino2.p4",
+                "line": 172,
+                "column": 31
+            },
+            "symbol_type": "Parameter_Type_Struct"
+        },
+        {
+            "references": [
+                {
+                    "file": "tofino2.p4",
+                    "line": 258,
+                    "column": 9
+                },
+                {
+                    "file": "tofino2.p4",
+                    "line": 279,
+                    "column": 9
+                }
+            ],
+            "symbol_name": "SwitchIngress.ig_tm_md.ucast_egress_port",
+            "declaration": {
+                "file": "tofino2.p4",
+                "line": 176,
+                "column": 51
+            },
+            "symbol_type": "Parameter_Type_Struct"
+        },
+        {
+            "references": [
+                {
+                    "file": "tofino2.p4",
+                    "line": 201,
+                    "column": 13
+                }
+            ],
+            "symbol_name": "SwitchIngress.p.ipv4.dst",
+            "declaration": {
+                "file": "tofino2.p4",
+                "line": 171,
+                "column": 23
+            },
+            "symbol_type": "Parameter_Type_Struct"
+        },
+        {
+            "references": [
+                {
+                    "file": "tofino2.p4",
+                    "line": 202,
+                    "column": 13
+                }
+            ],
+            "symbol_name": "SwitchIngress.p.ipv4.proto",
+            "declaration": {
+                "file": "tofino2.p4",
+                "line": 171,
+                "column": 23
+            },
+            "symbol_type": "Parameter_Type_Struct"
+        },
+        {
+            "references": [
+                {
+                    "file": "tofino2.p4",
+                    "line": 200,
+                    "column": 13
+                }
+            ],
+            "symbol_name": "SwitchIngress.p.ipv4.src",
+            "declaration": {
+                "file": "tofino2.p4",
+                "line": 171,
+                "column": 23
+            },
+            "symbol_type": "Parameter_Type_Struct"
+        },
+        {
+            "references": [
+                {
+                    "file": "tofino2.p4",
+                    "line": 265,
+                    "column": 13
+                },
+                {
+                    "file": "tofino2.p4",
+                    "line": 306,
+                    "column": 34
+                }
+            ],
+            "symbol_name": "SwitchIngress.p.udp.dport",
+            "declaration": {
+                "file": "tofino2.p4",
+                "line": 171,
+                "column": 23
+            },
+            "symbol_type": "Parameter_Type_Struct"
+        },
+        {
+            "references": [
+                {
+                    "file": "tofino2.p4",
+                    "line": 223,
+                    "column": 13
+                },
+                {
+                    "file": "tofino2.p4",
+                    "line": 305,
+                    "column": 34
+                }
+            ],
+            "symbol_name": "SwitchIngress.p.udp.sport",
+            "declaration": {
+                "file": "tofino2.p4",
+                "line": 171,
+                "column": 23
+            },
+            "symbol_type": "Parameter_Type_Struct"
+        },
+        {
+            "references": [
+                {
+                    "file": "tofino2.p4",
+                    "line": 258,
+                    "column": 38
+                }
+            ],
+            "symbol_name": "SwitchIngress.set_action_from_tcam.egress_port",
+            "declaration": {
+                "file": "tofino2.p4",
+                "line": 257,
+                "column": 40
+            },
+            "symbol_type": "Parameter_Type_Bits"
+        },
+        {
+            "references": [
+                {
+                    "file": "tofino2.p4",
+                    "line": 278,
+                    "column": 28
+                }
+            ],
+            "symbol_name": "SwitchIngress.set_dst_bitmap.bitmap",
+            "declaration": {
+                "file": "tofino2.p4",
+                "line": 277,
+                "column": 35
+            },
+            "symbol_type": "Parameter_Type_Bits"
+        },
+        {
+            "references": [
+                {
+                    "file": "tofino2.p4",
+                    "line": 279,
+                    "column": 38
+                }
+            ],
+            "symbol_name": "SwitchIngress.set_dst_bitmap.egress_port",
+            "declaration": {
+                "file": "tofino2.p4",
+                "line": 277,
+                "column": 50
+            },
+            "symbol_type": "Parameter_Type_Bits"
+        },
+        {
+            "references": [
+                {
+                    "file": "tofino2.p4",
+                    "line": 194,
+                    "column": 26
+                }
+            ],
+            "symbol_name": "SwitchIngress.set_gid1.gid1",
+            "declaration": {
+                "file": "tofino2.p4",
+                "line": 193,
+                "column": 28
+            },
+            "symbol_type": "Parameter_Type_Bits"
+        },
+        {
+            "references": [
+                {
+                    "file": "tofino2.p4",
+                    "line": 216,
+                    "column": 27
+                }
+            ],
+            "symbol_name": "SwitchIngress.set_gid2_from_tcam.gid2",
+            "declaration": {
+                "file": "tofino2.p4",
+                "line": 215,
+                "column": 38
+            },
+            "symbol_type": "Parameter_Type_Bits"
+        },
+        {
+            "references": [
+                {
+                    "file": "tofino2.p4",
+                    "line": 235,
+                    "column": 28
+                }
+            ],
+            "symbol_name": "SwitchIngress.set_src_bitmap.bitmap",
+            "declaration": {
+                "file": "tofino2.p4",
+                "line": 234,
+                "column": 35
+            },
+            "symbol_type": "Parameter_Type_Bits"
+        },
+        {
+            "references": [
+                {
+                    "file": "tofino2.p4",
+                    "line": 236,
+                    "column": 27
+                }
+            ],
+            "symbol_name": "SwitchIngress.set_src_bitmap.gid2",
+            "declaration": {
+                "file": "tofino2.p4",
+                "line": 234,
+                "column": 50
+            },
+            "symbol_type": "Parameter_Type_Bits"
+        },
+        {
+            "references": [],
+            "symbol_name": "SwitchIngressDeparser.ig_dprsr_md.mirror_type",
+            "declaration": {
+                "file": "tofino2.p4",
+                "line": 341,
+                "column": 54
+            },
+            "symbol_type": "Parameter_Type_Struct"
+        },
+        {
+            "references": [
+                {
+                    "file": "tofino2.p4",
+                    "line": 344,
+                    "column": 18
+                }
+            ],
+            "symbol_name": "SwitchIngressDeparser.p.ethernet",
+            "declaration": {
+                "file": "tofino2.p4",
+                "line": 339,
+                "column": 23
+            },
+            "symbol_type": "Parameter_Type_Struct"
+        },
+        {
+            "references": [
+                {
+                    "file": "tofino2.p4",
+                    "line": 344,
+                    "column": 18
+                }
+            ],
+            "symbol_name": "SwitchIngressDeparser.p.ipv4",
+            "declaration": {
+                "file": "tofino2.p4",
+                "line": 339,
+                "column": 23
+            },
+            "symbol_type": "Parameter_Type_Struct"
+        },
+        {
+            "references": [
+                {
+                    "file": "tofino2.p4",
+                    "line": 344,
+                    "column": 18
+                }
+            ],
+            "symbol_name": "SwitchIngressDeparser.p.tcp",
+            "declaration": {
+                "file": "tofino2.p4",
+                "line": 339,
+                "column": 23
+            },
+            "symbol_type": "Parameter_Type_Struct"
+        },
+        {
+            "references": [
+                {
+                    "file": "tofino2.p4",
+                    "line": 344,
+                    "column": 18
+                }
+            ],
+            "symbol_name": "SwitchIngressDeparser.p.udp",
+            "declaration": {
+                "file": "tofino2.p4",
+                "line": 339,
+                "column": 23
+            },
+            "symbol_type": "Parameter_Type_Struct"
+        },
+        {
+            "references": [
+                {
+                    "file": "tofino2.p4",
+                    "line": 344,
+                    "column": 9
+                }
+            ],
+            "symbol_name": "SwitchIngressDeparser.pkt",
+            "declaration": {
+                "file": "tofino2.p4",
+                "line": 338,
+                "column": 20
+            },
+            "symbol_type": "Parameter_Type_Extern"
+        },
+        {
+            "references": [
+                {
+                    "file": "tofino2.p4",
+                    "line": 111,
+                    "column": 21
+                }
+            ],
+            "symbol_name": "SwitchIngressParser.ig_intr_md",
+            "declaration": {
+                "file": "tofino2.p4",
+                "line": 108,
+                "column": 42
+            },
+            "symbol_type": "Parameter_Type_Header"
+        },
+        {
+            "references": [
+                {
+                    "file": "tofino2.p4",
+                    "line": 115,
+                    "column": 9
+                }
+            ],
+            "symbol_name": "SwitchIngressParser.ig_md.Group_id",
+            "declaration": {
+                "file": "tofino2.p4",
+                "line": 107,
+                "column": 29
+            },
+            "symbol_type": "Parameter_Type_Struct"
+        },
+        {
+            "references": [
+                {
+                    "file": "tofino2.p4",
+                    "line": 116,
+                    "column": 9
+                }
+            ],
+            "symbol_name": "SwitchIngressParser.ig_md.Group_id2",
+            "declaration": {
+                "file": "tofino2.p4",
+                "line": 107,
+                "column": 29
+            },
+            "symbol_type": "Parameter_Type_Struct"
+        },
+        {
+            "references": [
+                {
+                    "file": "tofino2.p4",
+                    "line": 122,
+                    "column": 9
+                }
+            ],
+            "symbol_name": "SwitchIngressParser.ig_md.dst_bitmap",
+            "declaration": {
+                "file": "tofino2.p4",
+                "line": 107,
+                "column": 29
+            },
+            "symbol_type": "Parameter_Type_Struct"
+        },
+        {
+            "references": [
+                {
+                    "file": "tofino2.p4",
+                    "line": 118,
+                    "column": 9
+                }
+            ],
+            "symbol_name": "SwitchIngressParser.ig_md.dst_quotient",
+            "declaration": {
+                "file": "tofino2.p4",
+                "line": 107,
+                "column": 29
+            },
+            "symbol_type": "Parameter_Type_Struct"
+        },
+        {
+            "references": [
+                {
+                    "file": "tofino2.p4",
+                    "line": 120,
+                    "column": 9
+                }
+            ],
+            "symbol_name": "SwitchIngressParser.ig_md.dst_remainder",
+            "declaration": {
+                "file": "tofino2.p4",
+                "line": 107,
+                "column": 29
+            },
+            "symbol_type": "Parameter_Type_Struct"
+        },
+        {
+            "references": [
+                {
+                    "file": "tofino2.p4",
+                    "line": 126,
+                    "column": 9
+                }
+            ],
+            "symbol_name": "SwitchIngressParser.ig_md.dst_sram_hit",
+            "declaration": {
+                "file": "tofino2.p4",
+                "line": 107,
+                "column": 29
+            },
+            "symbol_type": "Parameter_Type_Struct"
+        },
+        {
+            "references": [
+                {
+                    "file": "tofino2.p4",
+                    "line": 125,
+                    "column": 9
+                }
+            ],
+            "symbol_name": "SwitchIngressParser.ig_md.dst_tcam_hit",
+            "declaration": {
+                "file": "tofino2.p4",
+                "line": 107,
+                "column": 29
+            },
+            "symbol_type": "Parameter_Type_Struct"
+        },
+        {
+            "references": [
+                {
+                    "file": "tofino2.p4",
+                    "line": 121,
+                    "column": 9
+                }
+            ],
+            "symbol_name": "SwitchIngressParser.ig_md.src_bitmap",
+            "declaration": {
+                "file": "tofino2.p4",
+                "line": 107,
+                "column": 29
+            },
+            "symbol_type": "Parameter_Type_Struct"
+        },
+        {
+            "references": [
+                {
+                    "file": "tofino2.p4",
+                    "line": 117,
+                    "column": 9
+                }
+            ],
+            "symbol_name": "SwitchIngressParser.ig_md.src_quotient",
+            "declaration": {
+                "file": "tofino2.p4",
+                "line": 107,
+                "column": 29
+            },
+            "symbol_type": "Parameter_Type_Struct"
+        },
+        {
+            "references": [
+                {
+                    "file": "tofino2.p4",
+                    "line": 119,
+                    "column": 9
+                }
+            ],
+            "symbol_name": "SwitchIngressParser.ig_md.src_remainder",
+            "declaration": {
+                "file": "tofino2.p4",
+                "line": 107,
+                "column": 29
+            },
+            "symbol_type": "Parameter_Type_Struct"
+        },
+        {
+            "references": [
+                {
+                    "file": "tofino2.p4",
+                    "line": 124,
+                    "column": 9
+                }
+            ],
+            "symbol_name": "SwitchIngressParser.ig_md.src_sram_hit",
+            "declaration": {
+                "file": "tofino2.p4",
+                "line": 107,
+                "column": 29
+            },
+            "symbol_type": "Parameter_Type_Struct"
+        },
+        {
+            "references": [
+                {
+                    "file": "tofino2.p4",
+                    "line": 123,
+                    "column": 9
+                }
+            ],
+            "symbol_name": "SwitchIngressParser.ig_md.src_tcam_hit",
+            "declaration": {
+                "file": "tofino2.p4",
+                "line": 107,
+                "column": 29
+            },
+            "symbol_type": "Parameter_Type_Struct"
+        },
+        {
+            "references": [
+                {
+                    "file": "tofino2.p4",
+                    "line": 132,
+                    "column": 21
+                }
+            ],
+            "symbol_name": "SwitchIngressParser.p.ethernet",
+            "declaration": {
+                "file": "tofino2.p4",
+                "line": 106,
+                "column": 21
+            },
+            "symbol_type": "Parameter_Type_Struct"
+        },
+        {
+            "references": [
+                {
+                    "file": "tofino2.p4",
+                    "line": 134,
+                    "column": 27
+                }
+            ],
+            "symbol_name": "SwitchIngressParser.p.ethernet.etherType",
+            "declaration": {
+                "file": "tofino2.p4",
+                "line": 106,
+                "column": 21
+            },
+            "symbol_type": "Parameter_Type_Struct"
+        },
+        {
+            "references": [
+                {
+                    "file": "tofino2.p4",
+                    "line": 141,
+                    "column": 21
+                }
+            ],
+            "symbol_name": "SwitchIngressParser.p.ipv4",
+            "declaration": {
+                "file": "tofino2.p4",
+                "line": 106,
+                "column": 21
+            },
+            "symbol_type": "Parameter_Type_Struct"
+        },
+        {
+            "references": [
+                {
+                    "file": "tofino2.p4",
+                    "line": 143,
+                    "column": 21
+                }
+            ],
+            "symbol_name": "SwitchIngressParser.p.ipv4.proto",
+            "declaration": {
+                "file": "tofino2.p4",
+                "line": 106,
+                "column": 21
+            },
+            "symbol_type": "Parameter_Type_Struct"
+        },
+        {
+            "references": [
+                {
+                    "file": "tofino2.p4",
+                    "line": 158,
+                    "column": 21
+                }
+            ],
+            "symbol_name": "SwitchIngressParser.p.tcp",
+            "declaration": {
+                "file": "tofino2.p4",
+                "line": 106,
+                "column": 21
+            },
+            "symbol_type": "Parameter_Type_Struct"
+        },
+        {
+            "references": [
+                {
+                    "file": "tofino2.p4",
+                    "line": 159,
+                    "column": 27
+                }
+            ],
+            "symbol_name": "SwitchIngressParser.p.tcp.dport",
+            "declaration": {
+                "file": "tofino2.p4",
+                "line": 106,
+                "column": 21
+            },
+            "symbol_type": "Parameter_Type_Struct"
+        },
+        {
+            "references": [
+                {
+                    "file": "tofino2.p4",
+                    "line": 151,
+                    "column": 21
+                }
+            ],
+            "symbol_name": "SwitchIngressParser.p.udp",
+            "declaration": {
+                "file": "tofino2.p4",
+                "line": 106,
+                "column": 21
+            },
+            "symbol_type": "Parameter_Type_Struct"
+        },
+        {
+            "references": [
+                {
+                    "file": "tofino2.p4",
+                    "line": 152,
+                    "column": 21
+                }
+            ],
+            "symbol_name": "SwitchIngressParser.p.udp.dport",
+            "declaration": {
+                "file": "tofino2.p4",
+                "line": 106,
+                "column": 21
+            },
+            "symbol_type": "Parameter_Type_Struct"
+        },
+        {
+            "references": [
+                {
+                    "file": "tofino2.p4",
+                    "line": 111,
+                    "column": 9
+                },
+                {
+                    "file": "tofino2.p4",
+                    "line": 112,
+                    "column": 9
+                },
+                {
+                    "file": "tofino2.p4",
+                    "line": 132,
+                    "column": 9
+                },
+                {
+                    "file": "tofino2.p4",
+                    "line": 141,
+                    "column": 9
+                },
+                {
+                    "file": "tofino2.p4",
+                    "line": 151,
+                    "column": 9
+                },
+                {
+                    "file": "tofino2.p4",
+                    "line": 158,
+                    "column": 9
+                }
+            ],
+            "symbol_name": "SwitchIngressParser.pkt",
+            "declaration": {
+                "file": "tofino2.p4",
+                "line": 105,
+                "column": 19
+            },
+            "symbol_type": "Parameter_Type_Extern"
+        },
+        {
+            "references": [],
+            "symbol_name": "cond-1",
+            "declaration": {
+                "file": "tofino2.p4",
+                "line": 314,
+                "column": 13
+            },
+            "symbol_type": "IfStatement"
+        },
+        {
+            "references": [],
+            "symbol_name": "cond-2",
+            "declaration": {
+                "file": "tofino2.p4",
+                "line": 321,
+                "column": 17
+            },
+            "symbol_type": "IfStatement"
+        },
+        {
+            "references": [],
+            "symbol_name": "cond-3",
+            "declaration": {
+                "file": "tofino2.p4",
+                "line": 314,
+                "column": 13
+            },
+            "symbol_type": "IfStatement"
+        },
+        {
+            "references": [],
+            "symbol_name": "cond-4",
+            "declaration": {
+                "file": "tofino2.p4",
+                "line": 321,
+                "column": 17
+            },
+            "symbol_type": "IfStatement"
+        }
+    ],
+    "source_root": "/home/long/Desktop/P4lens/P4"
+}

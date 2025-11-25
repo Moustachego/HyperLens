@@ -1,0 +1,187 @@
+{
+  "schema_version": "3.0.1",
+  "target": "tofino2",
+  "build_date": "Tue Nov 25 11:18:28 2025",
+  "compiler_version": "9.13.1 (e558d01)",
+  "compilation_succeeded": true,
+  "compilation_time": "5.801676273345947",
+  "run_id": "ebb2921b54f74acd",
+  "target_data": {
+    "architecture": "t2na",
+    "architectureConfig": {
+      "name": "64q",
+      "pipes": [
+        {
+          "pipe": 0,
+          "ingress": {
+            "pipeName": "SwitchIngress",
+            "nextControl": [
+              {
+                "pipe": 0,
+                "pipeName": "SwitchEgress"
+              }
+            ]
+          },
+          "egress": {
+            "pipeName": "SwitchEgress",
+            "nextControl": []
+          }
+        }
+      ]
+    },
+    "conf_file": "tofino2.conf"
+  },
+  "programs": [
+    {
+      "program_name": "tofino2.p4",
+      "p4_version": "p4-16",
+      "event_log_file": "events.json",
+      "frontend_ir_log_file": "frontend-ir.json",
+      "source_files": {
+        "src_root": "/home/long/Desktop/P4lens/P4",
+        "src_map": "source.json",
+        "includes": [],
+        "defines": []
+      },
+      "pipes": [
+        {
+          "pipe_id": 0,
+          "pipe_name": "pipe",
+          "files": {
+            "context": {
+              "path": "pipe/context.json"
+            },
+            "resources": [
+              {
+                "path": "pipe/logs/resources.json",
+                "type": "resources"
+              }
+            ],
+            "graphs": [
+              {
+                "path": "pipe/graphs/SwitchEgress.dot",
+                "gress": "egress",
+                "graph_type": "control",
+                "graph_format": ".dot"
+              },
+              {
+                "path": "pipe/graphs/program_graph.dot",
+                "gress": "ingress",
+                "graph_type": "table",
+                "graph_format": ".dot"
+              },
+              {
+                "path": "pipe/graphs/SwitchEgressParser.dot",
+                "gress": "egress",
+                "graph_type": "parser",
+                "graph_format": ".dot"
+              },
+              {
+                "path": "pipe/graphs/SwitchIngress.dot",
+                "gress": "ingress",
+                "graph_type": "control",
+                "graph_format": ".dot"
+              },
+              {
+                "path": "pipe/graphs/SwitchIngressParser.dot",
+                "gress": "ingress",
+                "graph_type": "parser",
+                "graph_format": ".dot"
+              },
+              {
+                "path": "pipe/graphs/table_dep_graph_placement_0.dot",
+                "gress": "ingress",
+                "graph_type": "table",
+                "graph_format": ".dot"
+              },
+              {
+                "path": "pipe/graphs/power_graph.dot",
+                "gress": "ingress",
+                "graph_type": "table",
+                "graph_format": ".dot"
+              },
+              {
+                "path": "pipe/graphs/dep.json",
+                "gress": "ingress",
+                "graph_type": "table",
+                "graph_format": ".json"
+              },
+              {
+                "path": "pipe/graphs/placement_graph.dot",
+                "gress": "ingress",
+                "graph_type": "table",
+                "graph_format": ".dot"
+              }
+            ],
+            "logs": [
+              {
+                "path": "pipe/logs/clot_allocation.log",
+                "log_type": "parser"
+              },
+              {
+                "path": "pipe/logs/flexible_packing.log",
+                "log_type": "parser"
+              },
+              {
+                "path": "pipe/logs/parser.characterize.log",
+                "log_type": "parser"
+              },
+              {
+                "path": "pipe/logs/parser.log",
+                "log_type": "parser"
+              },
+              {
+                "path": "pipe/logs/phv.json",
+                "log_type": "phv"
+              },
+              {
+                "path": "pipe/logs/phv_allocation_0.log",
+                "log_type": "phv"
+              },
+              {
+                "path": "pipe/logs/phv_allocation_history_0.log",
+                "log_type": "phv"
+              },
+              {
+                "path": "pipe/logs/phv_allocation_summary_0.log",
+                "log_type": "phv"
+              },
+              {
+                "path": "pipe/logs/power.json",
+                "log_type": "power"
+              },
+              {
+                "path": "pipe/logs/pragmas.log",
+                "log_type": "phv"
+              },
+              {
+                "path": "pipe/logs/table_dependency_graph.log",
+                "log_type": "mau"
+              },
+              {
+                "path": "pipe/logs/table_dependency_summary.log",
+                "log_type": "mau"
+              },
+              {
+                "path": "pipe/logs/table_placement_1.log",
+                "log_type": "mau"
+              },
+              {
+                "path": "pipe/logs/table_summary.log",
+                "log_type": "mau"
+              },
+              {
+                "path": "pipe/logs/mau.json",
+                "log_type": "mau"
+              }
+            ],
+            "metrics": {
+              "path": "pipe/logs/metrics.json"
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "compile_command": "/home/long/bf-sde-9.13.1/install/bin/bf-p4c --std p4-16 --target tofino2 --arch t2na --bf-rt-schema tofino2/tofino2/bf-rt.json -o /home/long/Desktop/P4lens/target/tofino2/tofino2 -g /home/long/Desktop/P4lens/P4/tofino2.p4"
+}

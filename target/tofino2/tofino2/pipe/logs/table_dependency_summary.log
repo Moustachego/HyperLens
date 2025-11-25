@@ -1,0 +1,31 @@
+#pipeline pipe
+#stage 0
+^ --- -- --- -- - ip_table_0(0,14) : ingress
+#stage 1
+A ^-- -- --- -- - src_tcam_table_0(1,15) : ingress
+- B^- -- --- -- - tbl_act(1,16) : ingress
+C --^ -- --- -- - tbl_drop_1(1,19) : ingress
+#stage 2
+A D-- ^- --- -- - src_sram_table_0(2,16) : ingress
+- --- B^ --- -- - tbl_act_1(2,16) : ingress
+#stage 3
+E FG- FG ^-- -- - dst_tcam_table_0(3,17) : ingress
+- --- -- B^- -- - tbl_act_3(3,18) : ingress
+D --- -- H-^ -- - tbl_drop_0(3,19) : ingress
+#stage 4
+D F-- F- I-- ^- - dst_sram_table_0(4,18) : ingress
+- --- -- --- B^ - tbl_act_5(4,18) : ingress
+#stage 5
+D --- -- IG- DG ^ tbl_drop(5,19) : ingress
+#dependencies
+A :  CONTROL_TABLE_HIT IXBAR_READ
+B :  CONTROL_TABLE_HIT
+C :  CONTROL_TABLE_MISS OUTPUT
+D :  OUTPUT
+E :  CONTROL_TABLE_HIT OUTPUT
+F :  IXBAR_READ
+G :  ACTION_READ
+H :  CONTROL_COND_FALSE
+I :  CONTROL_TABLE_HIT CONTROL_TABLE_MISS OUTPUT
+
+*** Table dependency chains (of minimum length 14) ***

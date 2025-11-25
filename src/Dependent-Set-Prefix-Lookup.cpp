@@ -1138,10 +1138,14 @@ void write_final_table_in_cidr(
         auto dst_list = range_to_cidrs(r.dst_lo, r.dst_hi);
         total_expanded_entries += src_list.size() * dst_list.size();
     }
-
-    fout << "Final IP Table (CIDR expanded for P4) - " << total_expanded_entries 
-         << " entries (from " << final_ip_table.size() << " rules)\n";
-    fout << "Format: PROTO=X SRC{cidr} DST{cidr} GIDs{...} [Original_Rule]\n\n";
+    
+    // 写入列标题（对齐格式）
+    fout << std::left
+         << std::setw(10) << "Priority"
+         << std::setw(20) << "ipv4.src"
+         << std::setw(20) << "ipv4.dst"
+         << std::setw(12) << "protocol"
+         << "GIDs\n";
 
     size_t entry_count = 0;
     
@@ -1155,19 +1159,18 @@ void write_final_table_in_cidr(
         // 笛卡尔积：每个SRC CIDR × 每个DST CIDR = 一条独立表项
         for (const auto& src_cidr : src_list) {
             for (const auto& dst_cidr : dst_list) {
-                // 使用新的顺序编号，放在行首，去掉原始[R...]标记
-                fout << "R[" << entry_count << "] ";
-                fout << "PROTO=" << int(r.proto) 
-                     << " SRC{" << src_cidr << "}"
-                     << " DST{" << dst_cidr << "}";
+                // 格式化输出：Priority, ipv4.src, ipv4.dst, protocol, GIDs
+                fout << std::left
+                     << std::setw(10) << entry_count
+                     << std::setw(20) << src_cidr
+                     << std::setw(20) << dst_cidr
+                     << std::setw(12) << static_cast<int>(r.proto);
 
-                // GIDs保持不变
-                fout << " GIDs{";
+                // 输出 GIDs（不带花括号，用逗号分隔）
                 for (size_t k = 0; k < r.group_ids.size(); ++k) {
                     fout << r.group_ids[k];
                     if (k + 1 < r.group_ids.size()) fout << ", ";
                 }
-                fout << "}";
 
                 fout << "\n";
 
@@ -1179,19 +1182,6 @@ void write_final_table_in_cidr(
     fout.close();
     
     cout << "CIDR-expanded table written to " << filename << endl;
-    
-    // 统计展开倍数最大的规则
-    size_t max_expansion = 0;
-    size_t max_expansion_rule = 0;
-    for (size_t i = 0; i < final_ip_table.size(); ++i) {
-        auto src_cnt = range_to_cidrs(final_ip_table[i].src_lo, final_ip_table[i].src_hi).size();
-        auto dst_cnt = range_to_cidrs(final_ip_table[i].dst_lo, final_ip_table[i].dst_hi).size();
-        size_t expansion = src_cnt * dst_cnt;
-        if (expansion > max_expansion) {
-            max_expansion = expansion;
-            max_expansion_rule = i;
-        }
-    }
     
 }
 
@@ -1331,7 +1321,7 @@ void Generate_MergedR_GID_to_metaifno(
 
             auto& vec = meta_src[it->second].group_ids;
 
-            if (vec.empty() || vec.back() != gid)
+            if (vec.empty() || vec.back() != static_cast<int>(gid))
                 vec.push_back(gid);
         }
     }
