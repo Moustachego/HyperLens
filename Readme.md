@@ -1,4 +1,4 @@
-# HyperLnes — Scalable High-Speed Packet Classification on Programmable Switches
+# HyperLens — Scalable High-Speed Packet Classification on Programmable Switches
 
 **Author:** weijzh (weijzh@pcl.ac.cn)  
 **Version:** 1.0  
@@ -6,11 +6,11 @@
 
 ## Overview
 
-P4Lens is a high-performance packet classification toolchain that optimizes ACL-style five-tuple rules for programmable switches. It implements a three-stage dependent lookup architecture that drastically reduces memory usage while maintaining wire-speed classification performance.
+HyperLens is a high-performance packet classification toolchain that optimizes ACL-style five-tuple rules for programmable switches. It implements a three-stage dependent lookup architecture that drastically reduces memory usage while maintaining wire-speed classification performance.
 
 ### Key Innovation: Dependent Set-Prefix Lookup
 
-Unlike traditional independent multi-dimensional lookup approaches, P4Lens uses a novel **dependent lookup strategy**:
+Unlike traditional independent multi-dimensional lookup approaches, HyperLens uses a novel **dependent lookup strategy**:
 
 1. **Stage 1 (IP + Protocol):** Match packet's `{src_ip, dst_ip, protocol}` → assign **Group ID 1 (GID1)**
 2. **Stage 2 (SRC Port):** Use GID1 + `src_port` → assign **Group ID 2 (GID2)**
@@ -65,7 +65,7 @@ Example:
 
 ### Output Files
 
-After processing, P4Lens generates:
+After processing, HyperLens generates:
 
 | File | Description |
 |------|-------------|
@@ -115,7 +115,7 @@ After processing, P4Lens generates:
 
 Tested with ClassBench ACL rulesets (100K rules with 70% overlap):
 
-| Metric | Traditional (Independent) | P4Lens (Dependent) | Improvement |
+| Metric | Traditional (Independent) | HyperLens (Dependent) | Improvement |
 |--------|---------------------------|-------------------|-------------|
 | IP Table Entries | 505,186 | 1,412 | **357× reduction** |
 | Total TCAM Usage | ~2M entries | ~5K entries | **400× reduction** |
@@ -124,7 +124,7 @@ Tested with ClassBench ACL rulesets (100K rules with 70% overlap):
 
 ## Integration with P4
 
-P4Lens outputs are designed for direct integration with P4 programs:
+HyperLens outputs are designed for direct integration with P4 programs:
 
 ```p4
 // Stage 1: IP + Protocol → GID1
@@ -177,11 +177,11 @@ A: See `.github/copilot-instructions.md` for SDE setup and control plane integra
 
 ## License & Citation
 
-If you use P4Lens in academic work, please cite our paper:
+If you use HyperLens in academic work, please cite our paper:
 
 ```bibtex
-@inproceedings{HyperLnes2025,
-  title={HyperLnes: Scalable High-Speed Packet Classification on Programmable Switches},
+@inproceedings{HyperLens2025,
+  title={HyperLens: Scalable High-Speed Packet Classification on Programmable Switches},
   author={Wei, Jiazhen and others},
   booktitle={Proceedings of [Conference Name]},
   year={2025}
