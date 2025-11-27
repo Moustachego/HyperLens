@@ -1,4 +1,4 @@
-# HyperLes — Scalable High-Speed Packet Classification on Programmable Switches
+# HyperLnes — Scalable High-Speed Packet Classification on Programmable Switches
 
 **Author:** weijzh (weijzh@pcl.ac.cn)  
 **Version:** 1.0  
@@ -180,8 +180,8 @@ A: See `.github/copilot-instructions.md` for SDE setup and control plane integra
 If you use P4Lens in academic work, please cite our paper:
 
 ```bibtex
-@inproceedings{p4lens2025,
-  title={P4Lens: Scalable High-Speed Packet Classification on Programmable Switches},
+@inproceedings{HyperLnes2025,
+  title={HyperLnes: Scalable High-Speed Packet Classification on Programmable Switches},
   author={Wei, Jiazhen and others},
   booktitle={Proceedings of [Conference Name]},
   year={2025}
