@@ -1,5 +1,5 @@
 {
-    "build_date": "Tue Nov 25 11:18:28 2025",
+    "build_date": "Tue Nov 25 16:43:23 2025",
     "compiler_version": "9.13.1",
     "constraint_reasons": [
         "Solitary (ALU): This field cannot be packed with anything else due to ALU operation.",
@@ -95,7 +95,25 @@
                         {
                             "location": {
                                 "detail": "vliw",
-                                "stage": 3,
+                                "stage": 1,
+                                "type": "mau",
+                                "action": "SwitchIngress.drop",
+                                "table": "SwitchIngress.src_tcam_table"
+                            }
+                        },
+                        {
+                            "location": {
+                                "detail": "vliw",
+                                "stage": 2,
+                                "type": "mau",
+                                "action": "SwitchIngress.drop",
+                                "table": "SwitchIngress.src_sram_table"
+                            }
+                        },
+                        {
+                            "location": {
+                                "detail": "vliw",
+                                "stage": 7,
                                 "type": "mau",
                                 "action": "SwitchIngress.drop",
                                 "table": "SwitchIngress.dst_tcam_table"
@@ -104,7 +122,7 @@
                         {
                             "location": {
                                 "detail": "vliw",
-                                "stage": 4,
+                                "stage": 8,
                                 "type": "mau",
                                 "action": "SwitchIngress.drop",
                                 "table": "SwitchIngress.dst_sram_table"
@@ -113,7 +131,7 @@
                         {
                             "location": {
                                 "detail": "vliw",
-                                "stage": 5,
+                                "stage": 9,
                                 "type": "mau",
                                 "action": "SwitchIngress.drop",
                                 "table": "tbl_drop"
@@ -122,7 +140,7 @@
                         {
                             "location": {
                                 "detail": "vliw",
-                                "stage": 3,
+                                "stage": 7,
                                 "type": "mau",
                                 "action": "SwitchIngress.drop",
                                 "table": "tbl_drop_0"
@@ -157,7 +175,7 @@
                         {
                             "location": {
                                 "detail": "vliw",
-                                "stage": 1,
+                                "stage": 3,
                                 "type": "mau",
                                 "action": "act",
                                 "table": "tbl_act"
@@ -190,7 +208,7 @@
                         {
                             "location": {
                                 "detail": "vliw",
-                                "stage": 3,
+                                "stage": 7,
                                 "type": "mau",
                                 "action": "SwitchIngress.set_action_from_tcam",
                                 "table": "SwitchIngress.dst_tcam_table"
@@ -199,7 +217,7 @@
                         {
                             "location": {
                                 "detail": "vliw",
-                                "stage": 4,
+                                "stage": 8,
                                 "type": "mau",
                                 "action": "SwitchIngress.set_dst_bitmap",
                                 "table": "SwitchIngress.dst_sram_table"
@@ -511,6 +529,14 @@
                                 "type": "mau",
                                 "table": "SwitchIngress.src_tcam_table"
                             }
+                        },
+                        {
+                            "location": {
+                                "detail": "xbar",
+                                "stage": 4,
+                                "type": "mau",
+                                "table": "SwitchIngress.src_tcam_table_secondary"
+                            }
                         }
                     ],
                     "slice_info": {
@@ -546,7 +572,7 @@
                         {
                             "location": {
                                 "detail": "xbar",
-                                "stage": 3,
+                                "stage": 7,
                                 "type": "mau",
                                 "table": "SwitchIngress.dst_tcam_table"
                             }
@@ -653,6 +679,102 @@
                             }
                         }
                     ]
+                },
+                {
+                    "field_slice": {
+                        "field_name": "ig_md.Group_id_secondary",
+                        "slice_info": {
+                            "lsb": 8,
+                            "msb": 8
+                        }
+                    },
+                    "phv_number": 174,
+                    "reads": [
+                        {
+                            "location": {
+                                "detail": "xbar",
+                                "stage": 4,
+                                "type": "mau",
+                                "table": "SwitchIngress.src_tcam_table_secondary"
+                            }
+                        },
+                        {
+                            "location": {
+                                "detail": "xbar",
+                                "stage": 5,
+                                "type": "mau",
+                                "table": "SwitchIngress.src_sram_table_secondary"
+                            }
+                        }
+                    ],
+                    "slice_info": {
+                        "lsb": 9,
+                        "msb": 9
+                    },
+                    "writes": [
+                        {
+                            "location": {
+                                "detail": "vliw",
+                                "stage": 0,
+                                "type": "mau",
+                                "action": "SwitchIngress.set_gid1",
+                                "table": "SwitchIngress.ip_table"
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "bit_width": 8,
+            "container_type": "mocha",
+            "gress": "ingress",
+            "phv_deparser_group_number": 32,
+            "phv_mau_group_number": 4,
+            "phv_number": 93,
+            "slices": [
+                {
+                    "field_slice": {
+                        "field_name": "ig_md.Group_id_secondary",
+                        "slice_info": {
+                            "lsb": 0,
+                            "msb": 7
+                        }
+                    },
+                    "phv_number": 93,
+                    "reads": [
+                        {
+                            "location": {
+                                "detail": "xbar",
+                                "stage": 4,
+                                "type": "mau",
+                                "table": "SwitchIngress.src_tcam_table_secondary"
+                            }
+                        },
+                        {
+                            "location": {
+                                "detail": "xbar",
+                                "stage": 5,
+                                "type": "mau",
+                                "table": "SwitchIngress.src_sram_table_secondary"
+                            }
+                        }
+                    ],
+                    "slice_info": {
+                        "lsb": 0,
+                        "msb": 7
+                    },
+                    "writes": [
+                        {
+                            "location": {
+                                "detail": "vliw",
+                                "stage": 0,
+                                "type": "mau",
+                                "action": "SwitchIngress.set_gid1",
+                                "table": "SwitchIngress.ip_table"
+                            }
+                        }
+                    ]
                 }
             ]
         },
@@ -677,7 +799,7 @@
                         {
                             "location": {
                                 "detail": "xbar",
-                                "stage": 3,
+                                "stage": 7,
                                 "type": "mau",
                                 "table": "SwitchIngress.dst_tcam_table"
                             }
@@ -685,7 +807,7 @@
                         {
                             "location": {
                                 "detail": "xbar",
-                                "stage": 4,
+                                "stage": 8,
                                 "type": "mau",
                                 "table": "SwitchIngress.dst_sram_table"
                             }
@@ -712,6 +834,24 @@
                                 "type": "mau",
                                 "action": "SwitchIngress.set_src_bitmap",
                                 "table": "SwitchIngress.src_sram_table"
+                            }
+                        },
+                        {
+                            "location": {
+                                "detail": "vliw",
+                                "stage": 4,
+                                "type": "mau",
+                                "action": "SwitchIngress.set_gid2_from_tcam_secondary",
+                                "table": "SwitchIngress.src_tcam_table_secondary"
+                            }
+                        },
+                        {
+                            "location": {
+                                "detail": "vliw",
+                                "stage": 5,
+                                "type": "mau",
+                                "action": "SwitchIngress.set_src_bitmap_secondary",
+                                "table": "SwitchIngress.src_sram_table_secondary"
                             }
                         }
                     ]
@@ -760,7 +900,25 @@
                         {
                             "location": {
                                 "detail": "vliw",
-                                "stage": 3,
+                                "stage": 1,
+                                "type": "mau",
+                                "action": "SwitchIngress.drop",
+                                "table": "SwitchIngress.src_tcam_table"
+                            }
+                        },
+                        {
+                            "location": {
+                                "detail": "vliw",
+                                "stage": 2,
+                                "type": "mau",
+                                "action": "SwitchIngress.drop",
+                                "table": "SwitchIngress.src_sram_table"
+                            }
+                        },
+                        {
+                            "location": {
+                                "detail": "vliw",
+                                "stage": 7,
                                 "type": "mau",
                                 "action": "SwitchIngress.drop",
                                 "table": "SwitchIngress.dst_tcam_table"
@@ -769,7 +927,7 @@
                         {
                             "location": {
                                 "detail": "vliw",
-                                "stage": 4,
+                                "stage": 8,
                                 "type": "mau",
                                 "action": "SwitchIngress.drop",
                                 "table": "SwitchIngress.dst_sram_table"
@@ -778,7 +936,7 @@
                         {
                             "location": {
                                 "detail": "vliw",
-                                "stage": 5,
+                                "stage": 9,
                                 "type": "mau",
                                 "action": "SwitchIngress.drop",
                                 "table": "tbl_drop"
@@ -787,7 +945,7 @@
                         {
                             "location": {
                                 "detail": "vliw",
-                                "stage": 3,
+                                "stage": 7,
                                 "type": "mau",
                                 "action": "SwitchIngress.drop",
                                 "table": "tbl_drop_0"
@@ -845,7 +1003,7 @@
             "gress": "ingress",
             "phv_deparser_group_number": 32,
             "phv_mau_group_number": 4,
-            "phv_number": 93,
+            "phv_number": 94,
             "slices": [
                 {
                     "field_slice": {
@@ -855,7 +1013,7 @@
                             "msb": 0
                         }
                     },
-                    "phv_number": 93,
+                    "phv_number": 94,
                     "reads": [],
                     "slice_info": {
                         "lsb": 0,
@@ -869,6 +1027,114 @@
                                 "type": "mau",
                                 "action": "act_1",
                                 "table": "tbl_act_1"
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "bit_width": 8,
+            "container_type": "mocha",
+            "gress": "ingress",
+            "phv_deparser_group_number": 32,
+            "phv_mau_group_number": 4,
+            "phv_number": 95,
+            "slices": [
+                {
+                    "field_slice": {
+                        "field_name": "src_tcam_match_sec_0",
+                        "slice_info": {
+                            "lsb": 0,
+                            "msb": 0
+                        }
+                    },
+                    "phv_number": 95,
+                    "reads": [],
+                    "slice_info": {
+                        "lsb": 0,
+                        "msb": 0
+                    },
+                    "writes": [
+                        {
+                            "location": {
+                                "detail": "vliw",
+                                "stage": 4,
+                                "type": "mau",
+                                "action": "act_3",
+                                "table": "tbl_act_3"
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "bit_width": 8,
+            "container_type": "mocha",
+            "gress": "ingress",
+            "phv_deparser_group_number": 34,
+            "phv_mau_group_number": 6,
+            "phv_number": 132,
+            "slices": [
+                {
+                    "field_slice": {
+                        "field_name": "src_sram_match_sec_0",
+                        "slice_info": {
+                            "lsb": 0,
+                            "msb": 0
+                        }
+                    },
+                    "phv_number": 132,
+                    "reads": [],
+                    "slice_info": {
+                        "lsb": 0,
+                        "msb": 0
+                    },
+                    "writes": [
+                        {
+                            "location": {
+                                "detail": "vliw",
+                                "stage": 5,
+                                "type": "mau",
+                                "action": "act_5",
+                                "table": "tbl_act_5"
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "bit_width": 8,
+            "container_type": "mocha",
+            "gress": "ingress",
+            "phv_deparser_group_number": 34,
+            "phv_mau_group_number": 6,
+            "phv_number": 133,
+            "slices": [
+                {
+                    "field_slice": {
+                        "field_name": "src_match_secondary_0",
+                        "slice_info": {
+                            "lsb": 0,
+                            "msb": 0
+                        }
+                    },
+                    "phv_number": 133,
+                    "reads": [],
+                    "slice_info": {
+                        "lsb": 0,
+                        "msb": 0
+                    },
+                    "writes": [
+                        {
+                            "location": {
+                                "detail": "vliw",
+                                "stage": 6,
+                                "type": "mau",
+                                "action": "tofino2l358",
+                                "table": "tbl_tofino2l358"
                             }
                         }
                     ]
@@ -908,7 +1174,7 @@
                         {
                             "location": {
                                 "detail": "vliw",
-                                "stage": 3,
+                                "stage": 7,
                                 "type": "mau",
                                 "action": "SwitchIngress.set_action_from_tcam",
                                 "table": "SwitchIngress.dst_tcam_table"
@@ -917,7 +1183,7 @@
                         {
                             "location": {
                                 "detail": "vliw",
-                                "stage": 4,
+                                "stage": 8,
                                 "type": "mau",
                                 "action": "SwitchIngress.set_dst_bitmap",
                                 "table": "SwitchIngress.dst_sram_table"
@@ -931,9 +1197,9 @@
             "bit_width": 8,
             "container_type": "mocha",
             "gress": "ingress",
-            "phv_deparser_group_number": 32,
-            "phv_mau_group_number": 4,
-            "phv_number": 94,
+            "phv_deparser_group_number": 34,
+            "phv_mau_group_number": 6,
+            "phv_number": 134,
             "slices": [
                 {
                     "field_slice": {
@@ -943,7 +1209,7 @@
                             "msb": 0
                         }
                     },
-                    "phv_number": 94,
+                    "phv_number": 134,
                     "reads": [],
                     "slice_info": {
                         "lsb": 0,
@@ -953,10 +1219,10 @@
                         {
                             "location": {
                                 "detail": "vliw",
-                                "stage": 3,
+                                "stage": 7,
                                 "type": "mau",
-                                "action": "act_3",
-                                "table": "tbl_act_3"
+                                "action": "act_7",
+                                "table": "tbl_act_7"
                             }
                         }
                     ]
@@ -967,9 +1233,9 @@
             "bit_width": 8,
             "container_type": "mocha",
             "gress": "ingress",
-            "phv_deparser_group_number": 32,
-            "phv_mau_group_number": 4,
-            "phv_number": 95,
+            "phv_deparser_group_number": 34,
+            "phv_mau_group_number": 6,
+            "phv_number": 135,
             "slices": [
                 {
                     "field_slice": {
@@ -979,7 +1245,7 @@
                             "msb": 0
                         }
                     },
-                    "phv_number": 95,
+                    "phv_number": 135,
                     "reads": [],
                     "slice_info": {
                         "lsb": 0,
@@ -989,10 +1255,10 @@
                         {
                             "location": {
                                 "detail": "vliw",
-                                "stage": 4,
+                                "stage": 8,
                                 "type": "mau",
-                                "action": "act_5",
-                                "table": "tbl_act_5"
+                                "action": "act_9",
+                                "table": "tbl_act_9"
                             }
                         }
                     ]
@@ -3395,6 +3661,14 @@
                                 "type": "mau",
                                 "table": "SwitchIngress.src_tcam_table"
                             }
+                        },
+                        {
+                            "location": {
+                                "detail": "xbar",
+                                "stage": 4,
+                                "type": "mau",
+                                "table": "SwitchIngress.src_tcam_table_secondary"
+                            }
                         }
                     ],
                     "slice_info": {
@@ -3513,7 +3787,7 @@
                         {
                             "location": {
                                 "detail": "xbar",
-                                "stage": 3,
+                                "stage": 7,
                                 "type": "mau",
                                 "table": "SwitchIngress.dst_tcam_table"
                             }
@@ -3855,6 +4129,121 @@
             "field_info": {
                 "bit_width": 9,
                 "field_class": "meta",
+                "field_name": "ig_md.Group_id_secondary",
+                "gress": "ingress"
+            },
+            "field_slices": [
+                {
+                    "field_name": "ig_md.Group_id_secondary",
+                    "slice_info": {
+                        "lsb": 8,
+                        "msb": 8
+                    }
+                },
+                {
+                    "field_name": "ig_md.Group_id_secondary",
+                    "slice_info": {
+                        "lsb": 0,
+                        "msb": 7
+                    }
+                }
+            ],
+            "phv_slices": [
+                {
+                    "field_slice": {
+                        "field_name": "ig_md.Group_id_secondary",
+                        "slice_info": {
+                            "lsb": 8,
+                            "msb": 8
+                        }
+                    },
+                    "phv_number": 174,
+                    "reads": [
+                        {
+                            "location": {
+                                "detail": "xbar",
+                                "stage": 4,
+                                "type": "mau",
+                                "table": "SwitchIngress.src_tcam_table_secondary"
+                            }
+                        },
+                        {
+                            "location": {
+                                "detail": "xbar",
+                                "stage": 5,
+                                "type": "mau",
+                                "table": "SwitchIngress.src_sram_table_secondary"
+                            }
+                        }
+                    ],
+                    "slice_info": {
+                        "lsb": 9,
+                        "msb": 9
+                    },
+                    "writes": [
+                        {
+                            "location": {
+                                "detail": "vliw",
+                                "stage": 0,
+                                "type": "mau",
+                                "action": "SwitchIngress.set_gid1",
+                                "table": "SwitchIngress.ip_table"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "field_slice": {
+                        "field_name": "ig_md.Group_id_secondary",
+                        "slice_info": {
+                            "lsb": 0,
+                            "msb": 7
+                        }
+                    },
+                    "phv_number": 93,
+                    "reads": [
+                        {
+                            "location": {
+                                "detail": "xbar",
+                                "stage": 4,
+                                "type": "mau",
+                                "table": "SwitchIngress.src_tcam_table_secondary"
+                            }
+                        },
+                        {
+                            "location": {
+                                "detail": "xbar",
+                                "stage": 5,
+                                "type": "mau",
+                                "table": "SwitchIngress.src_sram_table_secondary"
+                            }
+                        }
+                    ],
+                    "slice_info": {
+                        "lsb": 0,
+                        "msb": 7
+                    },
+                    "writes": [
+                        {
+                            "location": {
+                                "detail": "vliw",
+                                "stage": 0,
+                                "type": "mau",
+                                "action": "SwitchIngress.set_gid1",
+                                "table": "SwitchIngress.ip_table"
+                            }
+                        }
+                    ]
+                }
+            ],
+            "status": "allocated",
+            "structure": "ig_md"
+        },
+        {
+            "constraints": [],
+            "field_info": {
+                "bit_width": 9,
+                "field_class": "meta",
                 "field_name": "ig_md.Group_id2",
                 "gress": "ingress"
             },
@@ -3881,7 +4270,7 @@
                         {
                             "location": {
                                 "detail": "xbar",
-                                "stage": 3,
+                                "stage": 7,
                                 "type": "mau",
                                 "table": "SwitchIngress.dst_tcam_table"
                             }
@@ -3889,7 +4278,7 @@
                         {
                             "location": {
                                 "detail": "xbar",
-                                "stage": 4,
+                                "stage": 8,
                                 "type": "mau",
                                 "table": "SwitchIngress.dst_sram_table"
                             }
@@ -3916,6 +4305,24 @@
                                 "type": "mau",
                                 "action": "SwitchIngress.set_src_bitmap",
                                 "table": "SwitchIngress.src_sram_table"
+                            }
+                        },
+                        {
+                            "location": {
+                                "detail": "vliw",
+                                "stage": 4,
+                                "type": "mau",
+                                "action": "SwitchIngress.set_gid2_from_tcam_secondary",
+                                "table": "SwitchIngress.src_tcam_table_secondary"
+                            }
+                        },
+                        {
+                            "location": {
+                                "detail": "vliw",
+                                "stage": 5,
+                                "type": "mau",
+                                "action": "SwitchIngress.set_src_bitmap_secondary",
+                                "table": "SwitchIngress.src_sram_table_secondary"
                             }
                         }
                     ]
@@ -3995,6 +4402,19 @@
                 "bit_width": 32,
                 "field_class": "meta",
                 "field_name": "ig_md.dst_bitmap",
+                "gress": "ingress"
+            },
+            "field_slices": [],
+            "phv_slices": [],
+            "status": "unreferenced",
+            "structure": "ig_md"
+        },
+        {
+            "constraints": [],
+            "field_info": {
+                "bit_width": 1,
+                "field_class": "meta",
+                "field_name": "ig_md.ip_table_hit",
                 "gress": "ingress"
             },
             "field_slices": [],
@@ -4121,7 +4541,25 @@
                         {
                             "location": {
                                 "detail": "vliw",
-                                "stage": 3,
+                                "stage": 1,
+                                "type": "mau",
+                                "action": "SwitchIngress.drop",
+                                "table": "SwitchIngress.src_tcam_table"
+                            }
+                        },
+                        {
+                            "location": {
+                                "detail": "vliw",
+                                "stage": 2,
+                                "type": "mau",
+                                "action": "SwitchIngress.drop",
+                                "table": "SwitchIngress.src_sram_table"
+                            }
+                        },
+                        {
+                            "location": {
+                                "detail": "vliw",
+                                "stage": 7,
                                 "type": "mau",
                                 "action": "SwitchIngress.drop",
                                 "table": "SwitchIngress.dst_tcam_table"
@@ -4130,7 +4568,7 @@
                         {
                             "location": {
                                 "detail": "vliw",
-                                "stage": 4,
+                                "stage": 8,
                                 "type": "mau",
                                 "action": "SwitchIngress.drop",
                                 "table": "SwitchIngress.dst_sram_table"
@@ -4139,7 +4577,7 @@
                         {
                             "location": {
                                 "detail": "vliw",
-                                "stage": 5,
+                                "stage": 9,
                                 "type": "mau",
                                 "action": "SwitchIngress.drop",
                                 "table": "tbl_drop"
@@ -4148,7 +4586,7 @@
                         {
                             "location": {
                                 "detail": "vliw",
-                                "stage": 3,
+                                "stage": 7,
                                 "type": "mau",
                                 "action": "SwitchIngress.drop",
                                 "table": "tbl_drop_0"
@@ -4514,7 +4952,25 @@
                         {
                             "location": {
                                 "detail": "vliw",
-                                "stage": 3,
+                                "stage": 1,
+                                "type": "mau",
+                                "action": "SwitchIngress.drop",
+                                "table": "SwitchIngress.src_tcam_table"
+                            }
+                        },
+                        {
+                            "location": {
+                                "detail": "vliw",
+                                "stage": 2,
+                                "type": "mau",
+                                "action": "SwitchIngress.drop",
+                                "table": "SwitchIngress.src_sram_table"
+                            }
+                        },
+                        {
+                            "location": {
+                                "detail": "vliw",
+                                "stage": 7,
                                 "type": "mau",
                                 "action": "SwitchIngress.drop",
                                 "table": "SwitchIngress.dst_tcam_table"
@@ -4523,7 +4979,7 @@
                         {
                             "location": {
                                 "detail": "vliw",
-                                "stage": 4,
+                                "stage": 8,
                                 "type": "mau",
                                 "action": "SwitchIngress.drop",
                                 "table": "SwitchIngress.dst_sram_table"
@@ -4532,7 +4988,7 @@
                         {
                             "location": {
                                 "detail": "vliw",
-                                "stage": 5,
+                                "stage": 9,
                                 "type": "mau",
                                 "action": "SwitchIngress.drop",
                                 "table": "tbl_drop"
@@ -4541,7 +4997,7 @@
                         {
                             "location": {
                                 "detail": "vliw",
-                                "stage": 3,
+                                "stage": 7,
                                 "type": "mau",
                                 "action": "SwitchIngress.drop",
                                 "table": "tbl_drop_0"
@@ -4598,7 +5054,7 @@
                         {
                             "location": {
                                 "detail": "vliw",
-                                "stage": 1,
+                                "stage": 3,
                                 "type": "mau",
                                 "action": "act",
                                 "table": "tbl_act"
@@ -4636,7 +5092,7 @@
                             "msb": 0
                         }
                     },
-                    "phv_number": 93,
+                    "phv_number": 94,
                     "reads": [],
                     "slice_info": {
                         "lsb": 0,
@@ -4657,6 +5113,150 @@
             ],
             "status": "allocated",
             "structure": "src_sram_match_0"
+        },
+        {
+            "constraints": [],
+            "field_info": {
+                "bit_width": 1,
+                "field_class": "meta",
+                "field_name": "src_tcam_match_sec_0",
+                "gress": "ingress"
+            },
+            "field_slices": [
+                {
+                    "field_name": "src_tcam_match_sec_0",
+                    "slice_info": {
+                        "lsb": 0,
+                        "msb": 0
+                    }
+                }
+            ],
+            "phv_slices": [
+                {
+                    "field_slice": {
+                        "field_name": "src_tcam_match_sec_0",
+                        "slice_info": {
+                            "lsb": 0,
+                            "msb": 0
+                        }
+                    },
+                    "phv_number": 95,
+                    "reads": [],
+                    "slice_info": {
+                        "lsb": 0,
+                        "msb": 0
+                    },
+                    "writes": [
+                        {
+                            "location": {
+                                "detail": "vliw",
+                                "stage": 4,
+                                "type": "mau",
+                                "action": "act_3",
+                                "table": "tbl_act_3"
+                            }
+                        }
+                    ]
+                }
+            ],
+            "status": "allocated",
+            "structure": "src_tcam_match_sec_0"
+        },
+        {
+            "constraints": [],
+            "field_info": {
+                "bit_width": 1,
+                "field_class": "meta",
+                "field_name": "src_sram_match_sec_0",
+                "gress": "ingress"
+            },
+            "field_slices": [
+                {
+                    "field_name": "src_sram_match_sec_0",
+                    "slice_info": {
+                        "lsb": 0,
+                        "msb": 0
+                    }
+                }
+            ],
+            "phv_slices": [
+                {
+                    "field_slice": {
+                        "field_name": "src_sram_match_sec_0",
+                        "slice_info": {
+                            "lsb": 0,
+                            "msb": 0
+                        }
+                    },
+                    "phv_number": 132,
+                    "reads": [],
+                    "slice_info": {
+                        "lsb": 0,
+                        "msb": 0
+                    },
+                    "writes": [
+                        {
+                            "location": {
+                                "detail": "vliw",
+                                "stage": 5,
+                                "type": "mau",
+                                "action": "act_5",
+                                "table": "tbl_act_5"
+                            }
+                        }
+                    ]
+                }
+            ],
+            "status": "allocated",
+            "structure": "src_sram_match_sec_0"
+        },
+        {
+            "constraints": [],
+            "field_info": {
+                "bit_width": 1,
+                "field_class": "meta",
+                "field_name": "src_match_secondary_0",
+                "gress": "ingress"
+            },
+            "field_slices": [
+                {
+                    "field_name": "src_match_secondary_0",
+                    "slice_info": {
+                        "lsb": 0,
+                        "msb": 0
+                    }
+                }
+            ],
+            "phv_slices": [
+                {
+                    "field_slice": {
+                        "field_name": "src_match_secondary_0",
+                        "slice_info": {
+                            "lsb": 0,
+                            "msb": 0
+                        }
+                    },
+                    "phv_number": 133,
+                    "reads": [],
+                    "slice_info": {
+                        "lsb": 0,
+                        "msb": 0
+                    },
+                    "writes": [
+                        {
+                            "location": {
+                                "detail": "vliw",
+                                "stage": 6,
+                                "type": "mau",
+                                "action": "tofino2l358",
+                                "table": "tbl_tofino2l358"
+                            }
+                        }
+                    ]
+                }
+            ],
+            "status": "allocated",
+            "structure": "src_match_secondary_0"
         },
         {
             "constraints": [
@@ -4726,7 +5326,7 @@
                         {
                             "location": {
                                 "detail": "vliw",
-                                "stage": 3,
+                                "stage": 7,
                                 "type": "mau",
                                 "action": "SwitchIngress.set_action_from_tcam",
                                 "table": "SwitchIngress.dst_tcam_table"
@@ -4735,7 +5335,7 @@
                         {
                             "location": {
                                 "detail": "vliw",
-                                "stage": 4,
+                                "stage": 8,
                                 "type": "mau",
                                 "action": "SwitchIngress.set_dst_bitmap",
                                 "table": "SwitchIngress.dst_sram_table"
@@ -5028,7 +5628,7 @@
                         {
                             "location": {
                                 "detail": "vliw",
-                                "stage": 3,
+                                "stage": 7,
                                 "type": "mau",
                                 "action": "SwitchIngress.set_action_from_tcam",
                                 "table": "SwitchIngress.dst_tcam_table"
@@ -5037,7 +5637,7 @@
                         {
                             "location": {
                                 "detail": "vliw",
-                                "stage": 4,
+                                "stage": 8,
                                 "type": "mau",
                                 "action": "SwitchIngress.set_dst_bitmap",
                                 "table": "SwitchIngress.dst_sram_table"
@@ -5075,7 +5675,7 @@
                             "msb": 0
                         }
                     },
-                    "phv_number": 94,
+                    "phv_number": 134,
                     "reads": [],
                     "slice_info": {
                         "lsb": 0,
@@ -5085,10 +5685,10 @@
                         {
                             "location": {
                                 "detail": "vliw",
-                                "stage": 3,
+                                "stage": 7,
                                 "type": "mau",
-                                "action": "act_3",
-                                "table": "tbl_act_3"
+                                "action": "act_7",
+                                "table": "tbl_act_7"
                             }
                         }
                     ]
@@ -5123,7 +5723,7 @@
                             "msb": 0
                         }
                     },
-                    "phv_number": 95,
+                    "phv_number": 135,
                     "reads": [],
                     "slice_info": {
                         "lsb": 0,
@@ -5133,10 +5733,10 @@
                         {
                             "location": {
                                 "detail": "vliw",
-                                "stage": 4,
+                                "stage": 8,
                                 "type": "mau",
-                                "action": "act_5",
-                                "table": "tbl_act_5"
+                                "action": "act_9",
+                                "table": "tbl_act_9"
                             }
                         }
                     ]
@@ -7874,7 +8474,7 @@
             "num_containers": 12
         }
     ],
-    "run_id": "ebb2921b54f74acd",
+    "run_id": "0bee7d560cb1406f",
     "schema_version": "3.0.0",
     "structures": [
         {
@@ -8176,6 +8776,13 @@
                     }
                 },
                 {
+                    "field_name": "ig_md.Group_id_secondary",
+                    "slice_info": {
+                        "lsb": 0,
+                        "msb": 8
+                    }
+                },
+                {
                     "field_name": "ig_md.Group_id2",
                     "slice_info": {
                         "lsb": 0,
@@ -8222,6 +8829,13 @@
                     "slice_info": {
                         "lsb": 0,
                         "msb": 31
+                    }
+                },
+                {
+                    "field_name": "ig_md.ip_table_hit",
+                    "slice_info": {
+                        "lsb": 0,
+                        "msb": 0
                     }
                 },
                 {
@@ -8422,6 +9036,48 @@
             "ordered_fields": [
                 {
                     "field_name": "src_sram_match_0",
+                    "slice_info": {
+                        "lsb": 0,
+                        "msb": 0
+                    }
+                }
+            ],
+            "type": "header"
+        },
+        {
+            "gress": "ingress",
+            "name": "src_tcam_match_sec_0",
+            "ordered_fields": [
+                {
+                    "field_name": "src_tcam_match_sec_0",
+                    "slice_info": {
+                        "lsb": 0,
+                        "msb": 0
+                    }
+                }
+            ],
+            "type": "header"
+        },
+        {
+            "gress": "ingress",
+            "name": "src_sram_match_sec_0",
+            "ordered_fields": [
+                {
+                    "field_name": "src_sram_match_sec_0",
+                    "slice_info": {
+                        "lsb": 0,
+                        "msb": 0
+                    }
+                }
+            ],
+            "type": "header"
+        },
+        {
+            "gress": "ingress",
+            "name": "src_match_secondary_0",
+            "ordered_fields": [
+                {
+                    "field_name": "src_match_secondary_0",
                     "slice_info": {
                         "lsb": 0,
                         "msb": 0

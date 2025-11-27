@@ -6,7 +6,7 @@
             "type": "lldb",
             "request": "launch",
             "program": "${workspaceFolder}/src/P4Lens.debug",
-            "args": ["src/ACL_rules/test.rules"],
+            "args": ["src/ACL_rules/acl1_100k_0.7.rules"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],

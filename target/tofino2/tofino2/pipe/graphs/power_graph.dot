@@ -1,44 +1,81 @@
 digraph table_deps {
   splines=ortho; rankdir=LR;
   label="Program: tofino2
-RunId: ebb2921b54f74acd
+RunId: 0bee7d560cb1406f
 ";
   labelloc=t; labeljust=l;
   { "SwitchIngress.ip_table"; }
   { rank = same; "SwitchIngress.src_tcam_table"; "tbl_act"; "tbl_drop_1"; }
   { rank = same; "SwitchIngress.src_sram_table"; "tbl_act_1"; }
-  { rank = same; "SwitchIngress.dst_tcam_table"; "tbl_drop_0"; "tbl_act_3"; }
-  { rank = same; "SwitchIngress.dst_sram_table"; "tbl_act_5"; }
+  { rank = same; "SwitchIngress.src_tcam_table_secondary"; "tbl_act_3"; }
+  { rank = same; "SwitchIngress.dst_tcam_table"; "tbl_drop_0"; "tbl_act_7"; }
+  { rank = same; "SwitchIngress.src_sram_table_secondary"; "tbl_act_5"; }
+  { rank = same; "tbl_tofino2l358"; }
+  { rank = same; "SwitchIngress.dst_sram_table"; "tbl_act_9"; }
   { rank = same; "tbl_drop"; }
    "SwitchIngress.ip_table" -> "SwitchIngress.src_tcam_table" [ label= "",color=green ];
    "SwitchIngress.ip_table" -> "SwitchIngress.src_sram_table" [ label= "",color=green ];
+   "SwitchIngress.ip_table" -> "SwitchIngress.src_tcam_table_secondary" [ label= "",color=green ];
    "SwitchIngress.ip_table" -> "SwitchIngress.dst_tcam_table" [ label= "",color=green ];
    "SwitchIngress.src_tcam_table" -> "tbl_act" [ label= "",color=green ];
    "SwitchIngress.src_sram_table" -> "tbl_act_1" [ label= "",color=green ];
+   "SwitchIngress.src_tcam_table_secondary" -> "tbl_act_3" [ label= "",color=green ];
+   "SwitchIngress.src_tcam_table_secondary" -> "SwitchIngress.src_sram_table_secondary" [ label= "",color=green ];
+   "SwitchIngress.src_tcam_table_secondary" -> "tbl_tofino2l358" [ label= "",color=green ];
+   "SwitchIngress.src_sram_table_secondary" -> "tbl_act_5" [ label= "",color=green ];
+   "SwitchIngress.src_tcam_table_secondary" -> "SwitchIngress.src_sram_table_secondary" [ label= "",color=green ];
+   "SwitchIngress.src_tcam_table_secondary" -> "tbl_tofino2l358" [ label= "",color=green ];
    "SwitchIngress.dst_tcam_table" -> "tbl_drop_0" [ label= "",color=green ];
-   "SwitchIngress.dst_tcam_table" -> "tbl_act_3" [ label= "",color=green ];
+   "SwitchIngress.dst_tcam_table" -> "tbl_act_7" [ label= "",color=green ];
    "SwitchIngress.dst_tcam_table" -> "SwitchIngress.dst_sram_table" [ label= "",color=green ];
    "SwitchIngress.dst_tcam_table" -> "tbl_drop" [ label= "",color=green ];
-   "SwitchIngress.dst_sram_table" -> "tbl_act_5" [ label= "",color=green ];
+   "SwitchIngress.dst_sram_table" -> "tbl_act_9" [ label= "",color=green ];
    "SwitchIngress.dst_tcam_table" -> "SwitchIngress.dst_sram_table" [ label= "",color=green ];
    "SwitchIngress.dst_tcam_table" -> "tbl_drop" [ label= "",color=green ];
    "SwitchIngress.ip_table" -> "tbl_drop_1" [ label= "",color=green ];
    "SwitchIngress.ip_table" -> "SwitchIngress.src_tcam_table" [ label= "",color=gold ];
+   "SwitchIngress.ip_table" -> "SwitchIngress.src_tcam_table" [ label= "",color=red ];
    "SwitchIngress.ip_table" -> "SwitchIngress.src_sram_table" [ label= "",color=gold ];
    "SwitchIngress.src_tcam_table" -> "SwitchIngress.src_sram_table" [ label= "",color=red ];
+   "SwitchIngress.ip_table" -> "SwitchIngress.src_sram_table" [ label= "",color=red ];
+   "tbl_act" -> "SwitchIngress.src_tcam_table_secondary" [ label= "",color=blue ];
+   "tbl_act_1" -> "SwitchIngress.src_tcam_table_secondary" [ label= "",color=blue ];
+   "SwitchIngress.ip_table" -> "SwitchIngress.src_tcam_table_secondary" [ label= "",color=blue ];
+   "SwitchIngress.ip_table" -> "SwitchIngress.src_tcam_table_secondary" [ label= "",color=gold ];
+   "SwitchIngress.src_sram_table" -> "SwitchIngress.src_tcam_table_secondary" [ label= "",color=red ];
+   "SwitchIngress.src_tcam_table" -> "SwitchIngress.src_tcam_table_secondary" [ label= "",color=red ];
+   "SwitchIngress.ip_table" -> "SwitchIngress.src_sram_table_secondary" [ label= "",color=gold ];
+   "SwitchIngress.src_tcam_table_secondary" -> "SwitchIngress.src_sram_table_secondary" [ label= "",color=red ];
+   "SwitchIngress.src_sram_table" -> "SwitchIngress.src_sram_table_secondary" [ label= "",color=red ];
+   "SwitchIngress.src_tcam_table" -> "SwitchIngress.src_sram_table_secondary" [ label= "",color=red ];
+   "tbl_act_3" -> "tbl_tofino2l358" [ label= "",color=blue ];
+   "tbl_act_5" -> "tbl_tofino2l358" [ label= "",color=blue ];
    "tbl_act" -> "SwitchIngress.dst_tcam_table" [ label= "",color=blue ];
    "tbl_act_1" -> "SwitchIngress.dst_tcam_table" [ label= "",color=blue ];
+   "tbl_tofino2l358" -> "SwitchIngress.dst_tcam_table" [ label= "",color=blue ];
+   "SwitchIngress.src_sram_table_secondary" -> "SwitchIngress.dst_tcam_table" [ label= "",color=gold ];
+   "SwitchIngress.src_tcam_table_secondary" -> "SwitchIngress.dst_tcam_table" [ label= "",color=gold ];
    "SwitchIngress.src_sram_table" -> "SwitchIngress.dst_tcam_table" [ label= "",color=gold ];
    "SwitchIngress.src_tcam_table" -> "SwitchIngress.dst_tcam_table" [ label= "",color=gold ];
    "SwitchIngress.ip_table" -> "SwitchIngress.dst_tcam_table" [ label= "",color=red ];
+   "SwitchIngress.src_tcam_table" -> "SwitchIngress.dst_tcam_table" [ label= "",color=red ];
+   "SwitchIngress.src_sram_table" -> "SwitchIngress.dst_tcam_table" [ label= "",color=red ];
    "SwitchIngress.ip_table" -> "tbl_drop_0" [ label= "",color=red ];
+   "SwitchIngress.src_tcam_table" -> "tbl_drop_0" [ label= "",color=red ];
+   "SwitchIngress.src_sram_table" -> "tbl_drop_0" [ label= "",color=red ];
+   "SwitchIngress.src_sram_table_secondary" -> "SwitchIngress.dst_sram_table" [ label= "",color=gold ];
+   "SwitchIngress.src_tcam_table_secondary" -> "SwitchIngress.dst_sram_table" [ label= "",color=gold ];
    "SwitchIngress.src_sram_table" -> "SwitchIngress.dst_sram_table" [ label= "",color=gold ];
    "SwitchIngress.src_tcam_table" -> "SwitchIngress.dst_sram_table" [ label= "",color=gold ];
    "SwitchIngress.dst_tcam_table" -> "SwitchIngress.dst_sram_table" [ label= "",color=red ];
    "SwitchIngress.ip_table" -> "SwitchIngress.dst_sram_table" [ label= "",color=red ];
-   "tbl_act_3" -> "tbl_drop" [ label= "",color=blue ];
-   "tbl_act_5" -> "tbl_drop" [ label= "",color=blue ];
+   "SwitchIngress.src_tcam_table" -> "SwitchIngress.dst_sram_table" [ label= "",color=red ];
+   "SwitchIngress.src_sram_table" -> "SwitchIngress.dst_sram_table" [ label= "",color=red ];
+   "tbl_act_7" -> "tbl_drop" [ label= "",color=blue ];
+   "tbl_act_9" -> "tbl_drop" [ label= "",color=blue ];
    "SwitchIngress.ip_table" -> "tbl_drop" [ label= "",color=red ];
+   "SwitchIngress.src_tcam_table" -> "tbl_drop" [ label= "",color=red ];
+   "SwitchIngress.src_sram_table" -> "tbl_drop" [ label= "",color=red ];
    "SwitchIngress.dst_tcam_table" -> "tbl_drop" [ label= "",color=red ];
    "SwitchIngress.dst_sram_table" -> "tbl_drop" [ label= "",color=red ];
    "SwitchIngress.ip_table" -> "tbl_drop_1" [ label= "",color=red ];

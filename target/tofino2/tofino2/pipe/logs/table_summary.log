@@ -1,25 +1,30 @@
 Table allocation done 1 time(s), state = INITIAL
-Number of stages in table allocation: 6
-  Number of stages for ingress table allocation: 6
+Number of stages in table allocation: 10
+  Number of stages for ingress table allocation: 10
   Number of stages for egress table allocation: 0
-Critical path length through the table dependency graph: 6
-Number of tables allocated: 12
-+-------+-----------------+------------------------------+
-| Stage | Min / Max Stage |          Table Name          |
-+-------+-----------------+------------------------------+
-|   0   |    [ -, - ]     |    SwitchIngress.ip_table    |
-|   1   |   [ 1, 15 ]     | SwitchIngress.src_tcam_table |
-|   1   |   [ 1, 16 ]     |           tbl_act            |
-|   1   |   [ 1, 19 ]     |          tbl_drop_1          |
-|   2   |   [ 2, 16 ]     | SwitchIngress.src_sram_table |
-|   2   |   [ 2, 16 ]     |          tbl_act_1           |
-|   3   |    [ -, - ]     | SwitchIngress.dst_tcam_table |
-|   3   |   [ 3, 18 ]     |          tbl_act_3           |
-|   3   |   [ 3, 19 ]     |          tbl_drop_0          |
-|   4   |   [ 4, 18 ]     | SwitchIngress.dst_sram_table |
-|   4   |   [ 4, 18 ]     |          tbl_act_5           |
-|   5   |   [ 5, 19 ]     |           tbl_drop           |
-+-------+-----------------+------------------------------+
+Critical path length through the table dependency graph: 9
+Number of tables allocated: 17
++-------+-----------------+----------------------------------------+
+| Stage | Min / Max Stage |               Table Name               |
++-------+-----------------+----------------------------------------+
+|   0   |    [ -, - ]     |         SwitchIngress.ip_table         |
+|   1   |   [ 1, 12 ]     |      SwitchIngress.src_tcam_table      |
+|   1   |   [ 1, 19 ]     |               tbl_drop_1               |
+|   2   |   [ 2, 13 ]     |      SwitchIngress.src_sram_table      |
+|   2   |   [ 2, 13 ]     |               tbl_act_1                |
+|   3   |   [ 1, 13 ]     |                tbl_act                 |
+|   4   |    [ -, - ]     | SwitchIngress.src_tcam_table_secondary |
+|   4   |   [ 3, 15 ]     |               tbl_act_3                |
+|   5   |   [ 4, 15 ]     | SwitchIngress.src_sram_table_secondary |
+|   5   |   [ 4, 15 ]     |               tbl_act_5                |
+|   6   |   [ 5, 16 ]     |            tbl_tofino2l358             |
+|   7   |    [ -, - ]     |      SwitchIngress.dst_tcam_table      |
+|   7   |   [ 6, 18 ]     |               tbl_act_7                |
+|   7   |   [ 6, 19 ]     |               tbl_drop_0               |
+|   8   |   [ 7, 18 ]     |      SwitchIngress.dst_sram_table      |
+|   8   |   [ 7, 18 ]     |               tbl_act_9                |
+|   9   |   [ 8, 19 ]     |                tbl_drop                |
++-------+-----------------+----------------------------------------+
 
 NOTES:  - A '*' next to the min / max stage column indicates the table is placed outside its allowed scope
 

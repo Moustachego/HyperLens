@@ -40,7 +40,7 @@ print('    SWPorts:', swports)
 
 
 ##############################################################################
-# Helper Functions for Reading Table Files
+# --------------- Helper Functions for Reading Table Files ------------------
 ##############################################################################
 
 def read_final_ip_table(filename):
@@ -215,7 +215,7 @@ def cidr_to_ip_mask(cidr_str):
 
 
 ##############################################################################
-# Main Test Class
+# --------------------------- Main Test Class --------------------------------
 ##############################################################################
 
 
@@ -232,7 +232,6 @@ class P4lensTest(BfRuntimeTest):
         
         # Get table objects
         ip_table = bfrt_info.table_get("SwitchIngress.ip_table")
-        port_table = bfrt_info.table_get("SwitchIngress.port_table")
         
         # Add annotations for IP fields
         ip_table.info.key_field_annotation_add("p.ipv4.src", "ipv4")
@@ -265,8 +264,11 @@ class P4lensTest(BfRuntimeTest):
             src_ip, src_mask = cidr_to_ip_mask(entry['src_cidr'])
             dst_ip, dst_mask = cidr_to_ip_mask(entry['dst_cidr'])
             
-            # Use GID1 (first GID) as the Group_id
-            gid1 = entry['gids'][0]
+            # Extract both GIDs from the entry
+            gid1 = entry['gids'][0]  # Primary GID
+            # For Rmax rules (catch-all), there may be only 1 GID
+            # Use 511 (max value for bit<9>) to indicate no secondary GID
+            gid_secondary = entry['gids'][1] if len(entry['gids']) > 1 else 511 #511 > G-ID max
             
             key = ip_table.make_key([
                 gc_client.KeyTuple('$MATCH_PRIORITY', entry['priority']),
@@ -277,8 +279,9 @@ class P4lensTest(BfRuntimeTest):
             ])
             
             data = ip_table.make_data(
-                [gc_client.DataTuple('Group_id', gid1)],
-                'get_coupling_info'
+                [gc_client.DataTuple('gid1', gid1),
+                 gc_client.DataTuple('gid_secondary', gid_secondary)],
+                'set_gid1'
             )
             
             ip_key_list.append(key)
@@ -367,12 +370,12 @@ class P4lensTest(BfRuntimeTest):
             for entry in src_sram_entries:
                 # Use GID1 as ACTION_MEMBER_ID
                 ap_key = src_sram_table.make_key([
-                    gc_client.KeyTuple('$ACTION_MEMBER_ID', entry['gid1'])
+                    gc_client.KeyTuple('$ACTION_MEMBER_ID', entry['gid1']),
+                    gc_client.DataTuple('sp_quotient', entry['sp_quotient'])
                 ])
                 
                 ap_data = src_sram_table.make_data(
-                    [
-                        gc_client.DataTuple('sp_quotient', entry['sp_quotient']),
+                    [   
                         gc_client.DataTuple('bitmap32', entry['bitmap32']),
                         gc_client.DataTuple('gid2', entry['gid2'])
                     ],
@@ -396,12 +399,12 @@ class P4lensTest(BfRuntimeTest):
             for entry in dst_sram_entries:
                 # Use GID2 as ACTION_MEMBER_ID
                 ap_key = dst_sram_table.make_key([
-                    gc_client.KeyTuple('$ACTION_MEMBER_ID', entry['gid2'])
+                    gc_client.KeyTuple('$ACTION_MEMBER_ID', entry['gid2']),
+                    gc_client.DataTuple('sp_quotient', entry['sp_quotient'])
                 ])
                 
                 ap_data = dst_sram_table.make_data(
                     [
-                        gc_client.DataTuple('sp_quotient', entry['sp_quotient']),
                         gc_client.DataTuple('bitmap32', entry['bitmap32']),
                         gc_client.DataTuple('action_id', entry['action'])
                     ],

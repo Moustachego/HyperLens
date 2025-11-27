@@ -1240,53 +1240,43 @@ void Generate_cell_GID_to_metainfo(
         // 用于 G-ID 内部去重的临时容器
         std::set<std::tuple<int, int, int, int>> seen_in_gid;  // (Src_lo, Src_hi, Dst_lo, Dst_hi)
 
-        for (size_t mid : ic.Extraction) {
-            if (mid >= merged_ip_table.size()) {
-                if (enable_debug) std::cout << "[WARN] Extraction mid out-of-range: " << mid << "\n";
+        // ★ 修复：ic.Extraction 存储的是原始规则 ID（不是 merged_ip_table 索引）
+        // 直接在 port_table 中查找，不需要通过 merged_ip_table
+        for (size_t orig_rid : ic.Extraction) {
+            // 在 port_table 中查找对应的端口规则
+            auto it = std::find_if(port_table.begin(), port_table.end(),
+                [orig_rid](const PortRule &pr) { return pr.rid == orig_rid; });
+
+            if (it == port_table.end()) {
+                if (enable_debug) std::cout << "[DBG] orig rule id " << orig_rid
+                                            << " not found in port_table\n";
                 continue;
             }
 
-            const IPRule &merged_rule = merged_ip_table[mid];
+            const PortRule &por = *it;
 
-            // merged_rule.merged_R 包含原始规则 ID，每个原始规则对应 port_table 中的一个条目
-            for (size_t orig_rid : merged_rule.merged_R) {
-                // 在 port_table 中查找对应的端口规则
-                auto it = std::find_if(port_table.begin(), port_table.end(),
-                    [orig_rid](const PortRule &pr) { return pr.rid == orig_rid; });
+            // 步骤4：在相同 G-ID 内部去重（检查 Src_lo, Src_hi, Dst_lo, Dst_hi 是否相同）
+            auto dedup_key = std::make_tuple(por.src_port_lo, por.src_port_hi, 
+                                             por.dst_port_lo, por.dst_port_hi);
+            
+            if (seen_in_gid.find(dedup_key) != seen_in_gid.end()) {
+                // 已存在相同的端口范围，跳过
+                continue;
+            }
+            seen_in_gid.insert(dedup_key);
 
-                if (it == port_table.end()) {
-                    if (enable_debug) std::cout << "[DBG] orig rule id " << orig_rid
-                                                << " not found in port_table\n";
-                    continue;
-                }
+            // 步骤5：创建新的 metainfo entry
+            Metainfo_for_SRC_port new_entry;
+            new_entry.Inital_Number = { static_cast<uint32_t>(orig_rid) };
+            new_entry.Src_lo   = por.src_port_lo;
+            new_entry.Src_hi   = por.src_port_hi;
+            new_entry.Dst_lo   = por.dst_port_lo;
+            new_entry.Dst_hi   = por.dst_port_hi;
+            new_entry.action   = por.action;
+            new_entry.group_ids = { gid };
 
-                const PortRule &por = *it;
-
-                // 步骤4：在相同 G-ID 内部去重（检查 Src_lo, Src_hi, Dst_lo, Dst_hi 是否相同）
-                auto dedup_key = std::make_tuple(por.src_port_lo, por.src_port_hi, 
-                                                 por.dst_port_lo, por.dst_port_hi);
-                
-                if (seen_in_gid.find(dedup_key) != seen_in_gid.end()) {
-                    // 已存在相同的端口范围，跳过
-                    continue;
-                }
-                seen_in_gid.insert(dedup_key);
-
-                // 步骤5：创建新的 metainfo entry
-                Metainfo_for_SRC_port new_entry;
-                // ★ 核心修复：Inital_Number 应该存储 orig_rid（原始规则ID），而不是 mid
-                // 因为端口信息来自 port_table[orig_rid]，所以 InitNum 应该指向 orig_rid
-                new_entry.Inital_Number = { static_cast<uint32_t>(orig_rid) };
-                new_entry.Src_lo   = por.src_port_lo;
-                new_entry.Src_hi   = por.src_port_hi;
-                new_entry.Dst_lo   = por.dst_port_lo;
-                new_entry.Dst_hi   = por.dst_port_hi;
-                new_entry.action   = por.action;
-                new_entry.group_ids = { gid };
-
-                meta_src.push_back(new_entry);
-            } // end for orig_rid
-        } // end for mid in Extraction
+            meta_src.push_back(new_entry);
+        } // end for orig_rid in Extraction
 
     } // end for final_ip_table
 
@@ -1334,13 +1324,29 @@ void Merge_and_Reorder_Metainfo(
     const vector<Metainfo_for_SRC_port>& meta,
     std::map<std::tuple<std::vector<int>, int, int>, MergedItem>& merged_output)
 {
-    // Step 1: 按 G-ID 排序 meta
-    std::vector<Metainfo_for_SRC_port> sorted_meta = meta;
+    // DEBUG: 统计空GID条目
+    int empty_gid_count = 0;
+    int total_count = meta.size();
+    for (const auto& m : meta) {
+        if (m.group_ids.empty()) {
+            empty_gid_count++;
+        }
+    }
 
-    std::sort(sorted_meta.begin(), sorted_meta.end(),
+    // Step 1: 过滤掉空 GID 的条目
+    std::vector<Metainfo_for_SRC_port> filtered_meta;
+    for (const auto& m : meta) {
+        if (!m.group_ids.empty()) {
+            filtered_meta.push_back(m);
+        }
+    }
+
+    // Step 2: 按 G-ID 排序 filtered_meta
+    std::sort(filtered_meta.begin(), filtered_meta.end(),
         [](const Metainfo_for_SRC_port &a, const Metainfo_for_SRC_port &b) {
-            int ga = a.group_ids.empty() ? -1 : a.group_ids[0];
-            int gb = b.group_ids.empty() ? -1 : b.group_ids[0];
+            // 现在可以安全地假设 group_ids 非空
+            int ga = a.group_ids[0];
+            int gb = b.group_ids[0];
 
             if (ga != gb) return ga < gb;
             if (a.Src_lo != b.Src_lo) return a.Src_lo < b.Src_lo;
@@ -1350,11 +1356,11 @@ void Merge_and_Reorder_Metainfo(
         }
     );
 
-    // Step 2: 合并相同 (GroupIDs, Src_lo, Src_hi) 的条目
+    // Step 3: 合并相同 (GroupIDs, Src_lo, Src_hi) 的条目
     std::map<std::tuple<std::vector<int>, int, int>, MergedItem> merged_map;
 
-    for (size_t i = 0; i < sorted_meta.size(); ++i) {
-        const auto& m = sorted_meta[i];
+    for (size_t i = 0; i < filtered_meta.size(); ++i) {
+        const auto& m = filtered_meta[i];
         auto key = std::make_tuple(m.group_ids, m.Src_lo, m.Src_hi);
 
         // 如果键不存在，创建新条目

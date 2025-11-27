@@ -18,7 +18,7 @@
               }
             ],
             "min_stage" : 0,
-            "dep_chain" : 5
+            "dep_chain" : 8
           }
         },
         {
@@ -32,7 +32,7 @@
               }
             ],
             "min_stage" : 1,
-            "dep_chain" : 4
+            "dep_chain" : 7
           }
         },
         {
@@ -46,7 +46,7 @@
               }
             ],
             "min_stage" : 2,
-            "dep_chain" : 3
+            "dep_chain" : 6
           }
         },
         {
@@ -54,17 +54,31 @@
           "metadata" : {
             "tables" : [
               {
-                "name" : "cond-3",
+                "name" : "cond-5",
                 "table_type" : "condition",
-                "condition" : "src_tcam_match_0 || src_sram_match_0"
+                "condition" : "!(src_tcam_match_0 || src_sram_match_0) && ig_md.Group_id_secondary != 511"
               }
             ],
             "min_stage" : 3,
-            "dep_chain" : 2
+            "dep_chain" : 5
           }
         },
         {
           "id" : "4",
+          "metadata" : {
+            "tables" : [
+              {
+                "name" : "cond-7",
+                "table_type" : "condition",
+                "condition" : "src_tcam_match_0 || src_sram_match_0 || src_match_secondary_0"
+              }
+            ],
+            "min_stage" : 6,
+            "dep_chain" : 2
+          }
+        },
+        {
+          "id" : "5",
           "metadata" : {
             "tables" : [
               {
@@ -74,11 +88,11 @@
               }
             ],
             "min_stage" : 1,
-            "dep_chain" : 3
+            "dep_chain" : 6
           }
         },
         {
-          "id" : "5",
+          "id" : "6",
           "metadata" : {
             "tables" : [
               {
@@ -88,21 +102,7 @@
               }
             ],
             "min_stage" : 2,
-            "dep_chain" : 3
-          }
-        },
-        {
-          "id" : "6",
-          "metadata" : {
-            "tables" : [
-              {
-                "name" : "SwitchIngress.dst_tcam_table",
-                "table_type" : "match",
-                "match_type" : "ternary"
-              }
-            ],
-            "min_stage" : 3,
-            "dep_chain" : 2
+            "dep_chain" : 6
           }
         },
         {
@@ -110,13 +110,13 @@
           "metadata" : {
             "tables" : [
               {
-                "name" : "SwitchIngress.dst_sram_table",
+                "name" : "SwitchIngress.src_tcam_table_secondary",
                 "table_type" : "match",
-                "match_type" : "exact"
+                "match_type" : "ternary"
               }
             ],
-            "min_stage" : 4,
-            "dep_chain" : 1
+            "min_stage" : 3,
+            "dep_chain" : 5
           }
         },
         {
@@ -124,17 +124,31 @@
           "metadata" : {
             "tables" : [
               {
-                "name" : "cond-4",
-                "table_type" : "condition",
-                "condition" : "!dst_tcam_match_0 && !dst_sram_match_0"
+                "name" : "SwitchIngress.src_sram_table_secondary",
+                "table_type" : "match",
+                "match_type" : "exact"
               }
             ],
-            "min_stage" : 5,
-            "dep_chain" : 0
+            "min_stage" : 4,
+            "dep_chain" : 4
           }
         },
         {
           "id" : "9",
+          "metadata" : {
+            "tables" : [
+              {
+                "name" : "cond-6",
+                "table_type" : "condition",
+                "condition" : "src_tcam_match_sec_0 || src_sram_match_sec_0"
+              }
+            ],
+            "min_stage" : 5,
+            "dep_chain" : 3
+          }
+        },
+        {
+          "id" : "10",
           "metadata" : {
             "tables" : [
               {
@@ -144,11 +158,11 @@
               }
             ],
             "min_stage" : 3,
-            "dep_chain" : 1
+            "dep_chain" : 4
           }
         },
         {
-          "id" : "10",
+          "id" : "11",
           "metadata" : {
             "tables" : [
               {
@@ -158,11 +172,95 @@
               }
             ],
             "min_stage" : 4,
+            "dep_chain" : 4
+          }
+        },
+        {
+          "id" : "12",
+          "metadata" : {
+            "tables" : [
+              {
+                "name" : "tbl_tofino2l358",
+                "table_type" : "match",
+                "match_type" : "ternary"
+              }
+            ],
+            "min_stage" : 5,
+            "dep_chain" : 3
+          }
+        },
+        {
+          "id" : "13",
+          "metadata" : {
+            "tables" : [
+              {
+                "name" : "SwitchIngress.dst_tcam_table",
+                "table_type" : "match",
+                "match_type" : "ternary"
+              }
+            ],
+            "min_stage" : 6,
+            "dep_chain" : 2
+          }
+        },
+        {
+          "id" : "14",
+          "metadata" : {
+            "tables" : [
+              {
+                "name" : "SwitchIngress.dst_sram_table",
+                "table_type" : "match",
+                "match_type" : "exact"
+              }
+            ],
+            "min_stage" : 7,
             "dep_chain" : 1
           }
         },
         {
-          "id" : "11",
+          "id" : "15",
+          "metadata" : {
+            "tables" : [
+              {
+                "name" : "cond-8",
+                "table_type" : "condition",
+                "condition" : "!dst_tcam_match_0 && !dst_sram_match_0"
+              }
+            ],
+            "min_stage" : 8,
+            "dep_chain" : 0
+          }
+        },
+        {
+          "id" : "16",
+          "metadata" : {
+            "tables" : [
+              {
+                "name" : "tbl_act_7",
+                "table_type" : "match",
+                "match_type" : "ternary"
+              }
+            ],
+            "min_stage" : 6,
+            "dep_chain" : 1
+          }
+        },
+        {
+          "id" : "17",
+          "metadata" : {
+            "tables" : [
+              {
+                "name" : "tbl_act_9",
+                "table_type" : "match",
+                "match_type" : "ternary"
+              }
+            ],
+            "min_stage" : 7,
+            "dep_chain" : 1
+          }
+        },
+        {
+          "id" : "18",
           "metadata" : {
             "tables" : [
               {
@@ -171,12 +269,12 @@
                 "match_type" : "ternary"
               }
             ],
-            "min_stage" : 5,
+            "min_stage" : 8,
             "dep_chain" : 0
           }
         },
         {
-          "id" : "12",
+          "id" : "19",
           "metadata" : {
             "tables" : [
               {
@@ -185,12 +283,12 @@
                 "match_type" : "ternary"
               }
             ],
-            "min_stage" : 3,
+            "min_stage" : 6,
             "dep_chain" : 0
           }
         },
         {
-          "id" : "13",
+          "id" : "20",
           "metadata" : {
             "tables" : [
               {
@@ -204,7 +302,7 @@
           }
         },
         {
-          "id" : "14",
+          "id" : "21",
           "metadata" : {
             "tables" : [
               {
@@ -251,18 +349,17 @@
         },
         {
           "id" : "3",
-          "source" : "1",
+          "source" : "0",
           "target" : "4",
           "metadata" : {
             "type" : "control",
             "sub_type" : "table_hit",
-            "is_critical" : true,
             "tags" : ["dependency"]
           }
         },
         {
           "id" : "4",
-          "source" : "2",
+          "source" : "1",
           "target" : "5",
           "metadata" : {
             "type" : "control",
@@ -273,12 +370,11 @@
         },
         {
           "id" : "5",
-          "source" : "3",
+          "source" : "2",
           "target" : "6",
           "metadata" : {
             "type" : "control",
-            "sub_type" : "condition",
-            "condition_value" : true,
+            "sub_type" : "table_hit",
             "is_critical" : true,
             "tags" : ["dependency"]
           }
@@ -291,6 +387,7 @@
             "type" : "control",
             "sub_type" : "condition",
             "condition_value" : true,
+            "is_critical" : true,
             "tags" : ["dependency"]
           }
         },
@@ -307,12 +404,12 @@
         },
         {
           "id" : "8",
-          "source" : "6",
+          "source" : "3",
           "target" : "9",
           "metadata" : {
             "type" : "control",
-            "sub_type" : "table_hit",
-            "is_critical" : true,
+            "sub_type" : "condition",
+            "condition_value" : true,
             "tags" : ["dependency"]
           }
         },
@@ -333,6 +430,17 @@
           "target" : "11",
           "metadata" : {
             "type" : "control",
+            "sub_type" : "table_hit",
+            "is_critical" : true,
+            "tags" : ["dependency"]
+          }
+        },
+        {
+          "id" : "11",
+          "source" : "9",
+          "target" : "12",
+          "metadata" : {
+            "type" : "control",
             "sub_type" : "condition",
             "condition_value" : true,
             "is_critical" : true,
@@ -340,9 +448,77 @@
           }
         },
         {
-          "id" : "11",
-          "source" : "3",
-          "target" : "12",
+          "id" : "12",
+          "source" : "4",
+          "target" : "13",
+          "metadata" : {
+            "type" : "control",
+            "sub_type" : "condition",
+            "condition_value" : true,
+            "is_critical" : true,
+            "tags" : ["dependency"]
+          }
+        },
+        {
+          "id" : "13",
+          "source" : "4",
+          "target" : "14",
+          "metadata" : {
+            "type" : "control",
+            "sub_type" : "condition",
+            "condition_value" : true,
+            "tags" : ["dependency"]
+          }
+        },
+        {
+          "id" : "14",
+          "source" : "4",
+          "target" : "15",
+          "metadata" : {
+            "type" : "control",
+            "sub_type" : "condition",
+            "condition_value" : true,
+            "tags" : ["dependency"]
+          }
+        },
+        {
+          "id" : "15",
+          "source" : "13",
+          "target" : "16",
+          "metadata" : {
+            "type" : "control",
+            "sub_type" : "table_hit",
+            "is_critical" : true,
+            "tags" : ["dependency"]
+          }
+        },
+        {
+          "id" : "16",
+          "source" : "14",
+          "target" : "17",
+          "metadata" : {
+            "type" : "control",
+            "sub_type" : "table_hit",
+            "is_critical" : true,
+            "tags" : ["dependency"]
+          }
+        },
+        {
+          "id" : "17",
+          "source" : "15",
+          "target" : "18",
+          "metadata" : {
+            "type" : "control",
+            "sub_type" : "condition",
+            "condition_value" : true,
+            "is_critical" : true,
+            "tags" : ["dependency"]
+          }
+        },
+        {
+          "id" : "18",
+          "source" : "4",
+          "target" : "19",
           "metadata" : {
             "type" : "control",
             "sub_type" : "condition",
@@ -352,9 +528,9 @@
           }
         },
         {
-          "id" : "12",
+          "id" : "19",
           "source" : "0",
-          "target" : "13",
+          "target" : "20",
           "metadata" : {
             "type" : "control",
             "sub_type" : "table_miss",
@@ -362,7 +538,7 @@
           }
         },
         {
-          "id" : "13",
+          "id" : "20",
           "source" : "0",
           "target" : "1",
           "metadata" : {
@@ -381,7 +557,32 @@
           }
         },
         {
-          "id" : "14",
+          "id" : "21",
+          "source" : "0",
+          "target" : "1",
+          "metadata" : {
+            "type" : "action",
+            "sub_type" : "output",
+            "dep_fields" : [
+              {
+                "gress" : "ingress",
+                "field_name" : "ig_intr_md_for_dprsr.drop_ctl",
+                "start_bit" : 0,
+                "width" : 3
+              },
+              {
+                "gress" : "ingress",
+                "field_name" : "ig_intr_md_for_dprsr.drop_ctl.$valid",
+                "start_bit" : 0,
+                "width" : 1
+              }
+            ],
+            "is_critical" : true,
+            "tags" : ["dependency"]
+          }
+        },
+        {
+          "id" : "22",
           "source" : "0",
           "target" : "2",
           "metadata" : {
@@ -399,7 +600,7 @@
           }
         },
         {
-          "id" : "15",
+          "id" : "23",
           "source" : "1",
           "target" : "2",
           "metadata" : {
@@ -411,50 +612,18 @@
                 "field_name" : "ig_md.Group_id2",
                 "start_bit" : 0,
                 "width" : 9
-              }
-            ],
-            "is_critical" : true,
-            "tags" : ["dependency"]
-          }
-        },
-        {
-          "id" : "16",
-          "source" : "4",
-          "target" : "3",
-          "metadata" : {
-            "type" : "action",
-            "sub_type" : "action_read",
-            "dep_fields" : [],
-            "action_name" : "",
-            "tags" : ["dependency"]
-          }
-        },
-        {
-          "id" : "17",
-          "source" : "5",
-          "target" : "3",
-          "metadata" : {
-            "type" : "action",
-            "sub_type" : "action_read",
-            "dep_fields" : [],
-            "action_name" : "",
-            "is_critical" : true,
-            "tags" : ["dependency"]
-          }
-        },
-        {
-          "id" : "18",
-          "source" : "2",
-          "target" : "6",
-          "metadata" : {
-            "type" : "match",
-            "sub_type" : "ixbar_read",
-            "dep_fields" : [
+              },
               {
                 "gress" : "ingress",
-                "field_name" : "ig_md.Group_id2",
+                "field_name" : "ig_intr_md_for_dprsr.drop_ctl",
                 "start_bit" : 0,
-                "width" : 9
+                "width" : 3
+              },
+              {
+                "gress" : "ingress",
+                "field_name" : "ig_intr_md_for_dprsr.drop_ctl.$valid",
+                "start_bit" : 0,
+                "width" : 1
               }
             ],
             "is_critical" : true,
@@ -462,27 +631,9 @@
           }
         },
         {
-          "id" : "19",
-          "source" : "1",
-          "target" : "6",
-          "metadata" : {
-            "type" : "match",
-            "sub_type" : "ixbar_read",
-            "dep_fields" : [
-              {
-                "gress" : "ingress",
-                "field_name" : "ig_md.Group_id2",
-                "start_bit" : 0,
-                "width" : 9
-              }
-            ],
-            "tags" : ["dependency"]
-          }
-        },
-        {
-          "id" : "20",
+          "id" : "24",
           "source" : "0",
-          "target" : "6",
+          "target" : "2",
           "metadata" : {
             "type" : "action",
             "sub_type" : "output",
@@ -504,12 +655,86 @@
           }
         },
         {
-          "id" : "21",
+          "id" : "25",
+          "source" : "5",
+          "target" : "3",
+          "metadata" : {
+            "type" : "action",
+            "sub_type" : "action_read",
+            "dep_fields" : [],
+            "action_name" : "",
+            "tags" : ["dependency"]
+          }
+        },
+        {
+          "id" : "26",
+          "source" : "6",
+          "target" : "3",
+          "metadata" : {
+            "type" : "action",
+            "sub_type" : "action_read",
+            "dep_fields" : [],
+            "action_name" : "",
+            "is_critical" : true,
+            "tags" : ["dependency"]
+          }
+        },
+        {
+          "id" : "27",
+          "source" : "0",
+          "target" : "3",
+          "metadata" : {
+            "type" : "action",
+            "sub_type" : "action_read",
+            "dep_fields" : [],
+            "action_name" : "",
+            "tags" : ["dependency"]
+          }
+        },
+        {
+          "id" : "28",
+          "source" : "0",
+          "target" : "7",
+          "metadata" : {
+            "type" : "match",
+            "sub_type" : "ixbar_read",
+            "dep_fields" : [
+              {
+                "gress" : "ingress",
+                "field_name" : "ig_md.Group_id_secondary",
+                "start_bit" : 0,
+                "width" : 9
+              }
+            ],
+            "tags" : ["dependency"]
+          }
+        },
+        {
+          "id" : "29",
           "source" : "2",
           "target" : "7",
           "metadata" : {
-            "type" : "match",
-            "sub_type" : "ixbar_read",
+            "type" : "action",
+            "sub_type" : "output",
+            "dep_fields" : [
+              {
+                "gress" : "ingress",
+                "field_name" : "ig_md.Group_id2",
+                "start_bit" : 0,
+                "width" : 9
+              }
+            ],
+            "is_critical" : true,
+            "tags" : ["dependency"]
+          }
+        },
+        {
+          "id" : "30",
+          "source" : "1",
+          "target" : "7",
+          "metadata" : {
+            "type" : "action",
+            "sub_type" : "output",
             "dep_fields" : [
               {
                 "gress" : "ingress",
@@ -522,9 +747,144 @@
           }
         },
         {
-          "id" : "22",
+          "id" : "31",
+          "source" : "0",
+          "target" : "8",
+          "metadata" : {
+            "type" : "match",
+            "sub_type" : "ixbar_read",
+            "dep_fields" : [
+              {
+                "gress" : "ingress",
+                "field_name" : "ig_md.Group_id_secondary",
+                "start_bit" : 0,
+                "width" : 9
+              }
+            ],
+            "tags" : ["dependency"]
+          }
+        },
+        {
+          "id" : "32",
+          "source" : "7",
+          "target" : "8",
+          "metadata" : {
+            "type" : "action",
+            "sub_type" : "output",
+            "dep_fields" : [
+              {
+                "gress" : "ingress",
+                "field_name" : "ig_md.Group_id2",
+                "start_bit" : 0,
+                "width" : 9
+              }
+            ],
+            "is_critical" : true,
+            "tags" : ["dependency"]
+          }
+        },
+        {
+          "id" : "33",
+          "source" : "2",
+          "target" : "8",
+          "metadata" : {
+            "type" : "action",
+            "sub_type" : "output",
+            "dep_fields" : [
+              {
+                "gress" : "ingress",
+                "field_name" : "ig_md.Group_id2",
+                "start_bit" : 0,
+                "width" : 9
+              }
+            ],
+            "tags" : ["dependency"]
+          }
+        },
+        {
+          "id" : "34",
           "source" : "1",
-          "target" : "7",
+          "target" : "8",
+          "metadata" : {
+            "type" : "action",
+            "sub_type" : "output",
+            "dep_fields" : [
+              {
+                "gress" : "ingress",
+                "field_name" : "ig_md.Group_id2",
+                "start_bit" : 0,
+                "width" : 9
+              }
+            ],
+            "tags" : ["dependency"]
+          }
+        },
+        {
+          "id" : "35",
+          "source" : "10",
+          "target" : "9",
+          "metadata" : {
+            "type" : "action",
+            "sub_type" : "action_read",
+            "dep_fields" : [],
+            "action_name" : "",
+            "tags" : ["dependency"]
+          }
+        },
+        {
+          "id" : "36",
+          "source" : "11",
+          "target" : "9",
+          "metadata" : {
+            "type" : "action",
+            "sub_type" : "action_read",
+            "dep_fields" : [],
+            "action_name" : "",
+            "is_critical" : true,
+            "tags" : ["dependency"]
+          }
+        },
+        {
+          "id" : "37",
+          "source" : "5",
+          "target" : "4",
+          "metadata" : {
+            "type" : "action",
+            "sub_type" : "action_read",
+            "dep_fields" : [],
+            "action_name" : "",
+            "tags" : ["dependency"]
+          }
+        },
+        {
+          "id" : "38",
+          "source" : "6",
+          "target" : "4",
+          "metadata" : {
+            "type" : "action",
+            "sub_type" : "action_read",
+            "dep_fields" : [],
+            "action_name" : "",
+            "tags" : ["dependency"]
+          }
+        },
+        {
+          "id" : "39",
+          "source" : "12",
+          "target" : "4",
+          "metadata" : {
+            "type" : "action",
+            "sub_type" : "action_read",
+            "dep_fields" : [],
+            "action_name" : "",
+            "is_critical" : true,
+            "tags" : ["dependency"]
+          }
+        },
+        {
+          "id" : "40",
+          "source" : "2",
+          "target" : "13",
           "metadata" : {
             "type" : "match",
             "sub_type" : "ixbar_read",
@@ -540,9 +900,207 @@
           }
         },
         {
-          "id" : "23",
-          "source" : "6",
-          "target" : "7",
+          "id" : "41",
+          "source" : "1",
+          "target" : "13",
+          "metadata" : {
+            "type" : "match",
+            "sub_type" : "ixbar_read",
+            "dep_fields" : [
+              {
+                "gress" : "ingress",
+                "field_name" : "ig_md.Group_id2",
+                "start_bit" : 0,
+                "width" : 9
+              }
+            ],
+            "tags" : ["dependency"]
+          }
+        },
+        {
+          "id" : "42",
+          "source" : "8",
+          "target" : "13",
+          "metadata" : {
+            "type" : "match",
+            "sub_type" : "ixbar_read",
+            "dep_fields" : [
+              {
+                "gress" : "ingress",
+                "field_name" : "ig_md.Group_id2",
+                "start_bit" : 0,
+                "width" : 9
+              }
+            ],
+            "tags" : ["dependency"]
+          }
+        },
+        {
+          "id" : "43",
+          "source" : "7",
+          "target" : "13",
+          "metadata" : {
+            "type" : "match",
+            "sub_type" : "ixbar_read",
+            "dep_fields" : [
+              {
+                "gress" : "ingress",
+                "field_name" : "ig_md.Group_id2",
+                "start_bit" : 0,
+                "width" : 9
+              }
+            ],
+            "tags" : ["dependency"]
+          }
+        },
+        {
+          "id" : "44",
+          "source" : "0",
+          "target" : "13",
+          "metadata" : {
+            "type" : "action",
+            "sub_type" : "output",
+            "dep_fields" : [
+              {
+                "gress" : "ingress",
+                "field_name" : "ig_intr_md_for_dprsr.drop_ctl",
+                "start_bit" : 0,
+                "width" : 3
+              },
+              {
+                "gress" : "ingress",
+                "field_name" : "ig_intr_md_for_dprsr.drop_ctl.$valid",
+                "start_bit" : 0,
+                "width" : 1
+              }
+            ],
+            "tags" : ["dependency"]
+          }
+        },
+        {
+          "id" : "45",
+          "source" : "1",
+          "target" : "13",
+          "metadata" : {
+            "type" : "action",
+            "sub_type" : "output",
+            "dep_fields" : [
+              {
+                "gress" : "ingress",
+                "field_name" : "ig_intr_md_for_dprsr.drop_ctl",
+                "start_bit" : 0,
+                "width" : 3
+              },
+              {
+                "gress" : "ingress",
+                "field_name" : "ig_intr_md_for_dprsr.drop_ctl.$valid",
+                "start_bit" : 0,
+                "width" : 1
+              }
+            ],
+            "tags" : ["dependency"]
+          }
+        },
+        {
+          "id" : "46",
+          "source" : "2",
+          "target" : "13",
+          "metadata" : {
+            "type" : "action",
+            "sub_type" : "output",
+            "dep_fields" : [
+              {
+                "gress" : "ingress",
+                "field_name" : "ig_intr_md_for_dprsr.drop_ctl",
+                "start_bit" : 0,
+                "width" : 3
+              },
+              {
+                "gress" : "ingress",
+                "field_name" : "ig_intr_md_for_dprsr.drop_ctl.$valid",
+                "start_bit" : 0,
+                "width" : 1
+              }
+            ],
+            "tags" : ["dependency"]
+          }
+        },
+        {
+          "id" : "47",
+          "source" : "2",
+          "target" : "14",
+          "metadata" : {
+            "type" : "match",
+            "sub_type" : "ixbar_read",
+            "dep_fields" : [
+              {
+                "gress" : "ingress",
+                "field_name" : "ig_md.Group_id2",
+                "start_bit" : 0,
+                "width" : 9
+              }
+            ],
+            "tags" : ["dependency"]
+          }
+        },
+        {
+          "id" : "48",
+          "source" : "1",
+          "target" : "14",
+          "metadata" : {
+            "type" : "match",
+            "sub_type" : "ixbar_read",
+            "dep_fields" : [
+              {
+                "gress" : "ingress",
+                "field_name" : "ig_md.Group_id2",
+                "start_bit" : 0,
+                "width" : 9
+              }
+            ],
+            "tags" : ["dependency"]
+          }
+        },
+        {
+          "id" : "49",
+          "source" : "8",
+          "target" : "14",
+          "metadata" : {
+            "type" : "match",
+            "sub_type" : "ixbar_read",
+            "dep_fields" : [
+              {
+                "gress" : "ingress",
+                "field_name" : "ig_md.Group_id2",
+                "start_bit" : 0,
+                "width" : 9
+              }
+            ],
+            "tags" : ["dependency"]
+          }
+        },
+        {
+          "id" : "50",
+          "source" : "7",
+          "target" : "14",
+          "metadata" : {
+            "type" : "match",
+            "sub_type" : "ixbar_read",
+            "dep_fields" : [
+              {
+                "gress" : "ingress",
+                "field_name" : "ig_md.Group_id2",
+                "start_bit" : 0,
+                "width" : 9
+              }
+            ],
+            "tags" : ["dependency"]
+          }
+        },
+        {
+          "id" : "51",
+          "source" : "13",
+          "target" : "14",
           "metadata" : {
             "type" : "action",
             "sub_type" : "output",
@@ -577,9 +1135,9 @@
           }
         },
         {
-          "id" : "24",
+          "id" : "52",
           "source" : "0",
-          "target" : "7",
+          "target" : "14",
           "metadata" : {
             "type" : "action",
             "sub_type" : "output",
@@ -601,9 +1159,57 @@
           }
         },
         {
-          "id" : "25",
-          "source" : "9",
-          "target" : "8",
+          "id" : "53",
+          "source" : "1",
+          "target" : "14",
+          "metadata" : {
+            "type" : "action",
+            "sub_type" : "output",
+            "dep_fields" : [
+              {
+                "gress" : "ingress",
+                "field_name" : "ig_intr_md_for_dprsr.drop_ctl",
+                "start_bit" : 0,
+                "width" : 3
+              },
+              {
+                "gress" : "ingress",
+                "field_name" : "ig_intr_md_for_dprsr.drop_ctl.$valid",
+                "start_bit" : 0,
+                "width" : 1
+              }
+            ],
+            "tags" : ["dependency"]
+          }
+        },
+        {
+          "id" : "54",
+          "source" : "2",
+          "target" : "14",
+          "metadata" : {
+            "type" : "action",
+            "sub_type" : "output",
+            "dep_fields" : [
+              {
+                "gress" : "ingress",
+                "field_name" : "ig_intr_md_for_dprsr.drop_ctl",
+                "start_bit" : 0,
+                "width" : 3
+              },
+              {
+                "gress" : "ingress",
+                "field_name" : "ig_intr_md_for_dprsr.drop_ctl.$valid",
+                "start_bit" : 0,
+                "width" : 1
+              }
+            ],
+            "tags" : ["dependency"]
+          }
+        },
+        {
+          "id" : "55",
+          "source" : "16",
+          "target" : "15",
           "metadata" : {
             "type" : "action",
             "sub_type" : "action_read",
@@ -613,9 +1219,9 @@
           }
         },
         {
-          "id" : "26",
-          "source" : "10",
-          "target" : "8",
+          "id" : "56",
+          "source" : "17",
+          "target" : "15",
           "metadata" : {
             "type" : "action",
             "sub_type" : "action_read",
@@ -626,9 +1232,9 @@
           }
         },
         {
-          "id" : "27",
+          "id" : "57",
           "source" : "0",
-          "target" : "11",
+          "target" : "18",
           "metadata" : {
             "type" : "action",
             "sub_type" : "output",
@@ -650,9 +1256,9 @@
           }
         },
         {
-          "id" : "28",
-          "source" : "6",
-          "target" : "11",
+          "id" : "58",
+          "source" : "1",
+          "target" : "18",
           "metadata" : {
             "type" : "action",
             "sub_type" : "output",
@@ -674,9 +1280,57 @@
           }
         },
         {
-          "id" : "29",
-          "source" : "7",
-          "target" : "11",
+          "id" : "59",
+          "source" : "2",
+          "target" : "18",
+          "metadata" : {
+            "type" : "action",
+            "sub_type" : "output",
+            "dep_fields" : [
+              {
+                "gress" : "ingress",
+                "field_name" : "ig_intr_md_for_dprsr.drop_ctl",
+                "start_bit" : 0,
+                "width" : 3
+              },
+              {
+                "gress" : "ingress",
+                "field_name" : "ig_intr_md_for_dprsr.drop_ctl.$valid",
+                "start_bit" : 0,
+                "width" : 1
+              }
+            ],
+            "tags" : ["dependency"]
+          }
+        },
+        {
+          "id" : "60",
+          "source" : "13",
+          "target" : "18",
+          "metadata" : {
+            "type" : "action",
+            "sub_type" : "output",
+            "dep_fields" : [
+              {
+                "gress" : "ingress",
+                "field_name" : "ig_intr_md_for_dprsr.drop_ctl",
+                "start_bit" : 0,
+                "width" : 3
+              },
+              {
+                "gress" : "ingress",
+                "field_name" : "ig_intr_md_for_dprsr.drop_ctl.$valid",
+                "start_bit" : 0,
+                "width" : 1
+              }
+            ],
+            "tags" : ["dependency"]
+          }
+        },
+        {
+          "id" : "61",
+          "source" : "14",
+          "target" : "18",
           "metadata" : {
             "type" : "action",
             "sub_type" : "output",
@@ -699,9 +1353,9 @@
           }
         },
         {
-          "id" : "30",
+          "id" : "62",
           "source" : "0",
-          "target" : "12",
+          "target" : "19",
           "metadata" : {
             "type" : "action",
             "sub_type" : "output",
@@ -723,9 +1377,57 @@
           }
         },
         {
-          "id" : "31",
+          "id" : "63",
+          "source" : "1",
+          "target" : "19",
+          "metadata" : {
+            "type" : "action",
+            "sub_type" : "output",
+            "dep_fields" : [
+              {
+                "gress" : "ingress",
+                "field_name" : "ig_intr_md_for_dprsr.drop_ctl",
+                "start_bit" : 0,
+                "width" : 3
+              },
+              {
+                "gress" : "ingress",
+                "field_name" : "ig_intr_md_for_dprsr.drop_ctl.$valid",
+                "start_bit" : 0,
+                "width" : 1
+              }
+            ],
+            "tags" : ["dependency"]
+          }
+        },
+        {
+          "id" : "64",
+          "source" : "2",
+          "target" : "19",
+          "metadata" : {
+            "type" : "action",
+            "sub_type" : "output",
+            "dep_fields" : [
+              {
+                "gress" : "ingress",
+                "field_name" : "ig_intr_md_for_dprsr.drop_ctl",
+                "start_bit" : 0,
+                "width" : 3
+              },
+              {
+                "gress" : "ingress",
+                "field_name" : "ig_intr_md_for_dprsr.drop_ctl.$valid",
+                "start_bit" : 0,
+                "width" : 1
+              }
+            ],
+            "tags" : ["dependency"]
+          }
+        },
+        {
+          "id" : "65",
           "source" : "0",
-          "target" : "13",
+          "target" : "20",
           "metadata" : {
             "type" : "action",
             "sub_type" : "output",
@@ -748,7 +1450,7 @@
           }
         },
         {
-          "id" : "32",
+          "id" : "66",
           "source" : "0",
           "target" : "1",
           "metadata" : {
@@ -759,9 +1461,9 @@
           }
         },
         {
-          "id" : "33",
+          "id" : "67",
           "source" : "0",
-          "target" : "13",
+          "target" : "20",
           "metadata" : {
             "type" : "control",
             "sub_type" : "table_miss",
@@ -770,40 +1472,8 @@
           }
         },
         {
-          "id" : "34",
+          "id" : "68",
           "source" : "1",
-          "target" : "4",
-          "metadata" : {
-            "type" : "control",
-            "sub_type" : "table_hit",
-            "is_critical" : true,
-            "tags" : ["flow"]
-          }
-        },
-        {
-          "id" : "35",
-          "source" : "1",
-          "target" : "2",
-          "metadata" : {
-            "type" : "control",
-            "sub_type" : "table_miss",
-            "is_critical" : true,
-            "tags" : ["flow"]
-          }
-        },
-        {
-          "id" : "36",
-          "source" : "4",
-          "target" : "2",
-          "metadata" : {
-            "type" : "control",
-            "sub_type" : "default_next_table",
-            "tags" : ["flow"]
-          }
-        },
-        {
-          "id" : "37",
-          "source" : "2",
           "target" : "5",
           "metadata" : {
             "type" : "control",
@@ -813,7 +1483,39 @@
           }
         },
         {
-          "id" : "38",
+          "id" : "69",
+          "source" : "1",
+          "target" : "2",
+          "metadata" : {
+            "type" : "control",
+            "sub_type" : "table_miss",
+            "is_critical" : true,
+            "tags" : ["flow"]
+          }
+        },
+        {
+          "id" : "70",
+          "source" : "5",
+          "target" : "2",
+          "metadata" : {
+            "type" : "control",
+            "sub_type" : "default_next_table",
+            "tags" : ["flow"]
+          }
+        },
+        {
+          "id" : "71",
+          "source" : "2",
+          "target" : "6",
+          "metadata" : {
+            "type" : "control",
+            "sub_type" : "table_hit",
+            "is_critical" : true,
+            "tags" : ["flow"]
+          }
+        },
+        {
+          "id" : "72",
           "source" : "2",
           "target" : "3",
           "metadata" : {
@@ -823,8 +1525,8 @@
           }
         },
         {
-          "id" : "39",
-          "source" : "5",
+          "id" : "73",
+          "source" : "6",
           "target" : "3",
           "metadata" : {
             "type" : "control",
@@ -834,9 +1536,9 @@
           }
         },
         {
-          "id" : "40",
+          "id" : "74",
           "source" : "3",
-          "target" : "6",
+          "target" : "7",
           "metadata" : {
             "type" : "control",
             "sub_type" : "condition",
@@ -846,51 +1548,18 @@
           }
         },
         {
-          "id" : "41",
+          "id" : "75",
           "source" : "3",
-          "target" : "12",
+          "target" : "4",
           "metadata" : {
             "type" : "control",
             "sub_type" : "condition",
             "condition_value" : false,
-            "is_critical" : true,
             "tags" : ["flow"]
           }
         },
         {
-          "id" : "42",
-          "source" : "6",
-          "target" : "9",
-          "metadata" : {
-            "type" : "control",
-            "sub_type" : "table_hit",
-            "is_critical" : true,
-            "tags" : ["flow"]
-          }
-        },
-        {
-          "id" : "43",
-          "source" : "6",
-          "target" : "7",
-          "metadata" : {
-            "type" : "control",
-            "sub_type" : "table_miss",
-            "is_critical" : true,
-            "tags" : ["flow"]
-          }
-        },
-        {
-          "id" : "44",
-          "source" : "9",
-          "target" : "7",
-          "metadata" : {
-            "type" : "control",
-            "sub_type" : "default_next_table",
-            "tags" : ["flow"]
-          }
-        },
-        {
-          "id" : "45",
+          "id" : "76",
           "source" : "7",
           "target" : "10",
           "metadata" : {
@@ -901,9 +1570,41 @@
           }
         },
         {
-          "id" : "46",
+          "id" : "77",
           "source" : "7",
           "target" : "8",
+          "metadata" : {
+            "type" : "control",
+            "sub_type" : "table_miss",
+            "is_critical" : true,
+            "tags" : ["flow"]
+          }
+        },
+        {
+          "id" : "78",
+          "source" : "10",
+          "target" : "8",
+          "metadata" : {
+            "type" : "control",
+            "sub_type" : "default_next_table",
+            "tags" : ["flow"]
+          }
+        },
+        {
+          "id" : "79",
+          "source" : "8",
+          "target" : "11",
+          "metadata" : {
+            "type" : "control",
+            "sub_type" : "table_hit",
+            "is_critical" : true,
+            "tags" : ["flow"]
+          }
+        },
+        {
+          "id" : "80",
+          "source" : "8",
+          "target" : "9",
           "metadata" : {
             "type" : "control",
             "sub_type" : "table_miss",
@@ -911,9 +1612,9 @@
           }
         },
         {
-          "id" : "47",
-          "source" : "10",
-          "target" : "8",
+          "id" : "81",
+          "source" : "11",
+          "target" : "9",
           "metadata" : {
             "type" : "control",
             "sub_type" : "default_next_table",
@@ -922,9 +1623,9 @@
           }
         },
         {
-          "id" : "48",
-          "source" : "8",
-          "target" : "11",
+          "id" : "82",
+          "source" : "9",
+          "target" : "12",
           "metadata" : {
             "type" : "control",
             "sub_type" : "condition",
@@ -934,9 +1635,9 @@
           }
         },
         {
-          "id" : "49",
-          "source" : "8",
-          "target" : "14",
+          "id" : "83",
+          "source" : "9",
+          "target" : "4",
           "metadata" : {
             "type" : "control",
             "sub_type" : "condition",
@@ -945,29 +1646,151 @@
           }
         },
         {
-          "id" : "50",
-          "source" : "11",
-          "target" : "14",
-          "metadata" : {
-            "type" : "control",
-            "sub_type" : "default_next_table",
-            "tags" : ["flow"]
-          }
-        },
-        {
-          "id" : "51",
+          "id" : "84",
           "source" : "12",
-          "target" : "14",
+          "target" : "4",
           "metadata" : {
             "type" : "control",
             "sub_type" : "default_next_table",
+            "is_critical" : true,
             "tags" : ["flow"]
           }
         },
         {
-          "id" : "52",
+          "id" : "85",
+          "source" : "4",
+          "target" : "13",
+          "metadata" : {
+            "type" : "control",
+            "sub_type" : "condition",
+            "condition_value" : true,
+            "is_critical" : true,
+            "tags" : ["flow"]
+          }
+        },
+        {
+          "id" : "86",
+          "source" : "4",
+          "target" : "19",
+          "metadata" : {
+            "type" : "control",
+            "sub_type" : "condition",
+            "condition_value" : false,
+            "is_critical" : true,
+            "tags" : ["flow"]
+          }
+        },
+        {
+          "id" : "87",
+          "source" : "13",
+          "target" : "16",
+          "metadata" : {
+            "type" : "control",
+            "sub_type" : "table_hit",
+            "is_critical" : true,
+            "tags" : ["flow"]
+          }
+        },
+        {
+          "id" : "88",
           "source" : "13",
           "target" : "14",
+          "metadata" : {
+            "type" : "control",
+            "sub_type" : "table_miss",
+            "is_critical" : true,
+            "tags" : ["flow"]
+          }
+        },
+        {
+          "id" : "89",
+          "source" : "16",
+          "target" : "14",
+          "metadata" : {
+            "type" : "control",
+            "sub_type" : "default_next_table",
+            "tags" : ["flow"]
+          }
+        },
+        {
+          "id" : "90",
+          "source" : "14",
+          "target" : "17",
+          "metadata" : {
+            "type" : "control",
+            "sub_type" : "table_hit",
+            "is_critical" : true,
+            "tags" : ["flow"]
+          }
+        },
+        {
+          "id" : "91",
+          "source" : "14",
+          "target" : "15",
+          "metadata" : {
+            "type" : "control",
+            "sub_type" : "table_miss",
+            "tags" : ["flow"]
+          }
+        },
+        {
+          "id" : "92",
+          "source" : "17",
+          "target" : "15",
+          "metadata" : {
+            "type" : "control",
+            "sub_type" : "default_next_table",
+            "is_critical" : true,
+            "tags" : ["flow"]
+          }
+        },
+        {
+          "id" : "93",
+          "source" : "15",
+          "target" : "18",
+          "metadata" : {
+            "type" : "control",
+            "sub_type" : "condition",
+            "condition_value" : true,
+            "is_critical" : true,
+            "tags" : ["flow"]
+          }
+        },
+        {
+          "id" : "94",
+          "source" : "15",
+          "target" : "21",
+          "metadata" : {
+            "type" : "control",
+            "sub_type" : "condition",
+            "condition_value" : false,
+            "tags" : ["flow"]
+          }
+        },
+        {
+          "id" : "95",
+          "source" : "18",
+          "target" : "21",
+          "metadata" : {
+            "type" : "control",
+            "sub_type" : "default_next_table",
+            "tags" : ["flow"]
+          }
+        },
+        {
+          "id" : "96",
+          "source" : "19",
+          "target" : "21",
+          "metadata" : {
+            "type" : "control",
+            "sub_type" : "default_next_table",
+            "tags" : ["flow"]
+          }
+        },
+        {
+          "id" : "97",
+          "source" : "20",
+          "target" : "21",
           "metadata" : {
             "type" : "control",
             "sub_type" : "default_next_table",
@@ -1002,7 +1825,7 @@
               }
             ],
             "min_stage" : 0,
-            "dep_chain" : 5
+            "dep_chain" : 8
           }
         },
         {
@@ -1024,7 +1847,7 @@
               }
             ],
             "min_stage" : 1,
-            "dep_chain" : 4
+            "dep_chain" : 7
           }
         },
         {
@@ -1042,7 +1865,7 @@
               }
             ],
             "min_stage" : 2,
-            "dep_chain" : 3
+            "dep_chain" : 6
           }
         },
         {
@@ -1050,7 +1873,29 @@
           "metadata" : {
             "placement" : {
               "logical_table_id" : 0,
-              "stage_number" : 3
+              "stage_number" : 4
+            },
+            "tables" : [
+              {
+                "name" : "SwitchIngress.src_tcam_table_secondary",
+                "table_type" : "match",
+                "match_type" : "ternary"
+              },
+              {
+                "name" : "src_tcam_table_secondary_0$tind",
+                "table_type" : "ternary_indirect"
+              }
+            ],
+            "min_stage" : 3,
+            "dep_chain" : 5
+          }
+        },
+        {
+          "id" : "4",
+          "metadata" : {
+            "placement" : {
+              "logical_table_id" : 0,
+              "stage_number" : 7
             },
             "tables" : [
               {
@@ -1063,16 +1908,16 @@
                 "table_type" : "ternary_indirect"
               }
             ],
-            "min_stage" : 3,
+            "min_stage" : 6,
             "dep_chain" : 2
           }
         },
         {
-          "id" : "4",
+          "id" : "5",
           "metadata" : {
             "placement" : {
-              "logical_table_id" : 1,
-              "stage_number" : 1
+              "logical_table_id" : 0,
+              "stage_number" : 3
             },
             "tables" : [
               {
@@ -1086,11 +1931,11 @@
               }
             ],
             "min_stage" : 1,
-            "dep_chain" : 3
+            "dep_chain" : 6
           }
         },
         {
-          "id" : "5",
+          "id" : "6",
           "metadata" : {
             "placement" : {
               "logical_table_id" : 1,
@@ -1108,29 +1953,7 @@
               }
             ],
             "min_stage" : 2,
-            "dep_chain" : 3
-          }
-        },
-        {
-          "id" : "6",
-          "metadata" : {
-            "placement" : {
-              "logical_table_id" : 2,
-              "stage_number" : 3
-            },
-            "tables" : [
-              {
-                "name" : "tbl_drop_0",
-                "table_type" : "match",
-                "match_type" : "ternary"
-              },
-              {
-                "name" : "tbl_drop_0$tind",
-                "table_type" : "ternary_indirect"
-              }
-            ],
-            "min_stage" : 3,
-            "dep_chain" : 0
+            "dep_chain" : 6
           }
         },
         {
@@ -1138,7 +1961,7 @@
           "metadata" : {
             "placement" : {
               "logical_table_id" : 1,
-              "stage_number" : 3
+              "stage_number" : 4
             },
             "tables" : [
               {
@@ -1152,7 +1975,7 @@
               }
             ],
             "min_stage" : 3,
-            "dep_chain" : 1
+            "dep_chain" : 4
           }
         },
         {
@@ -1160,17 +1983,17 @@
           "metadata" : {
             "placement" : {
               "logical_table_id" : 0,
-              "stage_number" : 4
+              "stage_number" : 5
             },
             "tables" : [
               {
-                "name" : "SwitchIngress.dst_sram_table",
+                "name" : "SwitchIngress.src_sram_table_secondary",
                 "table_type" : "match",
                 "match_type" : "exact"
               }
             ],
             "min_stage" : 4,
-            "dep_chain" : 1
+            "dep_chain" : 4
           }
         },
         {
@@ -1178,21 +2001,21 @@
           "metadata" : {
             "placement" : {
               "logical_table_id" : 0,
-              "stage_number" : 5
+              "stage_number" : 6
             },
             "tables" : [
               {
-                "name" : "tbl_drop",
+                "name" : "tbl_tofino2l358",
                 "table_type" : "match",
                 "match_type" : "ternary"
               },
               {
-                "name" : "tbl_drop$tind",
+                "name" : "tbl_tofino2l358$tind",
                 "table_type" : "ternary_indirect"
               }
             ],
             "min_stage" : 5,
-            "dep_chain" : 0
+            "dep_chain" : 3
           }
         },
         {
@@ -1200,7 +2023,7 @@
           "metadata" : {
             "placement" : {
               "logical_table_id" : 1,
-              "stage_number" : 4
+              "stage_number" : 5
             },
             "tables" : [
               {
@@ -1214,7 +2037,7 @@
               }
             ],
             "min_stage" : 4,
-            "dep_chain" : 1
+            "dep_chain" : 4
           }
         },
         {
@@ -1222,6 +2045,112 @@
           "metadata" : {
             "placement" : {
               "logical_table_id" : 2,
+              "stage_number" : 7
+            },
+            "tables" : [
+              {
+                "name" : "tbl_drop_0",
+                "table_type" : "match",
+                "match_type" : "ternary"
+              },
+              {
+                "name" : "tbl_drop_0$tind",
+                "table_type" : "ternary_indirect"
+              }
+            ],
+            "min_stage" : 6,
+            "dep_chain" : 0
+          }
+        },
+        {
+          "id" : "12",
+          "metadata" : {
+            "placement" : {
+              "logical_table_id" : 1,
+              "stage_number" : 7
+            },
+            "tables" : [
+              {
+                "name" : "tbl_act_7",
+                "table_type" : "match",
+                "match_type" : "ternary"
+              },
+              {
+                "name" : "tbl_act_7$tind",
+                "table_type" : "ternary_indirect"
+              }
+            ],
+            "min_stage" : 6,
+            "dep_chain" : 1
+          }
+        },
+        {
+          "id" : "13",
+          "metadata" : {
+            "placement" : {
+              "logical_table_id" : 0,
+              "stage_number" : 8
+            },
+            "tables" : [
+              {
+                "name" : "SwitchIngress.dst_sram_table",
+                "table_type" : "match",
+                "match_type" : "exact"
+              }
+            ],
+            "min_stage" : 7,
+            "dep_chain" : 1
+          }
+        },
+        {
+          "id" : "14",
+          "metadata" : {
+            "placement" : {
+              "logical_table_id" : 0,
+              "stage_number" : 9
+            },
+            "tables" : [
+              {
+                "name" : "tbl_drop",
+                "table_type" : "match",
+                "match_type" : "ternary"
+              },
+              {
+                "name" : "tbl_drop$tind",
+                "table_type" : "ternary_indirect"
+              }
+            ],
+            "min_stage" : 8,
+            "dep_chain" : 0
+          }
+        },
+        {
+          "id" : "15",
+          "metadata" : {
+            "placement" : {
+              "logical_table_id" : 1,
+              "stage_number" : 8
+            },
+            "tables" : [
+              {
+                "name" : "tbl_act_9",
+                "table_type" : "match",
+                "match_type" : "ternary"
+              },
+              {
+                "name" : "tbl_act_9$tind",
+                "table_type" : "ternary_indirect"
+              }
+            ],
+            "min_stage" : 7,
+            "dep_chain" : 1
+          }
+        },
+        {
+          "id" : "16",
+          "metadata" : {
+            "placement" : {
+              "logical_table_id" : 1,
               "stage_number" : 1
             },
             "tables" : [
@@ -1240,7 +2169,7 @@
           }
         },
         {
-          "id" : "12",
+          "id" : "17",
           "metadata" : {
             "tables" : [
               {
@@ -1287,18 +2216,17 @@
         },
         {
           "id" : "3",
-          "source" : "1",
+          "source" : "0",
           "target" : "4",
           "metadata" : {
             "type" : "control",
             "sub_type" : "table_hit",
-            "is_critical" : true,
             "tags" : ["dependency"]
           }
         },
         {
           "id" : "4",
-          "source" : "2",
+          "source" : "1",
           "target" : "5",
           "metadata" : {
             "type" : "control",
@@ -1309,12 +2237,11 @@
         },
         {
           "id" : "5",
-          "source" : "3",
+          "source" : "2",
           "target" : "6",
           "metadata" : {
             "type" : "control",
-            "sub_type" : "condition",
-            "condition_value" : false,
+            "sub_type" : "table_hit",
             "is_critical" : true,
             "tags" : ["dependency"]
           }
@@ -1383,8 +2310,62 @@
         },
         {
           "id" : "12",
-          "source" : "0",
+          "source" : "4",
           "target" : "11",
+          "metadata" : {
+            "type" : "control",
+            "sub_type" : "condition",
+            "condition_value" : false,
+            "is_critical" : true,
+            "tags" : ["dependency"]
+          }
+        },
+        {
+          "id" : "13",
+          "source" : "4",
+          "target" : "12",
+          "metadata" : {
+            "type" : "control",
+            "sub_type" : "table_hit",
+            "is_critical" : true,
+            "tags" : ["dependency"]
+          }
+        },
+        {
+          "id" : "14",
+          "source" : "4",
+          "target" : "13",
+          "metadata" : {
+            "type" : "control",
+            "sub_type" : "table_hit",
+            "tags" : ["dependency"]
+          }
+        },
+        {
+          "id" : "15",
+          "source" : "4",
+          "target" : "14",
+          "metadata" : {
+            "type" : "control",
+            "sub_type" : "table_hit",
+            "tags" : ["dependency"]
+          }
+        },
+        {
+          "id" : "16",
+          "source" : "13",
+          "target" : "15",
+          "metadata" : {
+            "type" : "control",
+            "sub_type" : "table_hit",
+            "is_critical" : true,
+            "tags" : ["dependency"]
+          }
+        },
+        {
+          "id" : "17",
+          "source" : "4",
+          "target" : "13",
           "metadata" : {
             "type" : "control",
             "sub_type" : "table_miss",
@@ -1392,7 +2373,27 @@
           }
         },
         {
-          "id" : "13",
+          "id" : "18",
+          "source" : "4",
+          "target" : "14",
+          "metadata" : {
+            "type" : "control",
+            "sub_type" : "table_miss",
+            "tags" : ["dependency"]
+          }
+        },
+        {
+          "id" : "19",
+          "source" : "0",
+          "target" : "16",
+          "metadata" : {
+            "type" : "control",
+            "sub_type" : "table_miss",
+            "tags" : ["dependency"]
+          }
+        },
+        {
+          "id" : "20",
           "source" : "0",
           "target" : "1",
           "metadata" : {
@@ -1411,7 +2412,32 @@
           }
         },
         {
-          "id" : "14",
+          "id" : "21",
+          "source" : "0",
+          "target" : "1",
+          "metadata" : {
+            "type" : "action",
+            "sub_type" : "output",
+            "dep_fields" : [
+              {
+                "gress" : "ingress",
+                "field_name" : "ig_intr_md_for_dprsr.drop_ctl.$valid",
+                "start_bit" : 0,
+                "width" : 1
+              },
+              {
+                "gress" : "ingress",
+                "field_name" : "ig_intr_md_for_dprsr.drop_ctl",
+                "start_bit" : 0,
+                "width" : 3
+              }
+            ],
+            "is_critical" : true,
+            "tags" : ["dependency"]
+          }
+        },
+        {
+          "id" : "22",
           "source" : "0",
           "target" : "2",
           "metadata" : {
@@ -1429,7 +2455,7 @@
           }
         },
         {
-          "id" : "15",
+          "id" : "23",
           "source" : "1",
           "target" : "2",
           "metadata" : {
@@ -1441,6 +2467,18 @@
                 "field_name" : "ig_md.Group_id2",
                 "start_bit" : 0,
                 "width" : 9
+              },
+              {
+                "gress" : "ingress",
+                "field_name" : "ig_intr_md_for_dprsr.drop_ctl.$valid",
+                "start_bit" : 0,
+                "width" : 1
+              },
+              {
+                "gress" : "ingress",
+                "field_name" : "ig_intr_md_for_dprsr.drop_ctl",
+                "start_bit" : 0,
+                "width" : 3
               }
             ],
             "is_critical" : true,
@@ -1448,19 +2486,31 @@
           }
         },
         {
-          "id" : "16",
-          "source" : "4",
-          "target" : "3",
+          "id" : "24",
+          "source" : "0",
+          "target" : "2",
           "metadata" : {
             "type" : "action",
-            "sub_type" : "action_read",
-            "dep_fields" : [],
-            "action_name" : "",
+            "sub_type" : "output",
+            "dep_fields" : [
+              {
+                "gress" : "ingress",
+                "field_name" : "ig_intr_md_for_dprsr.drop_ctl.$valid",
+                "start_bit" : 0,
+                "width" : 1
+              },
+              {
+                "gress" : "ingress",
+                "field_name" : "ig_intr_md_for_dprsr.drop_ctl",
+                "start_bit" : 0,
+                "width" : 3
+              }
+            ],
             "tags" : ["dependency"]
           }
         },
         {
-          "id" : "17",
+          "id" : "25",
           "source" : "5",
           "target" : "3",
           "metadata" : {
@@ -1468,50 +2518,55 @@
             "sub_type" : "action_read",
             "dep_fields" : [],
             "action_name" : "",
+            "tags" : ["dependency"]
+          }
+        },
+        {
+          "id" : "26",
+          "source" : "6",
+          "target" : "3",
+          "metadata" : {
+            "type" : "action",
+            "sub_type" : "action_read",
+            "dep_fields" : [],
+            "action_name" : "",
             "is_critical" : true,
             "tags" : ["dependency"]
           }
         },
         {
-          "id" : "18",
-          "source" : "2",
-          "target" : "3",
-          "metadata" : {
-            "type" : "match",
-            "sub_type" : "ixbar_read",
-            "dep_fields" : [
-              {
-                "gress" : "ingress",
-                "field_name" : "ig_md.Group_id2",
-                "start_bit" : 0,
-                "width" : 9
-              }
-            ],
-            "is_critical" : true,
-            "tags" : ["dependency"]
-          }
-        },
-        {
-          "id" : "19",
-          "source" : "1",
-          "target" : "3",
-          "metadata" : {
-            "type" : "match",
-            "sub_type" : "ixbar_read",
-            "dep_fields" : [
-              {
-                "gress" : "ingress",
-                "field_name" : "ig_md.Group_id2",
-                "start_bit" : 0,
-                "width" : 9
-              }
-            ],
-            "tags" : ["dependency"]
-          }
-        },
-        {
-          "id" : "20",
+          "id" : "27",
           "source" : "0",
+          "target" : "3",
+          "metadata" : {
+            "type" : "action",
+            "sub_type" : "action_read",
+            "dep_fields" : [],
+            "action_name" : "",
+            "tags" : ["dependency"]
+          }
+        },
+        {
+          "id" : "28",
+          "source" : "0",
+          "target" : "3",
+          "metadata" : {
+            "type" : "match",
+            "sub_type" : "ixbar_read",
+            "dep_fields" : [
+              {
+                "gress" : "ingress",
+                "field_name" : "ig_md.Group_id_secondary",
+                "start_bit" : 0,
+                "width" : 9
+              }
+            ],
+            "tags" : ["dependency"]
+          }
+        },
+        {
+          "id" : "29",
+          "source" : "2",
           "target" : "3",
           "metadata" : {
             "type" : "action",
@@ -1519,54 +2574,25 @@
             "dep_fields" : [
               {
                 "gress" : "ingress",
-                "field_name" : "ig_intr_md_for_dprsr.drop_ctl.$valid",
+                "field_name" : "ig_md.Group_id2",
                 "start_bit" : 0,
-                "width" : 1
-              },
-              {
-                "gress" : "ingress",
-                "field_name" : "ig_intr_md_for_dprsr.drop_ctl",
-                "start_bit" : 0,
-                "width" : 3
+                "width" : 9
               }
             ],
+            "is_critical" : true,
             "tags" : ["dependency"]
           }
         },
         {
-          "id" : "21",
-          "source" : "0",
-          "target" : "6",
+          "id" : "30",
+          "source" : "1",
+          "target" : "3",
           "metadata" : {
             "type" : "action",
             "sub_type" : "output",
             "dep_fields" : [
               {
                 "gress" : "ingress",
-                "field_name" : "ig_intr_md_for_dprsr.drop_ctl.$valid",
-                "start_bit" : 0,
-                "width" : 1
-              },
-              {
-                "gress" : "ingress",
-                "field_name" : "ig_intr_md_for_dprsr.drop_ctl",
-                "start_bit" : 0,
-                "width" : 3
-              }
-            ],
-            "tags" : ["dependency"]
-          }
-        },
-        {
-          "id" : "22",
-          "source" : "2",
-          "target" : "8",
-          "metadata" : {
-            "type" : "match",
-            "sub_type" : "ixbar_read",
-            "dep_fields" : [
-              {
-                "gress" : "ingress",
                 "field_name" : "ig_md.Group_id2",
                 "start_bit" : 0,
                 "width" : 9
@@ -1576,8 +2602,8 @@
           }
         },
         {
-          "id" : "23",
-          "source" : "1",
+          "id" : "31",
+          "source" : "0",
           "target" : "8",
           "metadata" : {
             "type" : "match",
@@ -1585,7 +2611,7 @@
             "dep_fields" : [
               {
                 "gress" : "ingress",
-                "field_name" : "ig_md.Group_id2",
+                "field_name" : "ig_md.Group_id_secondary",
                 "start_bit" : 0,
                 "width" : 9
               }
@@ -1594,9 +2620,414 @@
           }
         },
         {
-          "id" : "24",
+          "id" : "32",
           "source" : "3",
           "target" : "8",
+          "metadata" : {
+            "type" : "action",
+            "sub_type" : "output",
+            "dep_fields" : [
+              {
+                "gress" : "ingress",
+                "field_name" : "ig_md.Group_id2",
+                "start_bit" : 0,
+                "width" : 9
+              }
+            ],
+            "is_critical" : true,
+            "tags" : ["dependency"]
+          }
+        },
+        {
+          "id" : "33",
+          "source" : "2",
+          "target" : "8",
+          "metadata" : {
+            "type" : "action",
+            "sub_type" : "output",
+            "dep_fields" : [
+              {
+                "gress" : "ingress",
+                "field_name" : "ig_md.Group_id2",
+                "start_bit" : 0,
+                "width" : 9
+              }
+            ],
+            "tags" : ["dependency"]
+          }
+        },
+        {
+          "id" : "34",
+          "source" : "1",
+          "target" : "8",
+          "metadata" : {
+            "type" : "action",
+            "sub_type" : "output",
+            "dep_fields" : [
+              {
+                "gress" : "ingress",
+                "field_name" : "ig_md.Group_id2",
+                "start_bit" : 0,
+                "width" : 9
+              }
+            ],
+            "tags" : ["dependency"]
+          }
+        },
+        {
+          "id" : "35",
+          "source" : "7",
+          "target" : "9",
+          "metadata" : {
+            "type" : "action",
+            "sub_type" : "action_read",
+            "dep_fields" : [],
+            "action_name" : "",
+            "tags" : ["dependency"]
+          }
+        },
+        {
+          "id" : "36",
+          "source" : "10",
+          "target" : "9",
+          "metadata" : {
+            "type" : "action",
+            "sub_type" : "action_read",
+            "dep_fields" : [],
+            "action_name" : "",
+            "is_critical" : true,
+            "tags" : ["dependency"]
+          }
+        },
+        {
+          "id" : "37",
+          "source" : "5",
+          "target" : "4",
+          "metadata" : {
+            "type" : "action",
+            "sub_type" : "action_read",
+            "dep_fields" : [],
+            "action_name" : "",
+            "tags" : ["dependency"]
+          }
+        },
+        {
+          "id" : "38",
+          "source" : "6",
+          "target" : "4",
+          "metadata" : {
+            "type" : "action",
+            "sub_type" : "action_read",
+            "dep_fields" : [],
+            "action_name" : "",
+            "tags" : ["dependency"]
+          }
+        },
+        {
+          "id" : "39",
+          "source" : "9",
+          "target" : "4",
+          "metadata" : {
+            "type" : "action",
+            "sub_type" : "action_read",
+            "dep_fields" : [],
+            "action_name" : "",
+            "is_critical" : true,
+            "tags" : ["dependency"]
+          }
+        },
+        {
+          "id" : "40",
+          "source" : "8",
+          "target" : "4",
+          "metadata" : {
+            "type" : "match",
+            "sub_type" : "ixbar_read",
+            "dep_fields" : [
+              {
+                "gress" : "ingress",
+                "field_name" : "ig_md.Group_id2",
+                "start_bit" : 0,
+                "width" : 9
+              }
+            ],
+            "tags" : ["dependency"]
+          }
+        },
+        {
+          "id" : "41",
+          "source" : "3",
+          "target" : "4",
+          "metadata" : {
+            "type" : "match",
+            "sub_type" : "ixbar_read",
+            "dep_fields" : [
+              {
+                "gress" : "ingress",
+                "field_name" : "ig_md.Group_id2",
+                "start_bit" : 0,
+                "width" : 9
+              }
+            ],
+            "tags" : ["dependency"]
+          }
+        },
+        {
+          "id" : "42",
+          "source" : "2",
+          "target" : "4",
+          "metadata" : {
+            "type" : "match",
+            "sub_type" : "ixbar_read",
+            "dep_fields" : [
+              {
+                "gress" : "ingress",
+                "field_name" : "ig_md.Group_id2",
+                "start_bit" : 0,
+                "width" : 9
+              }
+            ],
+            "tags" : ["dependency"]
+          }
+        },
+        {
+          "id" : "43",
+          "source" : "1",
+          "target" : "4",
+          "metadata" : {
+            "type" : "match",
+            "sub_type" : "ixbar_read",
+            "dep_fields" : [
+              {
+                "gress" : "ingress",
+                "field_name" : "ig_md.Group_id2",
+                "start_bit" : 0,
+                "width" : 9
+              }
+            ],
+            "tags" : ["dependency"]
+          }
+        },
+        {
+          "id" : "44",
+          "source" : "0",
+          "target" : "4",
+          "metadata" : {
+            "type" : "action",
+            "sub_type" : "output",
+            "dep_fields" : [
+              {
+                "gress" : "ingress",
+                "field_name" : "ig_intr_md_for_dprsr.drop_ctl.$valid",
+                "start_bit" : 0,
+                "width" : 1
+              },
+              {
+                "gress" : "ingress",
+                "field_name" : "ig_intr_md_for_dprsr.drop_ctl",
+                "start_bit" : 0,
+                "width" : 3
+              }
+            ],
+            "tags" : ["dependency"]
+          }
+        },
+        {
+          "id" : "45",
+          "source" : "1",
+          "target" : "4",
+          "metadata" : {
+            "type" : "action",
+            "sub_type" : "output",
+            "dep_fields" : [
+              {
+                "gress" : "ingress",
+                "field_name" : "ig_intr_md_for_dprsr.drop_ctl.$valid",
+                "start_bit" : 0,
+                "width" : 1
+              },
+              {
+                "gress" : "ingress",
+                "field_name" : "ig_intr_md_for_dprsr.drop_ctl",
+                "start_bit" : 0,
+                "width" : 3
+              }
+            ],
+            "tags" : ["dependency"]
+          }
+        },
+        {
+          "id" : "46",
+          "source" : "2",
+          "target" : "4",
+          "metadata" : {
+            "type" : "action",
+            "sub_type" : "output",
+            "dep_fields" : [
+              {
+                "gress" : "ingress",
+                "field_name" : "ig_intr_md_for_dprsr.drop_ctl.$valid",
+                "start_bit" : 0,
+                "width" : 1
+              },
+              {
+                "gress" : "ingress",
+                "field_name" : "ig_intr_md_for_dprsr.drop_ctl",
+                "start_bit" : 0,
+                "width" : 3
+              }
+            ],
+            "tags" : ["dependency"]
+          }
+        },
+        {
+          "id" : "47",
+          "source" : "0",
+          "target" : "11",
+          "metadata" : {
+            "type" : "action",
+            "sub_type" : "output",
+            "dep_fields" : [
+              {
+                "gress" : "ingress",
+                "field_name" : "ig_intr_md_for_dprsr.drop_ctl.$valid",
+                "start_bit" : 0,
+                "width" : 1
+              },
+              {
+                "gress" : "ingress",
+                "field_name" : "ig_intr_md_for_dprsr.drop_ctl",
+                "start_bit" : 0,
+                "width" : 3
+              }
+            ],
+            "tags" : ["dependency"]
+          }
+        },
+        {
+          "id" : "48",
+          "source" : "1",
+          "target" : "11",
+          "metadata" : {
+            "type" : "action",
+            "sub_type" : "output",
+            "dep_fields" : [
+              {
+                "gress" : "ingress",
+                "field_name" : "ig_intr_md_for_dprsr.drop_ctl.$valid",
+                "start_bit" : 0,
+                "width" : 1
+              },
+              {
+                "gress" : "ingress",
+                "field_name" : "ig_intr_md_for_dprsr.drop_ctl",
+                "start_bit" : 0,
+                "width" : 3
+              }
+            ],
+            "tags" : ["dependency"]
+          }
+        },
+        {
+          "id" : "49",
+          "source" : "2",
+          "target" : "11",
+          "metadata" : {
+            "type" : "action",
+            "sub_type" : "output",
+            "dep_fields" : [
+              {
+                "gress" : "ingress",
+                "field_name" : "ig_intr_md_for_dprsr.drop_ctl.$valid",
+                "start_bit" : 0,
+                "width" : 1
+              },
+              {
+                "gress" : "ingress",
+                "field_name" : "ig_intr_md_for_dprsr.drop_ctl",
+                "start_bit" : 0,
+                "width" : 3
+              }
+            ],
+            "tags" : ["dependency"]
+          }
+        },
+        {
+          "id" : "50",
+          "source" : "8",
+          "target" : "13",
+          "metadata" : {
+            "type" : "match",
+            "sub_type" : "ixbar_read",
+            "dep_fields" : [
+              {
+                "gress" : "ingress",
+                "field_name" : "ig_md.Group_id2",
+                "start_bit" : 0,
+                "width" : 9
+              }
+            ],
+            "tags" : ["dependency"]
+          }
+        },
+        {
+          "id" : "51",
+          "source" : "3",
+          "target" : "13",
+          "metadata" : {
+            "type" : "match",
+            "sub_type" : "ixbar_read",
+            "dep_fields" : [
+              {
+                "gress" : "ingress",
+                "field_name" : "ig_md.Group_id2",
+                "start_bit" : 0,
+                "width" : 9
+              }
+            ],
+            "tags" : ["dependency"]
+          }
+        },
+        {
+          "id" : "52",
+          "source" : "2",
+          "target" : "13",
+          "metadata" : {
+            "type" : "match",
+            "sub_type" : "ixbar_read",
+            "dep_fields" : [
+              {
+                "gress" : "ingress",
+                "field_name" : "ig_md.Group_id2",
+                "start_bit" : 0,
+                "width" : 9
+              }
+            ],
+            "tags" : ["dependency"]
+          }
+        },
+        {
+          "id" : "53",
+          "source" : "1",
+          "target" : "13",
+          "metadata" : {
+            "type" : "match",
+            "sub_type" : "ixbar_read",
+            "dep_fields" : [
+              {
+                "gress" : "ingress",
+                "field_name" : "ig_md.Group_id2",
+                "start_bit" : 0,
+                "width" : 9
+              }
+            ],
+            "tags" : ["dependency"]
+          }
+        },
+        {
+          "id" : "54",
+          "source" : "4",
+          "target" : "13",
           "metadata" : {
             "type" : "action",
             "sub_type" : "output",
@@ -1631,9 +3062,9 @@
           }
         },
         {
-          "id" : "25",
+          "id" : "55",
           "source" : "0",
-          "target" : "8",
+          "target" : "13",
           "metadata" : {
             "type" : "action",
             "sub_type" : "output",
@@ -1655,9 +3086,57 @@
           }
         },
         {
-          "id" : "26",
-          "source" : "7",
-          "target" : "9",
+          "id" : "56",
+          "source" : "1",
+          "target" : "13",
+          "metadata" : {
+            "type" : "action",
+            "sub_type" : "output",
+            "dep_fields" : [
+              {
+                "gress" : "ingress",
+                "field_name" : "ig_intr_md_for_dprsr.drop_ctl.$valid",
+                "start_bit" : 0,
+                "width" : 1
+              },
+              {
+                "gress" : "ingress",
+                "field_name" : "ig_intr_md_for_dprsr.drop_ctl",
+                "start_bit" : 0,
+                "width" : 3
+              }
+            ],
+            "tags" : ["dependency"]
+          }
+        },
+        {
+          "id" : "57",
+          "source" : "2",
+          "target" : "13",
+          "metadata" : {
+            "type" : "action",
+            "sub_type" : "output",
+            "dep_fields" : [
+              {
+                "gress" : "ingress",
+                "field_name" : "ig_intr_md_for_dprsr.drop_ctl.$valid",
+                "start_bit" : 0,
+                "width" : 1
+              },
+              {
+                "gress" : "ingress",
+                "field_name" : "ig_intr_md_for_dprsr.drop_ctl",
+                "start_bit" : 0,
+                "width" : 3
+              }
+            ],
+            "tags" : ["dependency"]
+          }
+        },
+        {
+          "id" : "58",
+          "source" : "12",
+          "target" : "14",
           "metadata" : {
             "type" : "action",
             "sub_type" : "action_read",
@@ -1667,9 +3146,9 @@
           }
         },
         {
-          "id" : "27",
-          "source" : "10",
-          "target" : "9",
+          "id" : "59",
+          "source" : "15",
+          "target" : "14",
           "metadata" : {
             "type" : "action",
             "sub_type" : "action_read",
@@ -1680,9 +3159,9 @@
           }
         },
         {
-          "id" : "28",
+          "id" : "60",
           "source" : "0",
-          "target" : "9",
+          "target" : "14",
           "metadata" : {
             "type" : "action",
             "sub_type" : "output",
@@ -1704,9 +3183,9 @@
           }
         },
         {
-          "id" : "29",
-          "source" : "3",
-          "target" : "9",
+          "id" : "61",
+          "source" : "1",
+          "target" : "14",
           "metadata" : {
             "type" : "action",
             "sub_type" : "output",
@@ -1728,9 +3207,57 @@
           }
         },
         {
-          "id" : "30",
-          "source" : "8",
-          "target" : "9",
+          "id" : "62",
+          "source" : "2",
+          "target" : "14",
+          "metadata" : {
+            "type" : "action",
+            "sub_type" : "output",
+            "dep_fields" : [
+              {
+                "gress" : "ingress",
+                "field_name" : "ig_intr_md_for_dprsr.drop_ctl.$valid",
+                "start_bit" : 0,
+                "width" : 1
+              },
+              {
+                "gress" : "ingress",
+                "field_name" : "ig_intr_md_for_dprsr.drop_ctl",
+                "start_bit" : 0,
+                "width" : 3
+              }
+            ],
+            "tags" : ["dependency"]
+          }
+        },
+        {
+          "id" : "63",
+          "source" : "4",
+          "target" : "14",
+          "metadata" : {
+            "type" : "action",
+            "sub_type" : "output",
+            "dep_fields" : [
+              {
+                "gress" : "ingress",
+                "field_name" : "ig_intr_md_for_dprsr.drop_ctl.$valid",
+                "start_bit" : 0,
+                "width" : 1
+              },
+              {
+                "gress" : "ingress",
+                "field_name" : "ig_intr_md_for_dprsr.drop_ctl",
+                "start_bit" : 0,
+                "width" : 3
+              }
+            ],
+            "tags" : ["dependency"]
+          }
+        },
+        {
+          "id" : "64",
+          "source" : "13",
+          "target" : "14",
           "metadata" : {
             "type" : "action",
             "sub_type" : "output",
@@ -1753,9 +3280,9 @@
           }
         },
         {
-          "id" : "31",
+          "id" : "65",
           "source" : "0",
-          "target" : "11",
+          "target" : "16",
           "metadata" : {
             "type" : "action",
             "sub_type" : "output",
@@ -1778,7 +3305,7 @@
           }
         },
         {
-          "id" : "32",
+          "id" : "66",
           "source" : "0",
           "target" : "1",
           "metadata" : {
@@ -1789,9 +3316,9 @@
           }
         },
         {
-          "id" : "33",
+          "id" : "67",
           "source" : "0",
-          "target" : "11",
+          "target" : "16",
           "metadata" : {
             "type" : "control",
             "sub_type" : "table_miss",
@@ -1800,40 +3327,8 @@
           }
         },
         {
-          "id" : "34",
+          "id" : "68",
           "source" : "1",
-          "target" : "4",
-          "metadata" : {
-            "type" : "control",
-            "sub_type" : "table_hit",
-            "is_critical" : true,
-            "tags" : ["flow"]
-          }
-        },
-        {
-          "id" : "35",
-          "source" : "1",
-          "target" : "2",
-          "metadata" : {
-            "type" : "control",
-            "sub_type" : "table_miss",
-            "is_critical" : true,
-            "tags" : ["flow"]
-          }
-        },
-        {
-          "id" : "36",
-          "source" : "4",
-          "target" : "2",
-          "metadata" : {
-            "type" : "control",
-            "sub_type" : "default_next_table",
-            "tags" : ["flow"]
-          }
-        },
-        {
-          "id" : "37",
-          "source" : "2",
           "target" : "5",
           "metadata" : {
             "type" : "control",
@@ -1843,7 +3338,39 @@
           }
         },
         {
-          "id" : "38",
+          "id" : "69",
+          "source" : "1",
+          "target" : "2",
+          "metadata" : {
+            "type" : "control",
+            "sub_type" : "table_miss",
+            "is_critical" : true,
+            "tags" : ["flow"]
+          }
+        },
+        {
+          "id" : "70",
+          "source" : "5",
+          "target" : "2",
+          "metadata" : {
+            "type" : "control",
+            "sub_type" : "default_next_table",
+            "tags" : ["flow"]
+          }
+        },
+        {
+          "id" : "71",
+          "source" : "2",
+          "target" : "6",
+          "metadata" : {
+            "type" : "control",
+            "sub_type" : "table_hit",
+            "is_critical" : true,
+            "tags" : ["flow"]
+          }
+        },
+        {
+          "id" : "72",
           "source" : "2",
           "target" : "3",
           "metadata" : {
@@ -1854,8 +3381,8 @@
           }
         },
         {
-          "id" : "39",
-          "source" : "5",
+          "id" : "73",
+          "source" : "6",
           "target" : "3",
           "metadata" : {
             "type" : "control",
@@ -1865,9 +3392,9 @@
           }
         },
         {
-          "id" : "40",
+          "id" : "74",
           "source" : "3",
-          "target" : "6",
+          "target" : "4",
           "metadata" : {
             "type" : "control",
             "sub_type" : "condition",
@@ -1877,7 +3404,7 @@
           }
         },
         {
-          "id" : "41",
+          "id" : "75",
           "source" : "3",
           "target" : "7",
           "metadata" : {
@@ -1888,7 +3415,7 @@
           }
         },
         {
-          "id" : "42",
+          "id" : "76",
           "source" : "3",
           "target" : "8",
           "metadata" : {
@@ -1899,17 +3426,7 @@
           }
         },
         {
-          "id" : "43",
-          "source" : "6",
-          "target" : "12",
-          "metadata" : {
-            "type" : "control",
-            "sub_type" : "default_next_table",
-            "tags" : ["flow"]
-          }
-        },
-        {
-          "id" : "44",
+          "id" : "77",
           "source" : "7",
           "target" : "8",
           "metadata" : {
@@ -1919,7 +3436,7 @@
           }
         },
         {
-          "id" : "45",
+          "id" : "78",
           "source" : "8",
           "target" : "10",
           "metadata" : {
@@ -1930,18 +3447,17 @@
           }
         },
         {
-          "id" : "46",
+          "id" : "79",
           "source" : "8",
           "target" : "9",
           "metadata" : {
             "type" : "control",
             "sub_type" : "table_miss",
-            "is_critical" : true,
             "tags" : ["flow"]
           }
         },
         {
-          "id" : "47",
+          "id" : "80",
           "source" : "10",
           "target" : "9",
           "metadata" : {
@@ -1952,9 +3468,108 @@
           }
         },
         {
-          "id" : "48",
+          "id" : "81",
           "source" : "9",
+          "target" : "4",
+          "metadata" : {
+            "type" : "control",
+            "sub_type" : "condition",
+            "condition_value" : false,
+            "is_critical" : true,
+            "tags" : ["flow"]
+          }
+        },
+        {
+          "id" : "82",
+          "source" : "4",
+          "target" : "11",
+          "metadata" : {
+            "type" : "control",
+            "sub_type" : "condition",
+            "condition_value" : false,
+            "is_critical" : true,
+            "tags" : ["flow"]
+          }
+        },
+        {
+          "id" : "83",
+          "source" : "4",
           "target" : "12",
+          "metadata" : {
+            "type" : "control",
+            "sub_type" : "table_hit",
+            "is_critical" : true,
+            "tags" : ["flow"]
+          }
+        },
+        {
+          "id" : "84",
+          "source" : "4",
+          "target" : "13",
+          "metadata" : {
+            "type" : "control",
+            "sub_type" : "table_miss",
+            "is_critical" : true,
+            "tags" : ["flow"]
+          }
+        },
+        {
+          "id" : "85",
+          "source" : "11",
+          "target" : "17",
+          "metadata" : {
+            "type" : "control",
+            "sub_type" : "default_next_table",
+            "tags" : ["flow"]
+          }
+        },
+        {
+          "id" : "86",
+          "source" : "12",
+          "target" : "13",
+          "metadata" : {
+            "type" : "control",
+            "sub_type" : "default_next_table",
+            "tags" : ["flow"]
+          }
+        },
+        {
+          "id" : "87",
+          "source" : "13",
+          "target" : "15",
+          "metadata" : {
+            "type" : "control",
+            "sub_type" : "table_hit",
+            "is_critical" : true,
+            "tags" : ["flow"]
+          }
+        },
+        {
+          "id" : "88",
+          "source" : "13",
+          "target" : "14",
+          "metadata" : {
+            "type" : "control",
+            "sub_type" : "table_miss",
+            "is_critical" : true,
+            "tags" : ["flow"]
+          }
+        },
+        {
+          "id" : "89",
+          "source" : "15",
+          "target" : "14",
+          "metadata" : {
+            "type" : "control",
+            "sub_type" : "default_next_table",
+            "is_critical" : true,
+            "tags" : ["flow"]
+          }
+        },
+        {
+          "id" : "90",
+          "source" : "14",
+          "target" : "17",
           "metadata" : {
             "type" : "control",
             "sub_type" : "condition",
@@ -1963,9 +3578,9 @@
           }
         },
         {
-          "id" : "49",
-          "source" : "11",
-          "target" : "12",
+          "id" : "91",
+          "source" : "16",
+          "target" : "17",
           "metadata" : {
             "type" : "control",
             "sub_type" : "default_next_table",

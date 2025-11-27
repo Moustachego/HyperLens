@@ -1,8 +1,8 @@
 {
-  "build_date": "Tue Nov 25 11:18:28 2025",
+  "build_date": "Tue Nov 25 16:43:23 2025",
   "compiler_version": "9.13.1",
   "program_name": "tofino2.p4",
-  "run_id": "ebb2921b54f74acd",
+  "run_id": "0bee7d560cb1406f",
   "schema_version": "2.4.2",
   "resources": {
     "deparser": [
@@ -804,6 +804,12 @@
           "action_bus_bytes": {
             "bytes": [
               {
+                "byte_number": 2,
+                "used_by_tables": [
+                  "SwitchIngress.ip_table"
+                ]
+              },
+              {
                 "byte_number": 32,
                 "used_by_tables": [
                   "SwitchIngress.ip_table"
@@ -1293,10 +1299,6 @@
               },
               {
                 "id": 1,
-                "table_name": "tbl_act"
-              },
-              {
-                "id": 2,
                 "table_name": "tbl_drop_1"
               }
             ],
@@ -1398,15 +1400,6 @@
                 "id": 1,
                 "usages": [
                   {
-                    "used_by": "tbl_act",
-                    "used_for": "ternary_indirection_ram"
-                  }
-                ]
-              },
-              {
-                "id": 2,
-                "usages": [
-                  {
                     "used_by": "tbl_drop_1",
                     "used_for": "ternary_indirection_ram"
                   }
@@ -1425,12 +1418,17 @@
                     "usages": [
                       {
                         "action_names": [
-                          "SwitchIngress.nop"
+                          "SwitchIngress.drop"
                         ],
                         "used_by": "SwitchIngress.src_tcam_table"
                       }
                     ]
-                  },
+                  }
+                ],
+                "instruction_number": 1
+              },
+              {
+                "color_usages": [
                   {
                     "color": 1,
                     "gress": "ingress",
@@ -1445,23 +1443,6 @@
                   }
                 ],
                 "instruction_number": 0
-              },
-              {
-                "color_usages": [
-                  {
-                    "color": 0,
-                    "gress": "ingress",
-                    "usages": [
-                      {
-                        "action_names": [
-                          "act"
-                        ],
-                        "used_by": "tbl_act"
-                      }
-                    ]
-                  }
-                ],
-                "instruction_number": 1
               },
               {
                 "color_usages": [
@@ -2233,12 +2214,29 @@
                     "usages": [
                       {
                         "action_names": [
-                          "SwitchIngress.nop"
+                          "SwitchIngress.drop"
                         ],
                         "used_by": "SwitchIngress.src_sram_table"
                       }
                     ]
                   },
+                  {
+                    "color": 1,
+                    "gress": "ingress",
+                    "usages": [
+                      {
+                        "action_names": [
+                          "act_1"
+                        ],
+                        "used_by": "tbl_act_1"
+                      }
+                    ]
+                  }
+                ],
+                "instruction_number": 1
+              },
+              {
+                "color_usages": [
                   {
                     "color": 1,
                     "gress": "ingress",
@@ -2253,23 +2251,6 @@
                   }
                 ],
                 "instruction_number": 0
-              },
-              {
-                "color_usages": [
-                  {
-                    "color": 0,
-                    "gress": "ingress",
-                    "usages": [
-                      {
-                        "action_names": [
-                          "act_1"
-                        ],
-                        "used_by": "tbl_act_1"
-                      }
-                    ]
-                  }
-                ],
-                "instruction_number": 1
               }
             ],
             "size": 32
@@ -2356,6 +2337,1506 @@
         },
         {
           "action_bus_bytes": {
+            "bytes": [],
+            "size": 128
+          },
+          "action_slots": [
+            {
+              "maximum_slots": 32,
+              "number_used": 0,
+              "slot_bit_width": 8
+            },
+            {
+              "maximum_slots": 32,
+              "number_used": 0,
+              "slot_bit_width": 16
+            },
+            {
+              "maximum_slots": 32,
+              "number_used": 0,
+              "slot_bit_width": 32
+            }
+          ],
+          "exm_result_buses": {
+            "ids": [],
+            "size": 16
+          },
+          "exm_search_buses": {
+            "ids": [],
+            "size": 16
+          },
+          "gateways": {
+            "gateways": [],
+            "nRows": 8,
+            "nUnits": 2
+          },
+          "hash_bits": {
+            "bits": [],
+            "nBits": 52,
+            "nFunctions": 8
+          },
+          "hash_distribution_units": {
+            "nHashIds": 2,
+            "nUnitIds": 3,
+            "units": []
+          },
+          "logical_tables": {
+            "ids": [
+              {
+                "id": 0,
+                "table_name": "tbl_act"
+              }
+            ],
+            "size": 16
+          },
+          "map_rams": {
+            "maprams": [],
+            "nRows": 8,
+            "nUnits": 6
+          },
+          "meter_alus": {
+            "meters": [],
+            "nAlus": 4
+          },
+          "rams": {
+            "nColumns": 10,
+            "nRows": 8,
+            "srams": []
+          },
+          "stage_number": 3,
+          "stashes": {
+            "nRows": 8,
+            "nUnits": 2,
+            "stashes": []
+          },
+          "statistic_alus": {
+            "nAlus": 4,
+            "stats": []
+          },
+          "tcams": {
+            "nColumns": 2,
+            "nRows": 12,
+            "tcams": []
+          },
+          "tind_result_buses": {
+            "ids": [
+              {
+                "id": 0,
+                "usages": [
+                  {
+                    "used_by": "tbl_act",
+                    "used_for": "ternary_indirection_ram"
+                  }
+                ]
+              }
+            ],
+            "size": 16
+          },
+          "vliw": {
+            "instructions": [
+              {
+                "color_usages": [
+                  {
+                    "color": 1,
+                    "gress": "ingress",
+                    "usages": [
+                      {
+                        "action_names": [
+                          "act"
+                        ],
+                        "used_by": "tbl_act"
+                      }
+                    ]
+                  }
+                ],
+                "instruction_number": 0
+              }
+            ],
+            "size": 32
+          },
+          "xbar_bytes": {
+            "bytes": [],
+            "exact_size": 128,
+            "size": 194,
+            "ternary_size": 66
+          }
+        },
+        {
+          "action_bus_bytes": {
+            "bytes": [
+              {
+                "byte_number": 32,
+                "used_by_tables": [
+                  "SwitchIngress.src_tcam_table_secondary"
+                ]
+              },
+              {
+                "byte_number": 33,
+                "used_by_tables": [
+                  "SwitchIngress.src_tcam_table_secondary"
+                ]
+              }
+            ],
+            "size": 128
+          },
+          "action_slots": [
+            {
+              "maximum_slots": 32,
+              "number_used": 0,
+              "slot_bit_width": 8
+            },
+            {
+              "maximum_slots": 32,
+              "number_used": 0,
+              "slot_bit_width": 16
+            },
+            {
+              "maximum_slots": 32,
+              "number_used": 0,
+              "slot_bit_width": 32
+            }
+          ],
+          "exm_result_buses": {
+            "ids": [],
+            "size": 16
+          },
+          "exm_search_buses": {
+            "ids": [
+              {
+                "id": 0,
+                "usages": [
+                  {
+                    "used_by": "cond-5",
+                    "used_for": "gateway"
+                  }
+                ]
+              }
+            ],
+            "size": 16
+          },
+          "gateways": {
+            "gateways": [
+              {
+                "row": 0,
+                "unit_id": 0,
+                "usages": [
+                  {
+                    "used_by": "cond-5",
+                    "used_for": "gateway"
+                  }
+                ]
+              }
+            ],
+            "nRows": 8,
+            "nUnits": 2
+          },
+          "hash_bits": {
+            "bits": [],
+            "nBits": 52,
+            "nFunctions": 8
+          },
+          "hash_distribution_units": {
+            "nHashIds": 2,
+            "nUnitIds": 3,
+            "units": []
+          },
+          "logical_tables": {
+            "ids": [
+              {
+                "id": 0,
+                "table_name": "SwitchIngress.src_tcam_table_secondary"
+              },
+              {
+                "id": 1,
+                "table_name": "tbl_act_3"
+              }
+            ],
+            "size": 16
+          },
+          "map_rams": {
+            "maprams": [],
+            "nRows": 8,
+            "nUnits": 6
+          },
+          "meter_alus": {
+            "meters": [],
+            "nAlus": 4
+          },
+          "rams": {
+            "nColumns": 10,
+            "nRows": 8,
+            "srams": [
+              {
+                "column": 0,
+                "row": 0,
+                "usages": [
+                  {
+                    "used_by": "SwitchIngress.src_tcam_table_secondary",
+                    "used_for": "ternary_indirection_ram"
+                  }
+                ]
+              }
+            ]
+          },
+          "stage_number": 4,
+          "stashes": {
+            "nRows": 8,
+            "nUnits": 2,
+            "stashes": []
+          },
+          "statistic_alus": {
+            "nAlus": 4,
+            "stats": []
+          },
+          "tcams": {
+            "nColumns": 2,
+            "nRows": 12,
+            "tcams": [
+              {
+                "column": 0,
+                "row": 0,
+                "usages": [
+                  {
+                    "used_by": "SwitchIngress.src_tcam_table_secondary",
+                    "used_for": "ternary_match"
+                  }
+                ]
+              },
+              {
+                "column": 0,
+                "row": 1,
+                "usages": [
+                  {
+                    "used_by": "SwitchIngress.src_tcam_table_secondary",
+                    "used_for": "ternary_match"
+                  }
+                ]
+              },
+              {
+                "column": 0,
+                "row": 2,
+                "usages": [
+                  {
+                    "used_by": "SwitchIngress.src_tcam_table_secondary",
+                    "used_for": "ternary_match"
+                  }
+                ]
+              },
+              {
+                "column": 0,
+                "row": 3,
+                "usages": [
+                  {
+                    "used_by": "SwitchIngress.src_tcam_table_secondary",
+                    "used_for": "ternary_match"
+                  }
+                ]
+              }
+            ]
+          },
+          "tind_result_buses": {
+            "ids": [
+              {
+                "id": 0,
+                "usages": [
+                  {
+                    "used_by": "SwitchIngress.src_tcam_table_secondary",
+                    "used_for": "ternary_indirection_ram"
+                  }
+                ]
+              },
+              {
+                "id": 1,
+                "usages": [
+                  {
+                    "used_by": "tbl_act_3",
+                    "used_for": "ternary_indirection_ram"
+                  }
+                ]
+              }
+            ],
+            "size": 16
+          },
+          "vliw": {
+            "instructions": [
+              {
+                "color_usages": [
+                  {
+                    "color": 0,
+                    "gress": "ingress",
+                    "usages": [
+                      {
+                        "action_names": [
+                          "SwitchIngress.nop"
+                        ],
+                        "used_by": "SwitchIngress.src_tcam_table_secondary"
+                      }
+                    ]
+                  },
+                  {
+                    "color": 1,
+                    "gress": "ingress",
+                    "usages": [
+                      {
+                        "action_names": [
+                          "SwitchIngress.set_gid2_from_tcam_secondary"
+                        ],
+                        "used_by": "SwitchIngress.src_tcam_table_secondary"
+                      }
+                    ]
+                  }
+                ],
+                "instruction_number": 0
+              },
+              {
+                "color_usages": [
+                  {
+                    "color": 0,
+                    "gress": "ingress",
+                    "usages": [
+                      {
+                        "action_names": [
+                          "act_3"
+                        ],
+                        "used_by": "tbl_act_3"
+                      }
+                    ]
+                  }
+                ],
+                "instruction_number": 1
+              }
+            ],
+            "size": 32
+          },
+          "xbar_bytes": {
+            "bytes": [
+              {
+                "byte_number": 131,
+                "byte_type": "ternary",
+                "usages": [
+                  {
+                    "slices": [
+                      {
+                        "field_name": "ingress::p.udp.sport",
+                        "lsb": 8,
+                        "msb": 15,
+                        "offset": 0
+                      }
+                    ],
+                    "used_by": "SwitchIngress.src_tcam_table_secondary",
+                    "used_for": "ternary_match"
+                  }
+                ]
+              },
+              {
+                "byte_number": 130,
+                "byte_type": "ternary",
+                "usages": [
+                  {
+                    "slices": [
+                      {
+                        "field_name": "ingress::p.udp.sport",
+                        "lsb": 0,
+                        "msb": 7,
+                        "offset": 0
+                      }
+                    ],
+                    "used_by": "SwitchIngress.src_tcam_table_secondary",
+                    "used_for": "ternary_match"
+                  }
+                ]
+              },
+              {
+                "byte_number": 129,
+                "byte_type": "ternary",
+                "usages": [
+                  {
+                    "slices": [
+                      {
+                        "field_name": "ingress::ig_md.Group_id_secondary",
+                        "lsb": 8,
+                        "msb": 8,
+                        "offset": 1
+                      }
+                    ],
+                    "used_by": "SwitchIngress.src_tcam_table_secondary",
+                    "used_for": "ternary_match"
+                  }
+                ]
+              },
+              {
+                "byte_number": 128,
+                "byte_type": "ternary",
+                "usages": [
+                  {
+                    "slices": [
+                      {
+                        "field_name": "ingress::ig_md.Group_id_secondary",
+                        "lsb": 0,
+                        "msb": 7,
+                        "offset": 0
+                      }
+                    ],
+                    "used_by": "SwitchIngress.src_tcam_table_secondary",
+                    "used_for": "ternary_match"
+                  }
+                ]
+              },
+              {
+                "byte_number": 1,
+                "byte_type": "exact",
+                "usages": [
+                  {
+                    "slices": [
+                      {
+                        "field_name": "ingress::ig_md.Group_id_secondary",
+                        "lsb": 8,
+                        "msb": 8,
+                        "offset": 1
+                      }
+                    ],
+                    "used_by": "cond-5",
+                    "used_for": "gateway"
+                  }
+                ]
+              },
+              {
+                "byte_number": 0,
+                "byte_type": "exact",
+                "usages": [
+                  {
+                    "slices": [
+                      {
+                        "field_name": "ingress::ig_md.Group_id_secondary",
+                        "lsb": 0,
+                        "msb": 7,
+                        "offset": 0
+                      }
+                    ],
+                    "used_by": "cond-5",
+                    "used_for": "gateway"
+                  }
+                ]
+              },
+              {
+                "byte_number": 2,
+                "byte_type": "exact",
+                "usages": [
+                  {
+                    "slices": [
+                      {
+                        "field_name": "ingress::src_sram_match_0",
+                        "lsb": 0,
+                        "msb": 0,
+                        "offset": 0
+                      }
+                    ],
+                    "used_by": "cond-5",
+                    "used_for": "gateway"
+                  }
+                ]
+              },
+              {
+                "byte_number": 3,
+                "byte_type": "exact",
+                "usages": [
+                  {
+                    "slices": [
+                      {
+                        "field_name": "ingress::src_tcam_match_0",
+                        "lsb": 0,
+                        "msb": 0,
+                        "offset": 7
+                      }
+                    ],
+                    "used_by": "cond-5",
+                    "used_for": "gateway"
+                  }
+                ]
+              }
+            ],
+            "exact_size": 128,
+            "size": 194,
+            "ternary_size": 66
+          }
+        },
+        {
+          "action_bus_bytes": {
+            "bytes": [
+              {
+                "byte_number": 32,
+                "used_by_tables": [
+                  "SwitchIngress.src_sram_table_secondary"
+                ]
+              },
+              {
+                "byte_number": 33,
+                "used_by_tables": [
+                  "SwitchIngress.src_sram_table_secondary"
+                ]
+              }
+            ],
+            "size": 128
+          },
+          "action_slots": [
+            {
+              "maximum_slots": 32,
+              "number_used": 0,
+              "slot_bit_width": 8
+            },
+            {
+              "maximum_slots": 32,
+              "number_used": 0,
+              "slot_bit_width": 16
+            },
+            {
+              "maximum_slots": 32,
+              "number_used": 0,
+              "slot_bit_width": 32
+            }
+          ],
+          "exm_result_buses": {
+            "ids": [
+              {
+                "id": 14,
+                "usages": [
+                  {
+                    "used_by": "SwitchIngress.src_sram_table_secondary",
+                    "used_for": "match_entry_ram"
+                  }
+                ]
+              }
+            ],
+            "size": 16
+          },
+          "exm_search_buses": {
+            "ids": [
+              {
+                "id": 14,
+                "usages": [
+                  {
+                    "used_by": "SwitchIngress.src_sram_table_secondary",
+                    "used_for": "match_entry_ram"
+                  }
+                ]
+              }
+            ],
+            "size": 16
+          },
+          "gateways": {
+            "gateways": [],
+            "nRows": 8,
+            "nUnits": 2
+          },
+          "hash_bits": {
+            "bits": [
+              {
+                "hash_bit": 0,
+                "hash_function": 0,
+                "usages": [
+                  {
+                    "type": "way_line_select",
+                    "value": 0
+                  }
+                ],
+                "used_by_table": "SwitchIngress.src_sram_table_secondary",
+                "used_for": "exact_match"
+              },
+              {
+                "hash_bit": 1,
+                "hash_function": 0,
+                "usages": [
+                  {
+                    "type": "way_line_select",
+                    "value": 0
+                  }
+                ],
+                "used_by_table": "SwitchIngress.src_sram_table_secondary",
+                "used_for": "exact_match"
+              },
+              {
+                "hash_bit": 2,
+                "hash_function": 0,
+                "usages": [
+                  {
+                    "type": "way_line_select",
+                    "value": 0
+                  }
+                ],
+                "used_by_table": "SwitchIngress.src_sram_table_secondary",
+                "used_for": "exact_match"
+              },
+              {
+                "hash_bit": 3,
+                "hash_function": 0,
+                "usages": [
+                  {
+                    "type": "way_line_select",
+                    "value": 0
+                  }
+                ],
+                "used_by_table": "SwitchIngress.src_sram_table_secondary",
+                "used_for": "exact_match"
+              },
+              {
+                "hash_bit": 4,
+                "hash_function": 0,
+                "usages": [
+                  {
+                    "type": "way_line_select",
+                    "value": 0
+                  }
+                ],
+                "used_by_table": "SwitchIngress.src_sram_table_secondary",
+                "used_for": "exact_match"
+              },
+              {
+                "hash_bit": 5,
+                "hash_function": 0,
+                "usages": [
+                  {
+                    "type": "way_line_select",
+                    "value": 0
+                  }
+                ],
+                "used_by_table": "SwitchIngress.src_sram_table_secondary",
+                "used_for": "exact_match"
+              },
+              {
+                "hash_bit": 6,
+                "hash_function": 0,
+                "usages": [
+                  {
+                    "type": "way_line_select",
+                    "value": 0
+                  }
+                ],
+                "used_by_table": "SwitchIngress.src_sram_table_secondary",
+                "used_for": "exact_match"
+              },
+              {
+                "hash_bit": 7,
+                "hash_function": 0,
+                "usages": [
+                  {
+                    "type": "way_line_select",
+                    "value": 0
+                  }
+                ],
+                "used_by_table": "SwitchIngress.src_sram_table_secondary",
+                "used_for": "exact_match"
+              },
+              {
+                "hash_bit": 8,
+                "hash_function": 0,
+                "usages": [
+                  {
+                    "type": "way_line_select",
+                    "value": 0
+                  }
+                ],
+                "used_by_table": "SwitchIngress.src_sram_table_secondary",
+                "used_for": "exact_match"
+              },
+              {
+                "hash_bit": 9,
+                "hash_function": 0,
+                "usages": [
+                  {
+                    "type": "way_line_select",
+                    "value": 0
+                  }
+                ],
+                "used_by_table": "SwitchIngress.src_sram_table_secondary",
+                "used_for": "exact_match"
+              },
+              {
+                "hash_bit": 10,
+                "hash_function": 0,
+                "usages": [
+                  {
+                    "type": "way_line_select",
+                    "value": 1
+                  }
+                ],
+                "used_by_table": "SwitchIngress.src_sram_table_secondary",
+                "used_for": "exact_match"
+              },
+              {
+                "hash_bit": 11,
+                "hash_function": 0,
+                "usages": [
+                  {
+                    "type": "way_line_select",
+                    "value": 1
+                  }
+                ],
+                "used_by_table": "SwitchIngress.src_sram_table_secondary",
+                "used_for": "exact_match"
+              },
+              {
+                "hash_bit": 12,
+                "hash_function": 0,
+                "usages": [
+                  {
+                    "type": "way_line_select",
+                    "value": 1
+                  }
+                ],
+                "used_by_table": "SwitchIngress.src_sram_table_secondary",
+                "used_for": "exact_match"
+              },
+              {
+                "hash_bit": 13,
+                "hash_function": 0,
+                "usages": [
+                  {
+                    "type": "way_line_select",
+                    "value": 1
+                  }
+                ],
+                "used_by_table": "SwitchIngress.src_sram_table_secondary",
+                "used_for": "exact_match"
+              },
+              {
+                "hash_bit": 14,
+                "hash_function": 0,
+                "usages": [
+                  {
+                    "type": "way_line_select",
+                    "value": 1
+                  }
+                ],
+                "used_by_table": "SwitchIngress.src_sram_table_secondary",
+                "used_for": "exact_match"
+              },
+              {
+                "hash_bit": 15,
+                "hash_function": 0,
+                "usages": [
+                  {
+                    "type": "way_line_select",
+                    "value": 1
+                  }
+                ],
+                "used_by_table": "SwitchIngress.src_sram_table_secondary",
+                "used_for": "exact_match"
+              },
+              {
+                "hash_bit": 16,
+                "hash_function": 0,
+                "usages": [
+                  {
+                    "type": "way_line_select",
+                    "value": 1
+                  }
+                ],
+                "used_by_table": "SwitchIngress.src_sram_table_secondary",
+                "used_for": "exact_match"
+              },
+              {
+                "hash_bit": 17,
+                "hash_function": 0,
+                "usages": [
+                  {
+                    "type": "way_line_select",
+                    "value": 1
+                  }
+                ],
+                "used_by_table": "SwitchIngress.src_sram_table_secondary",
+                "used_for": "exact_match"
+              },
+              {
+                "hash_bit": 18,
+                "hash_function": 0,
+                "usages": [
+                  {
+                    "type": "way_line_select",
+                    "value": 1
+                  }
+                ],
+                "used_by_table": "SwitchIngress.src_sram_table_secondary",
+                "used_for": "exact_match"
+              },
+              {
+                "hash_bit": 19,
+                "hash_function": 0,
+                "usages": [
+                  {
+                    "type": "way_line_select",
+                    "value": 1
+                  }
+                ],
+                "used_by_table": "SwitchIngress.src_sram_table_secondary",
+                "used_for": "exact_match"
+              },
+              {
+                "hash_bit": 20,
+                "hash_function": 0,
+                "usages": [
+                  {
+                    "type": "way_line_select",
+                    "value": 2
+                  }
+                ],
+                "used_by_table": "SwitchIngress.src_sram_table_secondary",
+                "used_for": "exact_match"
+              },
+              {
+                "hash_bit": 21,
+                "hash_function": 0,
+                "usages": [
+                  {
+                    "type": "way_line_select",
+                    "value": 2
+                  }
+                ],
+                "used_by_table": "SwitchIngress.src_sram_table_secondary",
+                "used_for": "exact_match"
+              },
+              {
+                "hash_bit": 22,
+                "hash_function": 0,
+                "usages": [
+                  {
+                    "type": "way_line_select",
+                    "value": 2
+                  }
+                ],
+                "used_by_table": "SwitchIngress.src_sram_table_secondary",
+                "used_for": "exact_match"
+              },
+              {
+                "hash_bit": 23,
+                "hash_function": 0,
+                "usages": [
+                  {
+                    "type": "way_line_select",
+                    "value": 2
+                  }
+                ],
+                "used_by_table": "SwitchIngress.src_sram_table_secondary",
+                "used_for": "exact_match"
+              },
+              {
+                "hash_bit": 24,
+                "hash_function": 0,
+                "usages": [
+                  {
+                    "type": "way_line_select",
+                    "value": 2
+                  }
+                ],
+                "used_by_table": "SwitchIngress.src_sram_table_secondary",
+                "used_for": "exact_match"
+              },
+              {
+                "hash_bit": 25,
+                "hash_function": 0,
+                "usages": [
+                  {
+                    "type": "way_line_select",
+                    "value": 2
+                  }
+                ],
+                "used_by_table": "SwitchIngress.src_sram_table_secondary",
+                "used_for": "exact_match"
+              },
+              {
+                "hash_bit": 26,
+                "hash_function": 0,
+                "usages": [
+                  {
+                    "type": "way_line_select",
+                    "value": 2
+                  }
+                ],
+                "used_by_table": "SwitchIngress.src_sram_table_secondary",
+                "used_for": "exact_match"
+              },
+              {
+                "hash_bit": 27,
+                "hash_function": 0,
+                "usages": [
+                  {
+                    "type": "way_line_select",
+                    "value": 2
+                  }
+                ],
+                "used_by_table": "SwitchIngress.src_sram_table_secondary",
+                "used_for": "exact_match"
+              },
+              {
+                "hash_bit": 28,
+                "hash_function": 0,
+                "usages": [
+                  {
+                    "type": "way_line_select",
+                    "value": 2
+                  }
+                ],
+                "used_by_table": "SwitchIngress.src_sram_table_secondary",
+                "used_for": "exact_match"
+              },
+              {
+                "hash_bit": 29,
+                "hash_function": 0,
+                "usages": [
+                  {
+                    "type": "way_line_select",
+                    "value": 2
+                  }
+                ],
+                "used_by_table": "SwitchIngress.src_sram_table_secondary",
+                "used_for": "exact_match"
+              },
+              {
+                "hash_bit": 30,
+                "hash_function": 0,
+                "usages": [
+                  {
+                    "type": "way_line_select",
+                    "value": 3
+                  }
+                ],
+                "used_by_table": "SwitchIngress.src_sram_table_secondary",
+                "used_for": "exact_match"
+              },
+              {
+                "hash_bit": 31,
+                "hash_function": 0,
+                "usages": [
+                  {
+                    "type": "way_line_select",
+                    "value": 3
+                  }
+                ],
+                "used_by_table": "SwitchIngress.src_sram_table_secondary",
+                "used_for": "exact_match"
+              },
+              {
+                "hash_bit": 32,
+                "hash_function": 0,
+                "usages": [
+                  {
+                    "type": "way_line_select",
+                    "value": 3
+                  }
+                ],
+                "used_by_table": "SwitchIngress.src_sram_table_secondary",
+                "used_for": "exact_match"
+              },
+              {
+                "hash_bit": 33,
+                "hash_function": 0,
+                "usages": [
+                  {
+                    "type": "way_line_select",
+                    "value": 3
+                  }
+                ],
+                "used_by_table": "SwitchIngress.src_sram_table_secondary",
+                "used_for": "exact_match"
+              },
+              {
+                "hash_bit": 34,
+                "hash_function": 0,
+                "usages": [
+                  {
+                    "type": "way_line_select",
+                    "value": 3
+                  }
+                ],
+                "used_by_table": "SwitchIngress.src_sram_table_secondary",
+                "used_for": "exact_match"
+              },
+              {
+                "hash_bit": 35,
+                "hash_function": 0,
+                "usages": [
+                  {
+                    "type": "way_line_select",
+                    "value": 3
+                  }
+                ],
+                "used_by_table": "SwitchIngress.src_sram_table_secondary",
+                "used_for": "exact_match"
+              },
+              {
+                "hash_bit": 36,
+                "hash_function": 0,
+                "usages": [
+                  {
+                    "type": "way_line_select",
+                    "value": 3
+                  }
+                ],
+                "used_by_table": "SwitchIngress.src_sram_table_secondary",
+                "used_for": "exact_match"
+              },
+              {
+                "hash_bit": 37,
+                "hash_function": 0,
+                "usages": [
+                  {
+                    "type": "way_line_select",
+                    "value": 3
+                  }
+                ],
+                "used_by_table": "SwitchIngress.src_sram_table_secondary",
+                "used_for": "exact_match"
+              },
+              {
+                "hash_bit": 38,
+                "hash_function": 0,
+                "usages": [
+                  {
+                    "type": "way_line_select",
+                    "value": 3
+                  }
+                ],
+                "used_by_table": "SwitchIngress.src_sram_table_secondary",
+                "used_for": "exact_match"
+              },
+              {
+                "hash_bit": 39,
+                "hash_function": 0,
+                "usages": [
+                  {
+                    "type": "way_line_select",
+                    "value": 3
+                  }
+                ],
+                "used_by_table": "SwitchIngress.src_sram_table_secondary",
+                "used_for": "exact_match"
+              }
+            ],
+            "nBits": 52,
+            "nFunctions": 8
+          },
+          "hash_distribution_units": {
+            "nHashIds": 2,
+            "nUnitIds": 3,
+            "units": []
+          },
+          "logical_tables": {
+            "ids": [
+              {
+                "id": 0,
+                "table_name": "SwitchIngress.src_sram_table_secondary"
+              },
+              {
+                "id": 1,
+                "table_name": "tbl_act_5"
+              }
+            ],
+            "size": 16
+          },
+          "map_rams": {
+            "maprams": [],
+            "nRows": 8,
+            "nUnits": 6
+          },
+          "meter_alus": {
+            "meters": [],
+            "nAlus": 4
+          },
+          "rams": {
+            "nColumns": 10,
+            "nRows": 8,
+            "srams": [
+              {
+                "column": 0,
+                "row": 7,
+                "usages": [
+                  {
+                    "used_by": "SwitchIngress.src_sram_table_secondary",
+                    "used_for": "match_entry_ram"
+                  }
+                ],
+                "way": 0
+              },
+              {
+                "column": 1,
+                "row": 7,
+                "usages": [
+                  {
+                    "used_by": "SwitchIngress.src_sram_table_secondary",
+                    "used_for": "match_entry_ram"
+                  }
+                ],
+                "way": 1
+              },
+              {
+                "column": 2,
+                "row": 7,
+                "usages": [
+                  {
+                    "used_by": "SwitchIngress.src_sram_table_secondary",
+                    "used_for": "match_entry_ram"
+                  }
+                ],
+                "way": 2
+              },
+              {
+                "column": 3,
+                "row": 7,
+                "usages": [
+                  {
+                    "used_by": "SwitchIngress.src_sram_table_secondary",
+                    "used_for": "match_entry_ram"
+                  }
+                ],
+                "way": 3
+              }
+            ]
+          },
+          "stage_number": 5,
+          "stashes": {
+            "nRows": 8,
+            "nUnits": 2,
+            "stashes": []
+          },
+          "statistic_alus": {
+            "nAlus": 4,
+            "stats": []
+          },
+          "tcams": {
+            "nColumns": 2,
+            "nRows": 12,
+            "tcams": []
+          },
+          "tind_result_buses": {
+            "ids": [
+              {
+                "id": 0,
+                "usages": [
+                  {
+                    "used_by": "tbl_act_5",
+                    "used_for": "ternary_indirection_ram"
+                  }
+                ]
+              }
+            ],
+            "size": 16
+          },
+          "vliw": {
+            "instructions": [
+              {
+                "color_usages": [
+                  {
+                    "color": 0,
+                    "gress": "ingress",
+                    "usages": [
+                      {
+                        "action_names": [
+                          "SwitchIngress.nop"
+                        ],
+                        "used_by": "SwitchIngress.src_sram_table_secondary"
+                      }
+                    ]
+                  },
+                  {
+                    "color": 1,
+                    "gress": "ingress",
+                    "usages": [
+                      {
+                        "action_names": [
+                          "SwitchIngress.set_src_bitmap_secondary"
+                        ],
+                        "used_by": "SwitchIngress.src_sram_table_secondary"
+                      }
+                    ]
+                  }
+                ],
+                "instruction_number": 0
+              },
+              {
+                "color_usages": [
+                  {
+                    "color": 0,
+                    "gress": "ingress",
+                    "usages": [
+                      {
+                        "action_names": [
+                          "act_5"
+                        ],
+                        "used_by": "tbl_act_5"
+                      }
+                    ]
+                  }
+                ],
+                "instruction_number": 1
+              }
+            ],
+            "size": 32
+          },
+          "xbar_bytes": {
+            "bytes": [
+              {
+                "byte_number": 3,
+                "byte_type": "exact",
+                "usages": [
+                  {
+                    "slices": [
+                      {
+                        "field_name": "ingress::p.udp.sport",
+                        "lsb": 8,
+                        "msb": 15,
+                        "offset": 0
+                      }
+                    ],
+                    "used_by": "SwitchIngress.src_sram_table_secondary",
+                    "used_for": "exact_match"
+                  }
+                ]
+              },
+              {
+                "byte_number": 2,
+                "byte_type": "exact",
+                "usages": [
+                  {
+                    "slices": [
+                      {
+                        "field_name": "ingress::p.udp.sport",
+                        "lsb": 5,
+                        "msb": 7,
+                        "offset": 5
+                      }
+                    ],
+                    "used_by": "SwitchIngress.src_sram_table_secondary",
+                    "used_for": "exact_match"
+                  }
+                ]
+              },
+              {
+                "byte_number": 1,
+                "byte_type": "exact",
+                "usages": [
+                  {
+                    "slices": [
+                      {
+                        "field_name": "ingress::ig_md.Group_id_secondary",
+                        "lsb": 8,
+                        "msb": 8,
+                        "offset": 1
+                      }
+                    ],
+                    "used_by": "SwitchIngress.src_sram_table_secondary",
+                    "used_for": "exact_match"
+                  }
+                ]
+              },
+              {
+                "byte_number": 0,
+                "byte_type": "exact",
+                "usages": [
+                  {
+                    "slices": [
+                      {
+                        "field_name": "ingress::ig_md.Group_id_secondary",
+                        "lsb": 0,
+                        "msb": 7,
+                        "offset": 0
+                      }
+                    ],
+                    "used_by": "SwitchIngress.src_sram_table_secondary",
+                    "used_for": "exact_match"
+                  }
+                ]
+              }
+            ],
+            "exact_size": 128,
+            "size": 194,
+            "ternary_size": 66
+          }
+        },
+        {
+          "action_bus_bytes": {
+            "bytes": [],
+            "size": 128
+          },
+          "action_slots": [
+            {
+              "maximum_slots": 32,
+              "number_used": 0,
+              "slot_bit_width": 8
+            },
+            {
+              "maximum_slots": 32,
+              "number_used": 0,
+              "slot_bit_width": 16
+            },
+            {
+              "maximum_slots": 32,
+              "number_used": 0,
+              "slot_bit_width": 32
+            }
+          ],
+          "exm_result_buses": {
+            "ids": [],
+            "size": 16
+          },
+          "exm_search_buses": {
+            "ids": [
+              {
+                "id": 0,
+                "usages": [
+                  {
+                    "used_by": "cond-6",
+                    "used_for": "gateway"
+                  }
+                ]
+              }
+            ],
+            "size": 16
+          },
+          "gateways": {
+            "gateways": [
+              {
+                "row": 0,
+                "unit_id": 0,
+                "usages": [
+                  {
+                    "used_by": "cond-6",
+                    "used_for": "gateway"
+                  }
+                ]
+              }
+            ],
+            "nRows": 8,
+            "nUnits": 2
+          },
+          "hash_bits": {
+            "bits": [],
+            "nBits": 52,
+            "nFunctions": 8
+          },
+          "hash_distribution_units": {
+            "nHashIds": 2,
+            "nUnitIds": 3,
+            "units": []
+          },
+          "logical_tables": {
+            "ids": [
+              {
+                "id": 0,
+                "table_name": "tbl_tofino2l358"
+              }
+            ],
+            "size": 16
+          },
+          "map_rams": {
+            "maprams": [],
+            "nRows": 8,
+            "nUnits": 6
+          },
+          "meter_alus": {
+            "meters": [],
+            "nAlus": 4
+          },
+          "rams": {
+            "nColumns": 10,
+            "nRows": 8,
+            "srams": []
+          },
+          "stage_number": 6,
+          "stashes": {
+            "nRows": 8,
+            "nUnits": 2,
+            "stashes": []
+          },
+          "statistic_alus": {
+            "nAlus": 4,
+            "stats": []
+          },
+          "tcams": {
+            "nColumns": 2,
+            "nRows": 12,
+            "tcams": []
+          },
+          "tind_result_buses": {
+            "ids": [
+              {
+                "id": 0,
+                "usages": [
+                  {
+                    "used_by": "tbl_tofino2l358",
+                    "used_for": "ternary_indirection_ram"
+                  }
+                ]
+              }
+            ],
+            "size": 16
+          },
+          "vliw": {
+            "instructions": [
+              {
+                "color_usages": [
+                  {
+                    "color": 1,
+                    "gress": "ingress",
+                    "usages": [
+                      {
+                        "action_names": [
+                          "tofino2l358"
+                        ],
+                        "used_by": "tbl_tofino2l358"
+                      }
+                    ]
+                  }
+                ],
+                "instruction_number": 0
+              }
+            ],
+            "size": 32
+          },
+          "xbar_bytes": {
+            "bytes": [
+              {
+                "byte_number": 0,
+                "byte_type": "exact",
+                "usages": [
+                  {
+                    "slices": [
+                      {
+                        "field_name": "ingress::src_tcam_match_sec_0",
+                        "lsb": 0,
+                        "msb": 0,
+                        "offset": 0
+                      }
+                    ],
+                    "used_by": "cond-6",
+                    "used_for": "gateway"
+                  }
+                ]
+              },
+              {
+                "byte_number": 1,
+                "byte_type": "exact",
+                "usages": [
+                  {
+                    "slices": [
+                      {
+                        "field_name": "ingress::src_sram_match_sec_0",
+                        "lsb": 0,
+                        "msb": 0,
+                        "offset": 0
+                      }
+                    ],
+                    "used_by": "cond-6",
+                    "used_for": "gateway"
+                  }
+                ]
+              }
+            ],
+            "exact_size": 128,
+            "size": 194,
+            "ternary_size": 66
+          }
+        },
+        {
+          "action_bus_bytes": {
             "bytes": [
               {
                 "byte_number": 32,
@@ -2399,7 +3880,7 @@
                 "id": 0,
                 "usages": [
                   {
-                    "used_by": "cond-3",
+                    "used_by": "cond-7",
                     "used_for": "gateway"
                   }
                 ]
@@ -2414,7 +3895,7 @@
                 "unit_id": 0,
                 "usages": [
                   {
-                    "used_by": "cond-3",
+                    "used_by": "cond-7",
                     "used_for": "gateway"
                   }
                 ]
@@ -2445,7 +3926,7 @@
               },
               {
                 "id": 1,
-                "table_name": "tbl_act_3"
+                "table_name": "tbl_act_7"
               }
             ],
             "size": 16
@@ -2475,7 +3956,7 @@
               }
             ]
           },
-          "stage_number": 3,
+          "stage_number": 7,
           "stashes": {
             "nRows": 8,
             "nUnits": 2,
@@ -2546,7 +4027,7 @@
                 "id": 1,
                 "usages": [
                   {
-                    "used_by": "tbl_act_3",
+                    "used_by": "tbl_act_7",
                     "used_for": "ternary_indirection_ram"
                   }
                 ]
@@ -2585,9 +4066,9 @@
                     "usages": [
                       {
                         "action_names": [
-                          "act_3"
+                          "act_7"
                         ],
-                        "used_by": "tbl_act_3"
+                        "used_by": "tbl_act_7"
                       }
                     ]
                   }
@@ -2596,18 +4077,6 @@
               },
               {
                 "color_usages": [
-                  {
-                    "color": 0,
-                    "gress": "ingress",
-                    "usages": [
-                      {
-                        "action_names": [
-                          "SwitchIngress.nop"
-                        ],
-                        "used_by": "SwitchIngress.dst_tcam_table"
-                      }
-                    ]
-                  },
                   {
                     "color": 1,
                     "gress": "ingress",
@@ -2730,7 +4199,7 @@
                         "offset": 0
                       }
                     ],
-                    "used_by": "cond-3",
+                    "used_by": "cond-7",
                     "used_for": "gateway"
                   }
                 ]
@@ -2742,13 +4211,31 @@
                   {
                     "slices": [
                       {
+                        "field_name": "ingress::src_match_secondary_0",
+                        "lsb": 0,
+                        "msb": 0,
+                        "offset": 0
+                      }
+                    ],
+                    "used_by": "cond-7",
+                    "used_for": "gateway"
+                  }
+                ]
+              },
+              {
+                "byte_number": 2,
+                "byte_type": "exact",
+                "usages": [
+                  {
+                    "slices": [
+                      {
                         "field_name": "ingress::src_tcam_match_0",
                         "lsb": 0,
                         "msb": 0,
                         "offset": 7
                       }
                     ],
-                    "used_by": "cond-3",
+                    "used_by": "cond-7",
                     "used_for": "gateway"
                   }
                 ]
@@ -3326,7 +4813,7 @@
               },
               {
                 "id": 1,
-                "table_name": "tbl_act_5"
+                "table_name": "tbl_act_9"
               }
             ],
             "size": 16
@@ -3390,7 +4877,7 @@
               }
             ]
           },
-          "stage_number": 4,
+          "stage_number": 8,
           "stashes": {
             "nRows": 8,
             "nUnits": 2,
@@ -3411,7 +4898,7 @@
                 "id": 0,
                 "usages": [
                   {
-                    "used_by": "tbl_act_5",
+                    "used_by": "tbl_act_9",
                     "used_for": "ternary_indirection_ram"
                   }
                 ]
@@ -3441,9 +4928,9 @@
                     "usages": [
                       {
                         "action_names": [
-                          "act_5"
+                          "act_9"
                         ],
-                        "used_by": "tbl_act_5"
+                        "used_by": "tbl_act_9"
                       }
                     ]
                   }
@@ -3452,18 +4939,6 @@
               },
               {
                 "color_usages": [
-                  {
-                    "color": 0,
-                    "gress": "ingress",
-                    "usages": [
-                      {
-                        "action_names": [
-                          "SwitchIngress.nop"
-                        ],
-                        "used_by": "SwitchIngress.dst_sram_table"
-                      }
-                    ]
-                  },
                   {
                     "color": 1,
                     "gress": "ingress",
@@ -3594,7 +5069,7 @@
                 "id": 0,
                 "usages": [
                   {
-                    "used_by": "cond-4",
+                    "used_by": "cond-8",
                     "used_for": "gateway"
                   }
                 ]
@@ -3609,7 +5084,7 @@
                 "unit_id": 0,
                 "usages": [
                   {
-                    "used_by": "cond-4",
+                    "used_by": "cond-8",
                     "used_for": "gateway"
                   }
                 ]
@@ -3651,7 +5126,7 @@
             "nRows": 8,
             "srams": []
           },
-          "stage_number": 5,
+          "stage_number": 9,
           "stashes": {
             "nRows": 8,
             "nUnits": 2,
@@ -3717,7 +5192,7 @@
                         "offset": 0
                       }
                     ],
-                    "used_by": "cond-4",
+                    "used_by": "cond-8",
                     "used_for": "gateway"
                   }
                 ]
@@ -3735,7 +5210,7 @@
                         "offset": 0
                       }
                     ],
-                    "used_by": "cond-4",
+                    "used_by": "cond-8",
                     "used_for": "gateway"
                   }
                 ]
@@ -4583,93 +6058,21 @@
       {
         "clot_eligible_fields": [
           {
-            "bit_width": 8,
+            "bit_width": 32,
             "is_checksum": false,
             "is_modified": false,
             "is_readonly": true,
-            "name": "p.ipv4.proto",
-            "num_bits_in_clots": 8,
-            "num_bits_in_phvs": 8
-          },
-          {
-            "bit_width": 4,
-            "is_checksum": false,
-            "is_modified": false,
-            "is_readonly": false,
-            "name": "p.ipv4.version",
-            "num_bits_in_clots": 4,
-            "num_bits_in_phvs": 0
-          },
-          {
-            "bit_width": 8,
-            "is_checksum": false,
-            "is_modified": false,
-            "is_readonly": false,
-            "name": "p.tcp.flags",
-            "num_bits_in_clots": 8,
-            "num_bits_in_phvs": 0
+            "name": "p.ipv4.dst",
+            "num_bits_in_clots": 32,
+            "num_bits_in_phvs": 32
           },
           {
             "bit_width": 16,
             "is_checksum": false,
             "is_modified": false,
             "is_readonly": false,
-            "name": "p.ethernet.etherType",
+            "name": "p.udp.chksum",
             "num_bits_in_clots": 16,
-            "num_bits_in_phvs": 0
-          },
-          {
-            "bit_width": 16,
-            "is_checksum": false,
-            "is_modified": false,
-            "is_readonly": true,
-            "name": "p.udp.sport",
-            "num_bits_in_clots": 16,
-            "num_bits_in_phvs": 16
-          },
-          {
-            "bit_width": 16,
-            "is_checksum": false,
-            "is_modified": false,
-            "is_readonly": false,
-            "name": "p.tcp.chksum",
-            "num_bits_in_clots": 16,
-            "num_bits_in_phvs": 0
-          },
-          {
-            "bit_width": 48,
-            "is_checksum": false,
-            "is_modified": false,
-            "is_readonly": false,
-            "name": "p.ethernet.src",
-            "num_bits_in_clots": 48,
-            "num_bits_in_phvs": 0
-          },
-          {
-            "bit_width": 16,
-            "is_checksum": false,
-            "is_modified": false,
-            "is_readonly": false,
-            "name": "p.tcp.dport",
-            "num_bits_in_clots": 16,
-            "num_bits_in_phvs": 0
-          },
-          {
-            "bit_width": 48,
-            "is_checksum": false,
-            "is_modified": false,
-            "is_readonly": false,
-            "name": "p.ethernet.dst",
-            "num_bits_in_clots": 48,
-            "num_bits_in_phvs": 0
-          },
-          {
-            "bit_width": 8,
-            "is_checksum": false,
-            "is_modified": false,
-            "is_readonly": false,
-            "name": "p.ipv4.tos",
-            "num_bits_in_clots": 8,
             "num_bits_in_phvs": 0
           },
           {
@@ -4678,6 +6081,24 @@
             "is_modified": false,
             "is_readonly": false,
             "name": "p.ipv4.ihl",
+            "num_bits_in_clots": 4,
+            "num_bits_in_phvs": 0
+          },
+          {
+            "bit_width": 32,
+            "is_checksum": false,
+            "is_modified": false,
+            "is_readonly": false,
+            "name": "p.tcp.seq",
+            "num_bits_in_clots": 32,
+            "num_bits_in_phvs": 0
+          },
+          {
+            "bit_width": 4,
+            "is_checksum": false,
+            "is_modified": false,
+            "is_readonly": false,
+            "name": "p.tcp.reserved",
             "num_bits_in_clots": 4,
             "num_bits_in_phvs": 0
           },
@@ -4695,15 +6116,6 @@
             "is_checksum": false,
             "is_modified": false,
             "is_readonly": false,
-            "name": "p.udp.chksum",
-            "num_bits_in_clots": 16,
-            "num_bits_in_phvs": 0
-          },
-          {
-            "bit_width": 16,
-            "is_checksum": false,
-            "is_modified": false,
-            "is_readonly": false,
             "name": "p.tcp.window",
             "num_bits_in_clots": 16,
             "num_bits_in_phvs": 0
@@ -4713,27 +6125,72 @@
             "is_checksum": false,
             "is_modified": false,
             "is_readonly": false,
-            "name": "p.ipv4.id",
+            "name": "p.ethernet.etherType",
             "num_bits_in_clots": 16,
             "num_bits_in_phvs": 0
           },
           {
-            "bit_width": 32,
-            "is_checksum": false,
-            "is_modified": false,
-            "is_readonly": false,
-            "name": "p.tcp.seq",
-            "num_bits_in_clots": 32,
-            "num_bits_in_phvs": 0
-          },
-          {
-            "bit_width": 32,
+            "bit_width": 8,
             "is_checksum": false,
             "is_modified": false,
             "is_readonly": true,
-            "name": "p.ipv4.dst",
-            "num_bits_in_clots": 32,
-            "num_bits_in_phvs": 32
+            "name": "p.ipv4.proto",
+            "num_bits_in_clots": 8,
+            "num_bits_in_phvs": 8
+          },
+          {
+            "bit_width": 16,
+            "is_checksum": false,
+            "is_modified": false,
+            "is_readonly": false,
+            "name": "p.tcp.sport",
+            "num_bits_in_clots": 16,
+            "num_bits_in_phvs": 0
+          },
+          {
+            "bit_width": 16,
+            "is_checksum": false,
+            "is_modified": false,
+            "is_readonly": false,
+            "name": "p.ipv4.chksum",
+            "num_bits_in_clots": 16,
+            "num_bits_in_phvs": 0
+          },
+          {
+            "bit_width": 48,
+            "is_checksum": false,
+            "is_modified": false,
+            "is_readonly": false,
+            "name": "p.ethernet.dst",
+            "num_bits_in_clots": 48,
+            "num_bits_in_phvs": 0
+          },
+          {
+            "bit_width": 16,
+            "is_checksum": false,
+            "is_modified": false,
+            "is_readonly": true,
+            "name": "p.udp.sport",
+            "num_bits_in_clots": 16,
+            "num_bits_in_phvs": 16
+          },
+          {
+            "bit_width": 4,
+            "is_checksum": false,
+            "is_modified": false,
+            "is_readonly": false,
+            "name": "p.tcp.dataofs",
+            "num_bits_in_clots": 4,
+            "num_bits_in_phvs": 0
+          },
+          {
+            "bit_width": 13,
+            "is_checksum": false,
+            "is_modified": false,
+            "is_readonly": false,
+            "name": "p.ipv4.frag",
+            "num_bits_in_clots": 13,
+            "num_bits_in_phvs": 0
           },
           {
             "bit_width": 32,
@@ -4749,7 +6206,7 @@
             "is_checksum": false,
             "is_modified": false,
             "is_readonly": false,
-            "name": "p.ipv4.chksum",
+            "name": "p.ipv4.len",
             "num_bits_in_clots": 16,
             "num_bits_in_phvs": 0
           },
@@ -4757,27 +6214,36 @@
             "bit_width": 16,
             "is_checksum": false,
             "is_modified": false,
-            "is_readonly": true,
-            "name": "p.udp.dport",
+            "is_readonly": false,
+            "name": "p.tcp.dport",
             "num_bits_in_clots": 16,
-            "num_bits_in_phvs": 16
+            "num_bits_in_phvs": 0
+          },
+          {
+            "bit_width": 8,
+            "is_checksum": false,
+            "is_modified": false,
+            "is_readonly": false,
+            "name": "p.ipv4.tos",
+            "num_bits_in_clots": 8,
+            "num_bits_in_phvs": 0
+          },
+          {
+            "bit_width": 48,
+            "is_checksum": false,
+            "is_modified": false,
+            "is_readonly": false,
+            "name": "p.ethernet.src",
+            "num_bits_in_clots": 48,
+            "num_bits_in_phvs": 0
           },
           {
             "bit_width": 16,
             "is_checksum": false,
             "is_modified": false,
             "is_readonly": false,
-            "name": "p.tcp.sport",
+            "name": "p.ipv4.id",
             "num_bits_in_clots": 16,
-            "num_bits_in_phvs": 0
-          },
-          {
-            "bit_width": 3,
-            "is_checksum": false,
-            "is_modified": false,
-            "is_readonly": false,
-            "name": "p.ipv4.flags",
-            "num_bits_in_clots": 3,
             "num_bits_in_phvs": 0
           },
           {
@@ -4785,17 +6251,8 @@
             "is_checksum": false,
             "is_modified": false,
             "is_readonly": false,
-            "name": "p.udp.len",
+            "name": "p.tcp.chksum",
             "num_bits_in_clots": 16,
-            "num_bits_in_phvs": 0
-          },
-          {
-            "bit_width": 13,
-            "is_checksum": false,
-            "is_modified": false,
-            "is_readonly": false,
-            "name": "p.ipv4.frag",
-            "num_bits_in_clots": 13,
             "num_bits_in_phvs": 0
           },
           {
@@ -4803,8 +6260,17 @@
             "is_checksum": false,
             "is_modified": false,
             "is_readonly": false,
-            "name": "p.tcp.dataofs",
+            "name": "p.ipv4.version",
             "num_bits_in_clots": 4,
+            "num_bits_in_phvs": 0
+          },
+          {
+            "bit_width": 32,
+            "is_checksum": false,
+            "is_modified": false,
+            "is_readonly": false,
+            "name": "p.tcp.ack",
+            "num_bits_in_clots": 32,
             "num_bits_in_phvs": 0
           },
           {
@@ -4821,26 +6287,35 @@
             "is_checksum": false,
             "is_modified": false,
             "is_readonly": false,
-            "name": "p.ipv4.len",
+            "name": "p.udp.len",
             "num_bits_in_clots": 16,
             "num_bits_in_phvs": 0
           },
           {
-            "bit_width": 32,
+            "bit_width": 16,
+            "is_checksum": false,
+            "is_modified": false,
+            "is_readonly": true,
+            "name": "p.udp.dport",
+            "num_bits_in_clots": 16,
+            "num_bits_in_phvs": 16
+          },
+          {
+            "bit_width": 8,
             "is_checksum": false,
             "is_modified": false,
             "is_readonly": false,
-            "name": "p.tcp.ack",
-            "num_bits_in_clots": 32,
+            "name": "p.tcp.flags",
+            "num_bits_in_clots": 8,
             "num_bits_in_phvs": 0
           },
           {
-            "bit_width": 4,
+            "bit_width": 3,
             "is_checksum": false,
             "is_modified": false,
             "is_readonly": false,
-            "name": "p.tcp.reserved",
-            "num_bits_in_clots": 4,
+            "name": "p.ipv4.flags",
+            "num_bits_in_clots": 3,
             "num_bits_in_phvs": 0
           }
         ],
@@ -5073,11 +6548,20 @@
       {
         "clot_eligible_fields": [
           {
+            "bit_width": 13,
+            "is_checksum": false,
+            "is_modified": false,
+            "is_readonly": false,
+            "name": "p.ipv4.frag",
+            "num_bits_in_clots": 13,
+            "num_bits_in_phvs": 0
+          },
+          {
             "bit_width": 4,
             "is_checksum": false,
             "is_modified": false,
             "is_readonly": false,
-            "name": "p.ipv4.ihl",
+            "name": "p.ipv4.version",
             "num_bits_in_clots": 4,
             "num_bits_in_phvs": 0
           },
@@ -5091,48 +6575,12 @@
             "num_bits_in_phvs": 0
           },
           {
-            "bit_width": 32,
+            "bit_width": 16,
             "is_checksum": false,
             "is_modified": false,
             "is_readonly": false,
-            "name": "p.ipv4.dst",
-            "num_bits_in_clots": 32,
-            "num_bits_in_phvs": 0
-          },
-          {
-            "bit_width": 48,
-            "is_checksum": false,
-            "is_modified": false,
-            "is_readonly": false,
-            "name": "p.ethernet.dst",
-            "num_bits_in_clots": 48,
-            "num_bits_in_phvs": 0
-          },
-          {
-            "bit_width": 13,
-            "is_checksum": false,
-            "is_modified": false,
-            "is_readonly": false,
-            "name": "p.ipv4.frag",
-            "num_bits_in_clots": 13,
-            "num_bits_in_phvs": 0
-          },
-          {
-            "bit_width": 8,
-            "is_checksum": false,
-            "is_modified": false,
-            "is_readonly": false,
-            "name": "p.ipv4.ttl",
-            "num_bits_in_clots": 8,
-            "num_bits_in_phvs": 0
-          },
-          {
-            "bit_width": 32,
-            "is_checksum": false,
-            "is_modified": false,
-            "is_readonly": false,
-            "name": "p.ipv4.src",
-            "num_bits_in_clots": 32,
+            "name": "p.ethernet.etherType",
+            "num_bits_in_clots": 16,
             "num_bits_in_phvs": 0
           },
           {
@@ -5145,12 +6593,12 @@
             "num_bits_in_phvs": 0
           },
           {
-            "bit_width": 16,
+            "bit_width": 48,
             "is_checksum": false,
             "is_modified": false,
             "is_readonly": false,
-            "name": "p.ipv4.chksum",
-            "num_bits_in_clots": 16,
+            "name": "p.ethernet.dst",
+            "num_bits_in_clots": 48,
             "num_bits_in_phvs": 0
           },
           {
@@ -5167,17 +6615,26 @@
             "is_checksum": false,
             "is_modified": false,
             "is_readonly": false,
-            "name": "p.ipv4.tos",
+            "name": "p.ipv4.ttl",
             "num_bits_in_clots": 8,
             "num_bits_in_phvs": 0
           },
           {
-            "bit_width": 16,
+            "bit_width": 32,
             "is_checksum": false,
             "is_modified": false,
             "is_readonly": false,
-            "name": "p.ethernet.etherType",
-            "num_bits_in_clots": 16,
+            "name": "p.ipv4.dst",
+            "num_bits_in_clots": 32,
+            "num_bits_in_phvs": 0
+          },
+          {
+            "bit_width": 32,
+            "is_checksum": false,
+            "is_modified": false,
+            "is_readonly": false,
+            "name": "p.ipv4.src",
+            "num_bits_in_clots": 32,
             "num_bits_in_phvs": 0
           },
           {
@@ -5185,8 +6642,17 @@
             "is_checksum": false,
             "is_modified": false,
             "is_readonly": false,
-            "name": "p.ipv4.version",
+            "name": "p.ipv4.ihl",
             "num_bits_in_clots": 4,
+            "num_bits_in_phvs": 0
+          },
+          {
+            "bit_width": 16,
+            "is_checksum": false,
+            "is_modified": false,
+            "is_readonly": false,
+            "name": "p.ipv4.chksum",
+            "num_bits_in_clots": 16,
             "num_bits_in_phvs": 0
           },
           {
@@ -5205,6 +6671,15 @@
             "is_readonly": false,
             "name": "p.ethernet.src",
             "num_bits_in_clots": 48,
+            "num_bits_in_phvs": 0
+          },
+          {
+            "bit_width": 8,
+            "is_checksum": false,
+            "is_modified": false,
+            "is_readonly": false,
+            "name": "p.ipv4.tos",
+            "num_bits_in_clots": 8,
             "num_bits_in_phvs": 0
           }
         ],

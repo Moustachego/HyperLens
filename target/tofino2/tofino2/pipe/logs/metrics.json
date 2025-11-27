@@ -1,11 +1,11 @@
 {
     "program_name": "tofino2.p4", 
-    "build_date": "Tue Nov 25 11:18:28 2025", 
-    "run_id": "ebb2921b54f74acd", 
+    "build_date": "Tue Nov 25 16:43:23 2025", 
+    "run_id": "0bee7d560cb1406f", 
     "compiler_version": "9.13.1", 
     "schema_version": "1.1.0", 
     "target": "tofino2", 
-    "compilation_time": "5.801676273345947", 
+    "compilation_time": "6.113018035888672", 
     "phv": {
         "normal": [
             {
@@ -30,14 +30,14 @@
         "mocha": [
             {
                 "bit_width": 8, 
-                "containers_occupied": 7, 
-                "bits_occupied": 23, 
+                "containers_occupied": 11, 
+                "bits_occupied": 34, 
                 "bits_overlaid": 0
             }, 
             {
                 "bit_width": 16, 
                 "containers_occupied": 5, 
-                "bits_occupied": 52, 
+                "bits_occupied": 53, 
                 "bits_overlaid": 0
             }, 
             {
@@ -77,17 +77,17 @@
         }
     }, 
     "mau": {
-        "srams": 11, 
-        "tcams": 14, 
+        "srams": 16, 
+        "tcams": 18, 
         "map_rams": 0, 
-        "logical_tables": 12, 
-        "action_bus_bytes": 10, 
-        "exact_crossbar_bytes": 12, 
-        "ternary_crossbar_bytes": 19, 
+        "logical_tables": 17, 
+        "action_bus_bytes": 15, 
+        "exact_crossbar_bytes": 23, 
+        "ternary_crossbar_bytes": 23, 
         "latency": [
             {
                 "gress": "ingress", 
-                "cycles": 160
+                "cycles": 220
             }, 
             {
                 "gress": "egress", 
@@ -95,13 +95,13 @@
             }, 
             {
                 "gress": "ghost", 
-                "cycles": 148
+                "cycles": 202
             }
         ], 
         "power": [
             {
                 "gress": "ingress", 
-                "estimate": "2.0984"
+                "estimate": "2.9256"
             }, 
             {
                 "gress": "egress", 

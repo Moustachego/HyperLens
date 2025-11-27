@@ -1,37 +1,52 @@
 Table Placement INITIAL, not ignoring container conflicts
 Table placement starting on pipe with DEFAULT PLACEMENT approach
-ingress: [16]
-  ip_table_0{ T 88+1, 2 1K }
-    $hit: [17] 1 11
+ingress: [22]
+  ip_table_0{ T 88+1, 4 1K }
+    $hit: [23] 1 11 111
       src_tcam_table_0{ T 25+1, 2 2K }
-        $hit: [18]
+        $hit: [24]
           tbl_act
-        $miss: [19]
+        $miss: [25]
       src_sram_table_0{ E 10+1, 2 4K }
-        $hit: [20]
+        $hit: [26]
           tbl_act_1
-        $miss: [21]
-      cond-3(ingress::src_tcam_match_0 => $true, ingress::src_sram_match_0 => $true, 1 => $false)
-        $true: [22] 1 11
-          dst_tcam_table_0{ T 25+2, 2 2K }
-            $hit: [23]
+        $miss: [27]
+      cond-5(ingress::src_tcam_match_0 => $false, ingress::src_sram_match_0 => $false, ingress::ig_md.Group_id_secondary == 511; => $false, 1 => $true)
+        $true: [28] 1 11
+          src_tcam_table_secondary_0{ T 25+1, 2 2K }
+            $hit: [29]
               tbl_act_3
-            $miss: [24]
-          dst_sram_table_0{ E 10+2, 2 4K }
-            $hit: [25]
+            $miss: [30]
+          src_sram_table_secondary_0{ E 10+1, 2 4K }
+            $hit: [31]
               tbl_act_5
-            $miss: [26]
-          cond-4(!ingress::dst_tcam_match_0 && !ingress::dst_sram_match_0; => $true, 1 => $false)
-            $true: [27]
+            $miss: [32]
+          cond-6(ingress::src_tcam_match_sec_0 => $true, ingress::src_sram_match_sec_0 => $true, 1 => $false)
+            $true: [33]
+              tbl_tofino2l358
+            $false: [43]
+        $false: [44]
+      cond-7(ingress::src_tcam_match_0 => $true, ingress::src_sram_match_0 => $true, ingress::src_match_secondary_0 => $true, 1 => $false)
+        $true: [34] 1 11
+          dst_tcam_table_0{ T 25+1, 2 2K }
+            $hit: [35]
+              tbl_act_7
+            $miss: [36]
+          dst_sram_table_0{ E 10+1, 2 4K }
+            $hit: [37]
+              tbl_act_9
+            $miss: [38]
+          cond-8(!ingress::dst_tcam_match_0 && !ingress::dst_sram_match_0; => $true, 1 => $false)
+            $true: [39]
               tbl_drop
-            $false: [31]
-        $false: [28]
+            $false: [45]
+        $false: [40]
           tbl_drop_0
-    $miss: [29]
+    $miss: [41]
       tbl_drop_1
-egress: [30]
+egress: [42]
 
-stage 0, work: [ 4012937 ], partly placed 0, placed 0
+stage 0, work: [ 4153935 ], partly placed 0, placed 0
     { id=0 ram=0 tcam=0 mram=0 eixb=0 tixb=0 malu=0 salu=0 local_tinds=0 }
 ip_table_0 is not a gateway! Aborting search for merge choices
 try_place_table(ip_table_0, stage=0)
@@ -39,8 +54,8 @@ try_place_table(ip_table_0, stage=0)
   Try_alloc_all for Table use
   Trying to allocate layout for ip_table_0 
   Picking layout option for table : ip_table_0 with requested entries : 1024
-  picked layout for ip_table_0 FormatType(02) layout: 1024tV ixbar:11B/88b match:11B/88b adb:2 ov:10 imm:9
-  entries:1024 srams:1 local_tinds: 0 maprams:0 tcams:4 afi:1
+  picked layout for ip_table_0 FormatType(02) layout: 1024tV ixbar:11B/88b match:11B/88b adb:4 ov:25 imm:24
+  entries:1024 srams:1 local_tinds: 0 maprams:0 tcams:4 afi:3
   Trying to allocate adb for ip_table_0 
   Trying to allocate imem for ip_table_0 
     Selected stage: 0    Furthest stage: 0
@@ -50,7 +65,7 @@ found 1 tables that could be placed: [ ip_table_0 ]
 Initial best is first table seen: ip_table_0
 Adding table:ip_table_0 in the initial stage option
 placing 1024 entries of ip_table_0 ( SwitchIngress.ip_table )  in stage 0(0) FormatType(02)
-stage 0, work: [ 4012937, 4013101, 4014345 ], partly placed 0, placed 1
+stage 0, work: [ 4153935, 4154124, 4155937 ], partly placed 0, placed 1
     { id=1 ram=1 tcam=4 mram=0 eixb=11 tixb=0 malu=0 salu=0 local_tinds=0 }
     - skipping ip_table_0 as its already done
 src_tcam_table_0 is not a gateway! Aborting search for merge choices
@@ -68,7 +83,8 @@ try_place_table(src_tcam_table_0, stage=0)
     try_place_table returning 2048 of src_tcam_table_0 in stage 1
     Pl vector: src_tcam_table_0 
   - skipping src_sram_table_0 due to in-sequence control dependence on src_tcam_table_0
-  - skipping cond-3 due to in-sequence control dependence on src_tcam_table_0
+  - skipping cond-5 due to in-sequence control dependence on src_tcam_table_0
+  - skipping cond-7 due to in-sequence control dependence on src_tcam_table_0
 tbl_drop_1 is not a gateway! Aborting search for merge choices
 try_place_table(tbl_drop_1, stage=0)
     - dependency between ip_table_0 and table advances stage
@@ -90,7 +106,7 @@ For trial t : tbl_drop_1 with best: src_tcam_table_0
 Adding table:src_tcam_table_0 in the initial stage option
 Adding table:tbl_drop_1 in the initial stage option
 placing 2048 entries of src_tcam_table_0 ( SwitchIngress.src_tcam_table )  in stage 1(10) FormatType(02)
-stage 1, work: [ 4013101, 4014345, 4013404 ], partly placed 0, placed 2
+stage 1, work: [ 4154124, 4155937, 4154436 ], partly placed 0, placed 2
     { id=1 ram=1 tcam=4 mram=0 eixb=4 tixb=0 malu=0 salu=0 local_tinds=0 }
     - skipping src_tcam_table_0 as its already done
 src_sram_table_0 is not a gateway! Aborting search for merge choices
@@ -109,7 +125,8 @@ try_place_table(src_sram_table_0, stage=1)
     Selected stage: 2    Furthest stage: 2
     try_place_table returning 16384 of src_sram_table_0 in stage 2
     Pl vector: src_sram_table_0 
-  - skipping cond-3 due to in-sequence control dependence on src_sram_table_0
+  - skipping cond-5 due to in-sequence control dependence on src_sram_table_0
+  - skipping cond-7 due to in-sequence control dependence on src_sram_table_0
 tbl_drop_1 is not a gateway! Aborting search for merge choices
 try_place_table(tbl_drop_1, stage=1)
     Initial # of stages is 1, initial # of entries is 1
@@ -125,7 +142,8 @@ try_place_table(tbl_drop_1, stage=1)
     Pl vector: tbl_drop_1 
 tbl_act is not a gateway! Aborting search for merge choices
 try_place_table(tbl_act, stage=1)
-    Initial # of stages is 1, initial # of entries is 1
+    - action dependency between src_tcam_table_0 and table tbl_act due to PHV allocation advances stage to 2
+    Initial # of stages is 2, initial # of entries is 1
   Try_alloc_all for Table use
   Trying to allocate layout for tbl_act 
   Picking layout option for table : tbl_act with requested entries : 1
@@ -133,17 +151,17 @@ try_place_table(tbl_act, stage=1)
   entries:1 srams:0 local_tinds: 0 maprams:0 tcams:0 afi:0
   Trying to allocate adb for tbl_act 
   Trying to allocate imem for tbl_act 
-    Selected stage: 1    Furthest stage: 2
-    try_place_table returning 1 of tbl_act in stage 1
+    Selected stage: 2    Furthest stage: 2
+    try_place_table returning 1 of tbl_act in stage 2
     Pl vector: tbl_act 
 found 3 tables that could be placed: [ src_sram_table_0, tbl_drop_1, tbl_act ]
 Initial best is first table seen: src_sram_table_0
 For trial t : tbl_drop_1 with best: src_sram_table_0
     Updating best to tbl_drop_1 from src_sram_table_0 for reason: earlier stage calculated
 For trial t : tbl_act with best: tbl_drop_1
-    Updating best to tbl_act from tbl_drop_1 for reason: longer downward prop control-included dependence tail chain
-placing 1 entries of tbl_act ( tbl_act )  in stage 1(11) FormatType(02)
-stage 1, work: [ 4013101, 4014345 ], partly placed 0, placed 3
+    Keeping best tbl_drop_1 for reason: earlier stage calculated
+placing 1 entries of tbl_drop_1 ( tbl_drop_1 )  in stage 1(11) FormatType(02)
+stage 1, work: [ 4154124, 4154436 ], partly placed 0, placed 3
     { id=2 ram=1 tcam=4 mram=0 eixb=4 tixb=0 malu=0 salu=0 local_tinds=0 }
     - skipping src_tcam_table_0 as its already done
 src_sram_table_0 is not a gateway! Aborting search for merge choices
@@ -162,57 +180,51 @@ try_place_table(src_sram_table_0, stage=1)
     Selected stage: 2    Furthest stage: 2
     try_place_table returning 16384 of src_sram_table_0 in stage 2
     Pl vector: src_sram_table_0 
-  - skipping cond-3 due to in-sequence control dependence on src_sram_table_0
-tbl_drop_1 is not a gateway! Aborting search for merge choices
-try_place_table(tbl_drop_1, stage=1)
-    Initial # of stages is 1, initial # of entries is 1
+  - skipping cond-5 due to in-sequence control dependence on src_sram_table_0
+  - skipping cond-7 due to in-sequence control dependence on src_sram_table_0
+tbl_act is not a gateway! Aborting search for merge choices
+try_place_table(tbl_act, stage=1)
+    - action dependency between src_tcam_table_0 and table tbl_act due to PHV allocation advances stage to 2
+    Initial # of stages is 2, initial # of entries is 1
   Try_alloc_all for Table use
-  Trying to allocate layout for tbl_drop_1 
-  Picking layout option for table : tbl_drop_1 with requested entries : 1
-  picked layout for tbl_drop_1 FormatType(02) layout: 0V ixbar:0B/0b match:0B/0b
+  Trying to allocate layout for tbl_act 
+  Picking layout option for table : tbl_act with requested entries : 1
+  picked layout for tbl_act FormatType(02) layout: 0V ixbar:0B/0b match:0B/0b
   entries:1 srams:0 local_tinds: 0 maprams:0 tcams:0 afi:0
-  Trying to allocate adb for tbl_drop_1 
-  Trying to allocate imem for tbl_drop_1 
-    Selected stage: 1    Furthest stage: 2
-    try_place_table returning 1 of tbl_drop_1 in stage 1
-    Pl vector: tbl_drop_1 
-found 2 tables that could be placed: [ src_sram_table_0, tbl_drop_1 ]
-Initial best is first table seen: src_sram_table_0
-For trial t : tbl_drop_1 with best: src_sram_table_0
-    Updating best to tbl_drop_1 from src_sram_table_0 for reason: earlier stage calculated
-placing 1 entries of tbl_drop_1 ( tbl_drop_1 )  in stage 1(12) FormatType(02)
-stage 1, work: [ 4013101 ], partly placed 0, placed 4
-    { id=3 ram=1 tcam=4 mram=0 eixb=4 tixb=0 malu=0 salu=0 local_tinds=0 }
-    - skipping src_tcam_table_0 as its already done
-src_sram_table_0 is not a gateway! Aborting search for merge choices
-try_place_table(src_sram_table_0, stage=1)
-    - dependency between src_tcam_table_0 and table advances stage
-    Initial # of stages is 2, initial # of entries is 4096
-  Try_alloc_all for Table use
-  Trying to allocate layout for src_sram_table_0 
-  Picking layout option for table : src_sram_table_0 with requested entries : 4096
-      The selected pack format for table src_sram_table_0 could not fit given the input xbar allocation
-  picked layout for src_sram_table_0 FormatType(02) layout: 4096eV ixbar:4B/20b match:2B/10b gh:2 adb:2 ov:10 imm:9
-  way:{ g:4 e:0 w:1 1 1 1 1 }
-  entries:16384 srams:4 local_tinds: 0 maprams:0 tcams:0 afi:1
-  Trying to allocate adb for src_sram_table_0 
-  Trying to allocate imem for src_sram_table_0 
+  Trying to allocate adb for tbl_act 
+  Trying to allocate imem for tbl_act 
     Selected stage: 2    Furthest stage: 2
-    try_place_table returning 16384 of src_sram_table_0 in stage 2
-    Pl vector: src_sram_table_0 
-  - skipping cond-3 due to in-sequence control dependence on src_sram_table_0
-found 1 tables that could be placed: [ src_sram_table_0 ]
+    try_place_table returning 1 of tbl_act in stage 2
+    Pl vector: tbl_act 
+found 2 tables that could be placed: [ src_sram_table_0, tbl_act ]
 Initial best is first table seen: src_sram_table_0
+For trial t : tbl_act with best: src_sram_table_0
+    Keeping best src_sram_table_0 for reason: longer control-excluded dependence tail chain
 Adding table:src_sram_table_0 in the initial stage option
+Adding table:tbl_act in the initial stage option
 placing 16384 entries of src_sram_table_0 ( SwitchIngress.src_sram_table )  in stage 2(20) FormatType(02)
-stage 2, work: [ 4013101, 4013634 ], partly placed 0, placed 5
+stage 2, work: [ 4154124, 4154436, 4154683 ], partly placed 0, placed 4
     { id=1 ram=4 tcam=0 mram=0 eixb=4 tixb=0 malu=0 salu=0 local_tinds=0 }
     - skipping src_tcam_table_0 as its already done
     - skipping src_sram_table_0 as its already done
-  - skipping cond-3 because it depends on tbl_act_1
-    - removing tbl_drop_0 from merge list because it depends on tbl_act_1
-    - removing dst_tcam_table_0 from merge list because it depends on tbl_act_1
-    - skipping gateway cond-3 until mergeable tables are available
+  - skipping cond-5 because it depends on tbl_act
+    - removing src_tcam_table_secondary_0 from merge list because it depends on tbl_act
+    - skipping gateway cond-5 until mergeable tables are available
+  - skipping cond-7 due to in-sequence control dependence on cond-5
+tbl_act is not a gateway! Aborting search for merge choices
+try_place_table(tbl_act, stage=2)
+    - action dependency between src_sram_table_0 and table tbl_act due to PHV allocation advances stage to 3
+    Initial # of stages is 3, initial # of entries is 1
+  Try_alloc_all for Table use
+  Trying to allocate layout for tbl_act 
+  Picking layout option for table : tbl_act with requested entries : 1
+  picked layout for tbl_act FormatType(02) layout: 0V ixbar:0B/0b match:0B/0b
+  entries:1 srams:0 local_tinds: 0 maprams:0 tcams:0 afi:0
+  Trying to allocate adb for tbl_act 
+  Trying to allocate imem for tbl_act 
+    Selected stage: 3    Furthest stage: 3
+    try_place_table returning 1 of tbl_act in stage 3
+    Pl vector: tbl_act 
 tbl_act_1 is not a gateway! Aborting search for merge choices
 try_place_table(tbl_act_1, stage=2)
     Initial # of stages is 2, initial # of entries is 1
@@ -226,85 +238,90 @@ try_place_table(tbl_act_1, stage=2)
     Selected stage: 2    Furthest stage: 3
     try_place_table returning 1 of tbl_act_1 in stage 2
     Pl vector: tbl_act_1 
-found 1 tables that could be placed: [ tbl_act_1 ]
-Initial best is first table seen: tbl_act_1
+found 2 tables that could be placed: [ tbl_act, tbl_act_1 ]
+Initial best is first table seen: tbl_act
+For trial t : tbl_act_1 with best: tbl_act
+    Updating best to tbl_act_1 from tbl_act for reason: earlier stage calculated
 placing 1 entries of tbl_act_1 ( tbl_act_1 )  in stage 2(21) FormatType(02)
-stage 2, work: [ 4013101 ], partly placed 0, placed 6
+stage 2, work: [ 4154124, 4154436 ], partly placed 0, placed 5
     { id=2 ram=4 tcam=0 mram=0 eixb=4 tixb=0 malu=0 salu=0 local_tinds=0 }
     - skipping src_tcam_table_0 as its already done
     - skipping src_sram_table_0 as its already done
-try_place_table(cond-3, stage=2)
-    Merging with match table tbl_drop_0 and tag $false
-    - dependency between tbl_act_1 and table advances stage
+  - skipping cond-5 because it depends on tbl_act
+    - removing src_tcam_table_secondary_0 from merge list because it depends on tbl_act
+    - skipping gateway cond-5 until mergeable tables are available
+  - skipping cond-7 due to in-sequence control dependence on cond-5
+tbl_act is not a gateway! Aborting search for merge choices
+try_place_table(tbl_act, stage=2)
+    - action dependency between src_sram_table_0 and table tbl_act due to PHV allocation advances stage to 3
     Initial # of stages is 3, initial # of entries is 1
   Try_alloc_all for Table use
-  Trying to allocate layout for tbl_drop_0 
-  Picking layout option for table : tbl_drop_0 with requested entries : 1
-  picked layout for tbl_drop_0 FormatType(02) layout: 0V ixbar:0B/0b match:0B/0b
+  Trying to allocate layout for tbl_act 
+  Picking layout option for table : tbl_act with requested entries : 1
+  picked layout for tbl_act FormatType(02) layout: 0V ixbar:0B/0b match:0B/0b
   entries:1 srams:0 local_tinds: 0 maprams:0 tcams:0 afi:0
-  Trying to allocate adb for tbl_drop_0 
-  Trying to allocate imem for tbl_drop_0 
+  Trying to allocate adb for tbl_act 
+  Trying to allocate imem for tbl_act 
     Selected stage: 3    Furthest stage: 3
-    try_place_table returning 1 of tbl_drop_0 in stage 3
-    Merging with match table dst_tcam_table_0 and tag $true
-    - dependency between tbl_act_1 and table advances stage
-    Initial # of stages is 3, initial # of entries is 2048
+    try_place_table returning 1 of tbl_act in stage 3
+    Pl vector: tbl_act 
+found 1 tables that could be placed: [ tbl_act ]
+Initial best is first table seen: tbl_act
+Adding table:tbl_act in the initial stage option
+placing 1 entries of tbl_act ( tbl_act )  in stage 3(30) FormatType(02)
+stage 3, work: [ 4154124 ], partly placed 0, placed 6
+    { id=1 ram=0 tcam=0 mram=0 eixb=0 tixb=0 malu=0 salu=0 local_tinds=0 }
+    - skipping src_tcam_table_0 as its already done
+    - skipping src_sram_table_0 as its already done
+try_place_table(cond-5, stage=3)
+    Merging with match table src_tcam_table_secondary_0 and tag $true
+    - dependency between tbl_act and table advances stage
+    Initial # of stages is 4, initial # of entries is 2048
   Try_alloc_all for Table use
-  Trying to allocate layout for dst_tcam_table_0 
-  Picking layout option for table : dst_tcam_table_0 with requested entries : 2048
-  picked layout for dst_tcam_table_0 FormatType(02) layout: 2048tV ixbar:4B/25b match:4B/25b adb:2 ov:11 imm:9
+  Trying to allocate layout for src_tcam_table_secondary_0 
+  Picking layout option for table : src_tcam_table_secondary_0 with requested entries : 2048
+  picked layout for src_tcam_table_secondary_0 FormatType(02) layout: 2048tV ixbar:4B/25b match:4B/25b adb:2 ov:10 imm:9
   entries:2048 srams:1 local_tinds: 0 maprams:0 tcams:4 afi:1
-  Trying to allocate adb for dst_tcam_table_0 
-  Trying to allocate imem for dst_tcam_table_0 
-    Selected stage: 3    Furthest stage: 3
-    try_place_table returning 2048 of dst_tcam_table_0 in stage 3
-    Pl vector: tbl_drop_0 dst_tcam_table_0 
-found 2 tables that could be placed: [ tbl_drop_0, dst_tcam_table_0 ]
-Initial best is first table seen: tbl_drop_0
-For trial t : dst_tcam_table_0 with best: tbl_drop_0
-    Updating best to dst_tcam_table_0 from tbl_drop_0 for reason: longer downward prop control-included dependence tail chain
-Adding table:tbl_drop_0 in the initial stage option
-Adding table:dst_tcam_table_0 in the initial stage option
-placing 2048 entries of dst_tcam_table_0 ( SwitchIngress.dst_tcam_table )  (with gw cond-3, result tag $true) in stage 3(30) FormatType(02)
-stage 3, work: [ 4013101, 4013642, 4014281, 4013889 ], partly placed 0, placed 7
+  Trying to allocate adb for src_tcam_table_secondary_0 
+  Trying to allocate imem for src_tcam_table_secondary_0 
+    Selected stage: 4    Furthest stage: 4
+    try_place_table returning 2048 of src_tcam_table_secondary_0 in stage 4
+    Pl vector: src_tcam_table_secondary_0 
+  - skipping cond-7 due to in-sequence control dependence on cond-5
+found 1 tables that could be placed: [ src_tcam_table_secondary_0 ]
+Initial best is first table seen: src_tcam_table_secondary_0
+Adding table:src_tcam_table_secondary_0 in the initial stage option
+placing 2048 entries of src_tcam_table_secondary_0 ( SwitchIngress.src_tcam_table_secondary )  (with gw cond-5, result tag $true) in stage 4(40) FormatType(02)
+stage 4, work: [ 4154124, 4154750, 4154969 ], partly placed 0, placed 7
     { id=1 ram=1 tcam=4 mram=0 eixb=4 tixb=0 malu=0 salu=0 local_tinds=0 }
     - skipping src_tcam_table_0 as its already done
     - skipping src_sram_table_0 as its already done
-    - skipping cond-3 as its already done
-    - skipping dst_tcam_table_0 as its already done
-dst_sram_table_0 is not a gateway! Aborting search for merge choices
-try_place_table(dst_sram_table_0, stage=3)
-    - dependency between dst_tcam_table_0 and table advances stage
-    Initial # of stages is 4, initial # of entries is 4096
+    - skipping cond-5 as its already done
+  - skipping cond-7 because it depends on src_sram_table_secondary_0
+    - removing tbl_drop_0 from merge list because it depends on src_sram_table_secondary_0
+    - removing dst_tcam_table_0 from merge list because it depends on src_sram_table_secondary_0
+    - skipping gateway cond-7 until mergeable tables are available
+    - skipping src_tcam_table_secondary_0 as its already done
+src_sram_table_secondary_0 is not a gateway! Aborting search for merge choices
+try_place_table(src_sram_table_secondary_0, stage=4)
+    - dependency between src_tcam_table_secondary_0 and table advances stage
+    Initial # of stages is 5, initial # of entries is 4096
   Try_alloc_all for Table use
-  Trying to allocate layout for dst_sram_table_0 
-  Picking layout option for table : dst_sram_table_0 with requested entries : 4096
-      The selected pack format for table dst_sram_table_0 could not fit given the input xbar allocation
-  picked layout for dst_sram_table_0 FormatType(02) layout: 4096eV ixbar:4B/20b match:2B/10b gh:2 adb:2 ov:11 imm:9
+  Trying to allocate layout for src_sram_table_secondary_0 
+  Picking layout option for table : src_sram_table_secondary_0 with requested entries : 4096
+      The selected pack format for table src_sram_table_secondary_0 could not fit given the input xbar allocation
+  picked layout for src_sram_table_secondary_0 FormatType(02) layout: 4096eV ixbar:4B/20b match:2B/10b gh:2 adb:2 ov:10 imm:9
   way:{ g:4 e:0 w:1 1 1 1 1 }
   entries:16384 srams:4 local_tinds: 0 maprams:0 tcams:0 afi:1
-  Trying to allocate adb for dst_sram_table_0 
-  Trying to allocate imem for dst_sram_table_0 
-    Selected stage: 4    Furthest stage: 4
-    try_place_table returning 16384 of dst_sram_table_0 in stage 4
-    Pl vector: dst_sram_table_0 
-  - skipping cond-4 due to in-sequence control dependence on dst_sram_table_0
-tbl_drop_0 is not a gateway! Aborting search for merge choices
-try_place_table(tbl_drop_0, stage=3)
-    Initial # of stages is 3, initial # of entries is 1
-  Try_alloc_all for Table use
-  Trying to allocate layout for tbl_drop_0 
-  Picking layout option for table : tbl_drop_0 with requested entries : 1
-  picked layout for tbl_drop_0 FormatType(02) layout: 0V ixbar:0B/0b match:0B/0b
-  entries:1 srams:0 local_tinds: 0 maprams:0 tcams:0 afi:0
-  Trying to allocate adb for tbl_drop_0 
-  Trying to allocate imem for tbl_drop_0 
-    Selected stage: 3    Furthest stage: 4
-    try_place_table returning 1 of tbl_drop_0 in stage 3
-    Pl vector: tbl_drop_0 
+  Trying to allocate adb for src_sram_table_secondary_0 
+  Trying to allocate imem for src_sram_table_secondary_0 
+    Selected stage: 5    Furthest stage: 5
+    try_place_table returning 16384 of src_sram_table_secondary_0 in stage 5
+    Pl vector: src_sram_table_secondary_0 
+  - skipping cond-6 due to in-sequence control dependence on src_sram_table_secondary_0
 tbl_act_3 is not a gateway! Aborting search for merge choices
-try_place_table(tbl_act_3, stage=3)
-    Initial # of stages is 3, initial # of entries is 1
+try_place_table(tbl_act_3, stage=4)
+    Initial # of stages is 4, initial # of entries is 1
   Try_alloc_all for Table use
   Trying to allocate layout for tbl_act_3 
   Picking layout option for table : tbl_act_3 with requested entries : 1
@@ -312,88 +329,62 @@ try_place_table(tbl_act_3, stage=3)
   entries:1 srams:0 local_tinds: 0 maprams:0 tcams:0 afi:0
   Trying to allocate adb for tbl_act_3 
   Trying to allocate imem for tbl_act_3 
-    Selected stage: 3    Furthest stage: 4
-    try_place_table returning 1 of tbl_act_3 in stage 3
+    Selected stage: 4    Furthest stage: 5
+    try_place_table returning 1 of tbl_act_3 in stage 4
     Pl vector: tbl_act_3 
-found 3 tables that could be placed: [ dst_sram_table_0, tbl_drop_0, tbl_act_3 ]
-Initial best is first table seen: dst_sram_table_0
-For trial t : tbl_drop_0 with best: dst_sram_table_0
-    Updating best to tbl_drop_0 from dst_sram_table_0 for reason: earlier stage calculated
-For trial t : tbl_act_3 with best: tbl_drop_0
-    Updating best to tbl_act_3 from tbl_drop_0 for reason: longer downward prop control-included dependence tail chain
-placing 1 entries of tbl_act_3 ( tbl_act_3 )  in stage 3(31) FormatType(02)
-stage 3, work: [ 4013642, 4014281 ], partly placed 0, placed 8
+found 2 tables that could be placed: [ src_sram_table_secondary_0, tbl_act_3 ]
+Initial best is first table seen: src_sram_table_secondary_0
+For trial t : tbl_act_3 with best: src_sram_table_secondary_0
+    Updating best to tbl_act_3 from src_sram_table_secondary_0 for reason: earlier stage calculated
+placing 1 entries of tbl_act_3 ( tbl_act_3 )  in stage 4(41) FormatType(02)
+stage 4, work: [ 4154124, 4154750 ], partly placed 0, placed 8
     { id=2 ram=1 tcam=4 mram=0 eixb=4 tixb=0 malu=0 salu=0 local_tinds=0 }
-    - skipping dst_tcam_table_0 as its already done
-dst_sram_table_0 is not a gateway! Aborting search for merge choices
-try_place_table(dst_sram_table_0, stage=3)
-    - dependency between dst_tcam_table_0 and table advances stage
-    Initial # of stages is 4, initial # of entries is 4096
+    - skipping src_tcam_table_0 as its already done
+    - skipping src_sram_table_0 as its already done
+    - skipping cond-5 as its already done
+  - skipping cond-7 because it depends on src_sram_table_secondary_0
+    - removing tbl_drop_0 from merge list because it depends on src_sram_table_secondary_0
+    - removing dst_tcam_table_0 from merge list because it depends on src_sram_table_secondary_0
+    - skipping gateway cond-7 until mergeable tables are available
+    - skipping src_tcam_table_secondary_0 as its already done
+src_sram_table_secondary_0 is not a gateway! Aborting search for merge choices
+try_place_table(src_sram_table_secondary_0, stage=4)
+    - dependency between src_tcam_table_secondary_0 and table advances stage
+    Initial # of stages is 5, initial # of entries is 4096
   Try_alloc_all for Table use
-  Trying to allocate layout for dst_sram_table_0 
-  Picking layout option for table : dst_sram_table_0 with requested entries : 4096
-      The selected pack format for table dst_sram_table_0 could not fit given the input xbar allocation
-  picked layout for dst_sram_table_0 FormatType(02) layout: 4096eV ixbar:4B/20b match:2B/10b gh:2 adb:2 ov:11 imm:9
+  Trying to allocate layout for src_sram_table_secondary_0 
+  Picking layout option for table : src_sram_table_secondary_0 with requested entries : 4096
+      The selected pack format for table src_sram_table_secondary_0 could not fit given the input xbar allocation
+  picked layout for src_sram_table_secondary_0 FormatType(02) layout: 4096eV ixbar:4B/20b match:2B/10b gh:2 adb:2 ov:10 imm:9
   way:{ g:4 e:0 w:1 1 1 1 1 }
   entries:16384 srams:4 local_tinds: 0 maprams:0 tcams:0 afi:1
-  Trying to allocate adb for dst_sram_table_0 
-  Trying to allocate imem for dst_sram_table_0 
-    Selected stage: 4    Furthest stage: 4
-    try_place_table returning 16384 of dst_sram_table_0 in stage 4
-    Pl vector: dst_sram_table_0 
-  - skipping cond-4 due to in-sequence control dependence on dst_sram_table_0
-tbl_drop_0 is not a gateway! Aborting search for merge choices
-try_place_table(tbl_drop_0, stage=3)
-    Initial # of stages is 3, initial # of entries is 1
-  Try_alloc_all for Table use
-  Trying to allocate layout for tbl_drop_0 
-  Picking layout option for table : tbl_drop_0 with requested entries : 1
-  picked layout for tbl_drop_0 FormatType(02) layout: 0V ixbar:0B/0b match:0B/0b
-  entries:1 srams:0 local_tinds: 0 maprams:0 tcams:0 afi:0
-  Trying to allocate adb for tbl_drop_0 
-  Trying to allocate imem for tbl_drop_0 
-    Selected stage: 3    Furthest stage: 4
-    try_place_table returning 1 of tbl_drop_0 in stage 3
-    Pl vector: tbl_drop_0 
-found 2 tables that could be placed: [ dst_sram_table_0, tbl_drop_0 ]
-Initial best is first table seen: dst_sram_table_0
-For trial t : tbl_drop_0 with best: dst_sram_table_0
-    Updating best to tbl_drop_0 from dst_sram_table_0 for reason: earlier stage calculated
-placing 1 entries of tbl_drop_0 ( tbl_drop_0 )  in stage 3(32) FormatType(02)
-stage 3, work: [ 4013642 ], partly placed 0, placed 9
-    { id=3 ram=1 tcam=4 mram=0 eixb=4 tixb=0 malu=0 salu=0 local_tinds=0 }
-    - skipping dst_tcam_table_0 as its already done
-dst_sram_table_0 is not a gateway! Aborting search for merge choices
-try_place_table(dst_sram_table_0, stage=3)
-    - dependency between dst_tcam_table_0 and table advances stage
-    Initial # of stages is 4, initial # of entries is 4096
-  Try_alloc_all for Table use
-  Trying to allocate layout for dst_sram_table_0 
-  Picking layout option for table : dst_sram_table_0 with requested entries : 4096
-      The selected pack format for table dst_sram_table_0 could not fit given the input xbar allocation
-  picked layout for dst_sram_table_0 FormatType(02) layout: 4096eV ixbar:4B/20b match:2B/10b gh:2 adb:2 ov:11 imm:9
-  way:{ g:4 e:0 w:1 1 1 1 1 }
-  entries:16384 srams:4 local_tinds: 0 maprams:0 tcams:0 afi:1
-  Trying to allocate adb for dst_sram_table_0 
-  Trying to allocate imem for dst_sram_table_0 
-    Selected stage: 4    Furthest stage: 4
-    try_place_table returning 16384 of dst_sram_table_0 in stage 4
-    Pl vector: dst_sram_table_0 
-  - skipping cond-4 due to in-sequence control dependence on dst_sram_table_0
-found 1 tables that could be placed: [ dst_sram_table_0 ]
-Initial best is first table seen: dst_sram_table_0
-Adding table:dst_sram_table_0 in the initial stage option
-placing 16384 entries of dst_sram_table_0 ( SwitchIngress.dst_sram_table )  in stage 4(40) FormatType(02)
-stage 4, work: [ 4013642, 4014147 ], partly placed 0, placed 10
+  Trying to allocate adb for src_sram_table_secondary_0 
+  Trying to allocate imem for src_sram_table_secondary_0 
+    Selected stage: 5    Furthest stage: 5
+    try_place_table returning 16384 of src_sram_table_secondary_0 in stage 5
+    Pl vector: src_sram_table_secondary_0 
+  - skipping cond-6 due to in-sequence control dependence on src_sram_table_secondary_0
+found 1 tables that could be placed: [ src_sram_table_secondary_0 ]
+Initial best is first table seen: src_sram_table_secondary_0
+Adding table:src_sram_table_secondary_0 in the initial stage option
+placing 16384 entries of src_sram_table_secondary_0 ( SwitchIngress.src_sram_table_secondary )  in stage 5(50) FormatType(02)
+stage 5, work: [ 4154124, 4154750, 4155207 ], partly placed 0, placed 9
     { id=1 ram=4 tcam=0 mram=0 eixb=4 tixb=0 malu=0 salu=0 local_tinds=0 }
-    - skipping dst_tcam_table_0 as its already done
-    - skipping dst_sram_table_0 as its already done
-  - skipping cond-4 because it depends on tbl_act_5
-    - removing tbl_drop from merge list because it depends on tbl_act_5
-    - skipping gateway cond-4 until mergeable tables are available
+    - skipping src_tcam_table_0 as its already done
+    - skipping src_sram_table_0 as its already done
+    - skipping cond-5 as its already done
+  - skipping cond-7 because it depends on cond-6
+    - removing tbl_drop_0 from merge list because it depends on cond-6
+    - removing dst_tcam_table_0 from merge list because it depends on cond-6
+    - skipping gateway cond-7 until mergeable tables are available
+    - skipping src_tcam_table_secondary_0 as its already done
+    - skipping src_sram_table_secondary_0 as its already done
+  - skipping cond-6 because it depends on tbl_act_5
+    - removing tbl_tofino2l358 from merge list because it depends on tbl_act_5
+    - skipping gateway cond-6 until mergeable tables are available
 tbl_act_5 is not a gateway! Aborting search for merge choices
-try_place_table(tbl_act_5, stage=4)
-    Initial # of stages is 4, initial # of entries is 1
+try_place_table(tbl_act_5, stage=5)
+    Initial # of stages is 5, initial # of entries is 1
   Try_alloc_all for Table use
   Trying to allocate layout for tbl_act_5 
   Picking layout option for table : tbl_act_5 with requested entries : 1
@@ -401,20 +392,229 @@ try_place_table(tbl_act_5, stage=4)
   entries:1 srams:0 local_tinds: 0 maprams:0 tcams:0 afi:0
   Trying to allocate adb for tbl_act_5 
   Trying to allocate imem for tbl_act_5 
-    Selected stage: 4    Furthest stage: 5
-    try_place_table returning 1 of tbl_act_5 in stage 4
+    Selected stage: 5    Furthest stage: 6
+    try_place_table returning 1 of tbl_act_5 in stage 5
     Pl vector: tbl_act_5 
 found 1 tables that could be placed: [ tbl_act_5 ]
 Initial best is first table seen: tbl_act_5
-placing 1 entries of tbl_act_5 ( tbl_act_5 )  in stage 4(41) FormatType(02)
-stage 4, work: [ 4013642 ], partly placed 0, placed 11
+placing 1 entries of tbl_act_5 ( tbl_act_5 )  in stage 5(51) FormatType(02)
+stage 5, work: [ 4154124, 4154750 ], partly placed 0, placed 10
+    { id=2 ram=4 tcam=0 mram=0 eixb=4 tixb=0 malu=0 salu=0 local_tinds=0 }
+    - skipping src_tcam_table_0 as its already done
+    - skipping src_sram_table_0 as its already done
+    - skipping cond-5 as its already done
+  - skipping cond-7 because it depends on cond-6
+    - removing tbl_drop_0 from merge list because it depends on cond-6
+    - removing dst_tcam_table_0 from merge list because it depends on cond-6
+    - skipping gateway cond-7 until mergeable tables are available
+    - skipping src_tcam_table_secondary_0 as its already done
+    - skipping src_sram_table_secondary_0 as its already done
+try_place_table(cond-6, stage=5)
+    Merging with match table tbl_tofino2l358 and tag $true
+    - dependency between tbl_act_5 and table advances stage
+    Initial # of stages is 6, initial # of entries is 1
+  Try_alloc_all for Table use
+  Trying to allocate layout for tbl_tofino2l358 
+  Picking layout option for table : tbl_tofino2l358 with requested entries : 1
+  picked layout for tbl_tofino2l358 FormatType(02) layout: 0V ixbar:0B/0b match:0B/0b
+  entries:1 srams:0 local_tinds: 0 maprams:0 tcams:0 afi:0
+  Trying to allocate adb for tbl_tofino2l358 
+  Trying to allocate imem for tbl_tofino2l358 
+    Selected stage: 6    Furthest stage: 6
+    try_place_table returning 1 of tbl_tofino2l358 in stage 6
+    Pl vector: tbl_tofino2l358 
+found 1 tables that could be placed: [ tbl_tofino2l358 ]
+Initial best is first table seen: tbl_tofino2l358
+Adding table:tbl_tofino2l358 in the initial stage option
+placing 1 entries of tbl_tofino2l358 ( tbl_tofino2l358 )  (with gw cond-6, result tag $true) in stage 6(60) FormatType(02)
+stage 6, work: [ 4154124 ], partly placed 0, placed 11
+    { id=1 ram=0 tcam=0 mram=0 eixb=0 tixb=0 malu=0 salu=0 local_tinds=0 }
+    - skipping src_tcam_table_0 as its already done
+    - skipping src_sram_table_0 as its already done
+    - skipping cond-5 as its already done
+try_place_table(cond-7, stage=6)
+    Merging with match table tbl_drop_0 and tag $false
+    - dependency between tbl_tofino2l358 and table advances stage
+    Initial # of stages is 7, initial # of entries is 1
+  Try_alloc_all for Table use
+  Trying to allocate layout for tbl_drop_0 
+  Picking layout option for table : tbl_drop_0 with requested entries : 1
+  picked layout for tbl_drop_0 FormatType(02) layout: 0V ixbar:0B/0b match:0B/0b
+  entries:1 srams:0 local_tinds: 0 maprams:0 tcams:0 afi:0
+  Trying to allocate adb for tbl_drop_0 
+  Trying to allocate imem for tbl_drop_0 
+    Selected stage: 7    Furthest stage: 7
+    try_place_table returning 1 of tbl_drop_0 in stage 7
+    Merging with match table dst_tcam_table_0 and tag $true
+    - dependency between tbl_tofino2l358 and table advances stage
+    Initial # of stages is 7, initial # of entries is 2048
+  Try_alloc_all for Table use
+  Trying to allocate layout for dst_tcam_table_0 
+  Picking layout option for table : dst_tcam_table_0 with requested entries : 2048
+  picked layout for dst_tcam_table_0 FormatType(02) layout: 2048tV ixbar:4B/25b match:4B/25b adb:2 ov:10 imm:9
+  entries:2048 srams:1 local_tinds: 0 maprams:0 tcams:4 afi:1
+  Trying to allocate adb for dst_tcam_table_0 
+  Trying to allocate imem for dst_tcam_table_0 
+    Selected stage: 7    Furthest stage: 7
+    try_place_table returning 2048 of dst_tcam_table_0 in stage 7
+    Pl vector: tbl_drop_0 dst_tcam_table_0 
+found 2 tables that could be placed: [ tbl_drop_0, dst_tcam_table_0 ]
+Initial best is first table seen: tbl_drop_0
+For trial t : dst_tcam_table_0 with best: tbl_drop_0
+    Updating best to dst_tcam_table_0 from tbl_drop_0 for reason: longer downward prop control-included dependence tail chain
+Adding table:tbl_drop_0 in the initial stage option
+Adding table:dst_tcam_table_0 in the initial stage option
+placing 2048 entries of dst_tcam_table_0 ( SwitchIngress.dst_tcam_table )  (with gw cond-7, result tag $true) in stage 7(70) FormatType(02)
+stage 7, work: [ 4154124, 4155280, 4155873, 4155500 ], partly placed 0, placed 12
+    { id=1 ram=1 tcam=4 mram=0 eixb=4 tixb=0 malu=0 salu=0 local_tinds=0 }
+    - skipping src_tcam_table_0 as its already done
+    - skipping src_sram_table_0 as its already done
+    - skipping cond-5 as its already done
+    - skipping cond-7 as its already done
+    - skipping dst_tcam_table_0 as its already done
+dst_sram_table_0 is not a gateway! Aborting search for merge choices
+try_place_table(dst_sram_table_0, stage=7)
+    - dependency between dst_tcam_table_0 and table advances stage
+    Initial # of stages is 8, initial # of entries is 4096
+  Try_alloc_all for Table use
+  Trying to allocate layout for dst_sram_table_0 
+  Picking layout option for table : dst_sram_table_0 with requested entries : 4096
+      The selected pack format for table dst_sram_table_0 could not fit given the input xbar allocation
+  picked layout for dst_sram_table_0 FormatType(02) layout: 4096eV ixbar:4B/20b match:2B/10b gh:2 adb:2 ov:10 imm:9
+  way:{ g:4 e:0 w:1 1 1 1 1 }
+  entries:16384 srams:4 local_tinds: 0 maprams:0 tcams:0 afi:1
+  Trying to allocate adb for dst_sram_table_0 
+  Trying to allocate imem for dst_sram_table_0 
+    Selected stage: 8    Furthest stage: 8
+    try_place_table returning 16384 of dst_sram_table_0 in stage 8
+    Pl vector: dst_sram_table_0 
+  - skipping cond-8 due to in-sequence control dependence on dst_sram_table_0
+tbl_drop_0 is not a gateway! Aborting search for merge choices
+try_place_table(tbl_drop_0, stage=7)
+    Initial # of stages is 7, initial # of entries is 1
+  Try_alloc_all for Table use
+  Trying to allocate layout for tbl_drop_0 
+  Picking layout option for table : tbl_drop_0 with requested entries : 1
+  picked layout for tbl_drop_0 FormatType(02) layout: 0V ixbar:0B/0b match:0B/0b
+  entries:1 srams:0 local_tinds: 0 maprams:0 tcams:0 afi:0
+  Trying to allocate adb for tbl_drop_0 
+  Trying to allocate imem for tbl_drop_0 
+    Selected stage: 7    Furthest stage: 8
+    try_place_table returning 1 of tbl_drop_0 in stage 7
+    Pl vector: tbl_drop_0 
+tbl_act_7 is not a gateway! Aborting search for merge choices
+try_place_table(tbl_act_7, stage=7)
+    Initial # of stages is 7, initial # of entries is 1
+  Try_alloc_all for Table use
+  Trying to allocate layout for tbl_act_7 
+  Picking layout option for table : tbl_act_7 with requested entries : 1
+  picked layout for tbl_act_7 FormatType(02) layout: 0V ixbar:0B/0b match:0B/0b
+  entries:1 srams:0 local_tinds: 0 maprams:0 tcams:0 afi:0
+  Trying to allocate adb for tbl_act_7 
+  Trying to allocate imem for tbl_act_7 
+    Selected stage: 7    Furthest stage: 8
+    try_place_table returning 1 of tbl_act_7 in stage 7
+    Pl vector: tbl_act_7 
+found 3 tables that could be placed: [ dst_sram_table_0, tbl_drop_0, tbl_act_7 ]
+Initial best is first table seen: dst_sram_table_0
+For trial t : tbl_drop_0 with best: dst_sram_table_0
+    Updating best to tbl_drop_0 from dst_sram_table_0 for reason: earlier stage calculated
+For trial t : tbl_act_7 with best: tbl_drop_0
+    Updating best to tbl_act_7 from tbl_drop_0 for reason: longer downward prop control-included dependence tail chain
+placing 1 entries of tbl_act_7 ( tbl_act_7 )  in stage 7(71) FormatType(02)
+stage 7, work: [ 4155280, 4155873 ], partly placed 0, placed 13
+    { id=2 ram=1 tcam=4 mram=0 eixb=4 tixb=0 malu=0 salu=0 local_tinds=0 }
+    - skipping dst_tcam_table_0 as its already done
+dst_sram_table_0 is not a gateway! Aborting search for merge choices
+try_place_table(dst_sram_table_0, stage=7)
+    - dependency between dst_tcam_table_0 and table advances stage
+    Initial # of stages is 8, initial # of entries is 4096
+  Try_alloc_all for Table use
+  Trying to allocate layout for dst_sram_table_0 
+  Picking layout option for table : dst_sram_table_0 with requested entries : 4096
+      The selected pack format for table dst_sram_table_0 could not fit given the input xbar allocation
+  picked layout for dst_sram_table_0 FormatType(02) layout: 4096eV ixbar:4B/20b match:2B/10b gh:2 adb:2 ov:10 imm:9
+  way:{ g:4 e:0 w:1 1 1 1 1 }
+  entries:16384 srams:4 local_tinds: 0 maprams:0 tcams:0 afi:1
+  Trying to allocate adb for dst_sram_table_0 
+  Trying to allocate imem for dst_sram_table_0 
+    Selected stage: 8    Furthest stage: 8
+    try_place_table returning 16384 of dst_sram_table_0 in stage 8
+    Pl vector: dst_sram_table_0 
+  - skipping cond-8 due to in-sequence control dependence on dst_sram_table_0
+tbl_drop_0 is not a gateway! Aborting search for merge choices
+try_place_table(tbl_drop_0, stage=7)
+    Initial # of stages is 7, initial # of entries is 1
+  Try_alloc_all for Table use
+  Trying to allocate layout for tbl_drop_0 
+  Picking layout option for table : tbl_drop_0 with requested entries : 1
+  picked layout for tbl_drop_0 FormatType(02) layout: 0V ixbar:0B/0b match:0B/0b
+  entries:1 srams:0 local_tinds: 0 maprams:0 tcams:0 afi:0
+  Trying to allocate adb for tbl_drop_0 
+  Trying to allocate imem for tbl_drop_0 
+    Selected stage: 7    Furthest stage: 8
+    try_place_table returning 1 of tbl_drop_0 in stage 7
+    Pl vector: tbl_drop_0 
+found 2 tables that could be placed: [ dst_sram_table_0, tbl_drop_0 ]
+Initial best is first table seen: dst_sram_table_0
+For trial t : tbl_drop_0 with best: dst_sram_table_0
+    Updating best to tbl_drop_0 from dst_sram_table_0 for reason: earlier stage calculated
+placing 1 entries of tbl_drop_0 ( tbl_drop_0 )  in stage 7(72) FormatType(02)
+stage 7, work: [ 4155280 ], partly placed 0, placed 14
+    { id=3 ram=1 tcam=4 mram=0 eixb=4 tixb=0 malu=0 salu=0 local_tinds=0 }
+    - skipping dst_tcam_table_0 as its already done
+dst_sram_table_0 is not a gateway! Aborting search for merge choices
+try_place_table(dst_sram_table_0, stage=7)
+    - dependency between dst_tcam_table_0 and table advances stage
+    Initial # of stages is 8, initial # of entries is 4096
+  Try_alloc_all for Table use
+  Trying to allocate layout for dst_sram_table_0 
+  Picking layout option for table : dst_sram_table_0 with requested entries : 4096
+      The selected pack format for table dst_sram_table_0 could not fit given the input xbar allocation
+  picked layout for dst_sram_table_0 FormatType(02) layout: 4096eV ixbar:4B/20b match:2B/10b gh:2 adb:2 ov:10 imm:9
+  way:{ g:4 e:0 w:1 1 1 1 1 }
+  entries:16384 srams:4 local_tinds: 0 maprams:0 tcams:0 afi:1
+  Trying to allocate adb for dst_sram_table_0 
+  Trying to allocate imem for dst_sram_table_0 
+    Selected stage: 8    Furthest stage: 8
+    try_place_table returning 16384 of dst_sram_table_0 in stage 8
+    Pl vector: dst_sram_table_0 
+  - skipping cond-8 due to in-sequence control dependence on dst_sram_table_0
+found 1 tables that could be placed: [ dst_sram_table_0 ]
+Initial best is first table seen: dst_sram_table_0
+Adding table:dst_sram_table_0 in the initial stage option
+placing 16384 entries of dst_sram_table_0 ( SwitchIngress.dst_sram_table )  in stage 8(80) FormatType(02)
+stage 8, work: [ 4155280, 4155739 ], partly placed 0, placed 15
+    { id=1 ram=4 tcam=0 mram=0 eixb=4 tixb=0 malu=0 salu=0 local_tinds=0 }
+    - skipping dst_tcam_table_0 as its already done
+    - skipping dst_sram_table_0 as its already done
+  - skipping cond-8 because it depends on tbl_act_9
+    - removing tbl_drop from merge list because it depends on tbl_act_9
+    - skipping gateway cond-8 until mergeable tables are available
+tbl_act_9 is not a gateway! Aborting search for merge choices
+try_place_table(tbl_act_9, stage=8)
+    Initial # of stages is 8, initial # of entries is 1
+  Try_alloc_all for Table use
+  Trying to allocate layout for tbl_act_9 
+  Picking layout option for table : tbl_act_9 with requested entries : 1
+  picked layout for tbl_act_9 FormatType(02) layout: 0V ixbar:0B/0b match:0B/0b
+  entries:1 srams:0 local_tinds: 0 maprams:0 tcams:0 afi:0
+  Trying to allocate adb for tbl_act_9 
+  Trying to allocate imem for tbl_act_9 
+    Selected stage: 8    Furthest stage: 9
+    try_place_table returning 1 of tbl_act_9 in stage 8
+    Pl vector: tbl_act_9 
+found 1 tables that could be placed: [ tbl_act_9 ]
+Initial best is first table seen: tbl_act_9
+placing 1 entries of tbl_act_9 ( tbl_act_9 )  in stage 8(81) FormatType(02)
+stage 8, work: [ 4155280 ], partly placed 0, placed 16
     { id=2 ram=4 tcam=0 mram=0 eixb=4 tixb=0 malu=0 salu=0 local_tinds=0 }
     - skipping dst_tcam_table_0 as its already done
     - skipping dst_sram_table_0 as its already done
-try_place_table(cond-4, stage=4)
+try_place_table(cond-8, stage=8)
     Merging with match table tbl_drop and tag $true
-    - dependency between tbl_act_5 and table advances stage
-    Initial # of stages is 5, initial # of entries is 1
+    - dependency between tbl_act_9 and table advances stage
+    Initial # of stages is 9, initial # of entries is 1
   Try_alloc_all for Table use
   Trying to allocate layout for tbl_drop 
   Picking layout option for table : tbl_drop with requested entries : 1
@@ -422,31 +622,38 @@ try_place_table(cond-4, stage=4)
   entries:1 srams:0 local_tinds: 0 maprams:0 tcams:0 afi:0
   Trying to allocate adb for tbl_drop 
   Trying to allocate imem for tbl_drop 
-    Selected stage: 5    Furthest stage: 5
-    try_place_table returning 1 of tbl_drop in stage 5
+    Selected stage: 9    Furthest stage: 9
+    try_place_table returning 1 of tbl_drop in stage 9
     Pl vector: tbl_drop 
 found 1 tables that could be placed: [ tbl_drop ]
 Initial best is first table seen: tbl_drop
 Adding table:tbl_drop in the initial stage option
-placing 1 entries of tbl_drop ( tbl_drop )  (with gw cond-4, result tag $true) in stage 5(50) FormatType(02)
+placing 1 entries of tbl_drop ( tbl_drop )  (with gw cond-8, result tag $true) in stage 9(90) FormatType(02)
 Adding complete placement for resource mode:0
 Found a complete solution that fit the number of stages required
 Evaluating complete solution with resource:0
-Placement error(s):0 stages required:6
+Placement error(s):0 stages required:10
 Updating best final placement with this one
-Table placement placed 12 tables in 6 stages
-  Table tbl_drop logical id 0x50 entries=1 stage=5
-  Gateway cond-4 is also logical id 0x50
-  Table tbl_act_5 logical id 0x41 entries=1 stage=4
-  Table dst_sram_table_0 logical id 0x40 entries=16384 stage=4
-  Table tbl_drop_0 logical id 0x32 entries=1 stage=3
-  Table tbl_act_3 logical id 0x31 entries=1 stage=3
-  Table dst_tcam_table_0 logical id 0x30 entries=2048 stage=3
-  Gateway cond-3 is also logical id 0x30
+Table placement placed 17 tables in 10 stages
+  Table tbl_drop logical id 0x90 entries=1 stage=9
+  Gateway cond-8 is also logical id 0x90
+  Table tbl_act_9 logical id 0x81 entries=1 stage=8
+  Table dst_sram_table_0 logical id 0x80 entries=16384 stage=8
+  Table tbl_drop_0 logical id 0x72 entries=1 stage=7
+  Table tbl_act_7 logical id 0x71 entries=1 stage=7
+  Table dst_tcam_table_0 logical id 0x70 entries=2048 stage=7
+  Gateway cond-7 is also logical id 0x70
+  Table tbl_tofino2l358 logical id 0x60 entries=1 stage=6
+  Gateway cond-6 is also logical id 0x60
+  Table tbl_act_5 logical id 0x51 entries=1 stage=5
+  Table src_sram_table_secondary_0 logical id 0x50 entries=16384 stage=5
+  Table tbl_act_3 logical id 0x41 entries=1 stage=4
+  Table src_tcam_table_secondary_0 logical id 0x40 entries=2048 stage=4
+  Gateway cond-5 is also logical id 0x40
+  Table tbl_act logical id 0x30 entries=1 stage=3
   Table tbl_act_1 logical id 0x21 entries=1 stage=2
   Table src_sram_table_0 logical id 0x20 entries=16384 stage=2
-  Table tbl_drop_1 logical id 0x12 entries=1 stage=1
-  Table tbl_act logical id 0x11 entries=1 stage=1
+  Table tbl_drop_1 logical id 0x11 entries=1 stage=1
   Table src_tcam_table_0 logical id 0x10 entries=2048 stage=1
   Table ip_table_0 logical id 0x0 entries=1024 stage=0
 Finished table placement decisions pipe
@@ -454,44 +661,66 @@ Finished table placement decisions pipe
   Adding Ternary Indirect table to src_tcam_table_0
   Adding Ternary Indirect table to tbl_act
   Adding Ternary Indirect table to tbl_act_1
-folding gateway cond-3 onto dst_tcam_table_0
-  Adding Ternary Indirect table to dst_tcam_table_0
-  Adding Ternary Indirect table to tbl_drop_0
+folding gateway cond-5 onto src_tcam_table_secondary_0
+  Adding Ternary Indirect table to src_tcam_table_secondary_0
   Adding Ternary Indirect table to tbl_act_3
   Adding Ternary Indirect table to tbl_act_5
-folding gateway cond-4 onto tbl_drop
+folding gateway cond-6 onto tbl_tofino2l358
+  Adding Ternary Indirect table to tbl_tofino2l358
+folding gateway cond-7 onto dst_tcam_table_0
+  Adding Ternary Indirect table to dst_tcam_table_0
+  Adding Ternary Indirect table to tbl_drop_0
+  Adding Ternary Indirect table to tbl_act_7
+  Adding Ternary Indirect table to tbl_act_9
+folding gateway cond-8 onto tbl_drop
   Adding Ternary Indirect table to tbl_drop
   Adding Ternary Indirect table to tbl_drop_1
 table placement completed pipe
-ingress: [16]
-  0: ip_table_0{ T 88+10, 2 1K }
-    $hit: [17] 0 00
+ingress: [22]
+  0: ip_table_0{ T 88+25, 4 1K }
+    $hit: [23] 0 00 000
       10: src_tcam_table_0{ T 25+10, 2 2K }
-        $hit: [18]
-          11: tbl_act
-        $miss: [19]
+        $hit: [24]
+          30: tbl_act
+        $miss: [25]
       20: src_sram_table_0{ E 10+10, 2 [1x4 4K 4K 4K 4K] }
-        $hit: [20]
+        $hit: [26]
           21: tbl_act_1
-        $miss: [21]
-      30: dst_tcam_table_0(ingress::src_tcam_match_0, ingress::src_sram_match_0, 1 => $false){ GT 25+11, 2 2K }
-        $false: [28]
-          32: tbl_drop_0
-        $hit: [23] 0 00
-          31: tbl_act_3
-          40: dst_sram_table_0{ E 10+11, 2 [1x4 4K 4K 4K 4K] }
-            $hit: [25]
-              41: tbl_act_5
-            $miss: [26]
-          50: tbl_drop(!ingress::dst_tcam_match_0 && !ingress::dst_sram_match_0;, 1 => $false)
-            $false: [31]
-        $miss: [24] 0
-          40: dst_sram_table_0{ E 10+11, 2 [1x4 4K 4K 4K 4K] }
-            $hit: [25]...
-            $miss: [26]...
-          50: tbl_drop(!ingress::dst_tcam_match_0 && !ingress::dst_sram_match_0;, 1 => $false)
-            $false: [31]...
-    $miss: [29]
-      12: tbl_drop_1
-egress: [30]
+        $miss: [27]
+      40: src_tcam_table_secondary_0(ingress::src_tcam_match_0 => $false, ingress::src_sram_match_0 => $false, ingress::ig_md.Group_id_secondary == 511; => $false, 1){ GT 25+10, 2 2K }
+        $false: [44]
+        $hit: [29] 0 00
+          41: tbl_act_3
+          50: src_sram_table_secondary_0{ E 10+10, 2 [1x4 4K 4K 4K 4K] }
+            $hit: [31]
+              51: tbl_act_5
+            $miss: [32]
+          60: tbl_tofino2l358(ingress::src_tcam_match_sec_0, ingress::src_sram_match_sec_0, 1 => $false)
+            $false: [43]
+        $miss: [30] 0
+          50: src_sram_table_secondary_0{ E 10+10, 2 [1x4 4K 4K 4K 4K] }
+            $hit: [31]...
+            $miss: [32]...
+          60: tbl_tofino2l358(ingress::src_tcam_match_sec_0, ingress::src_sram_match_sec_0, 1 => $false)
+            $false: [43]...
+      70: dst_tcam_table_0(ingress::src_tcam_match_0, ingress::src_sram_match_0, ingress::src_match_secondary_0, 1 => $false){ GT 25+10, 2 2K }
+        $false: [40]
+          72: tbl_drop_0
+        $hit: [35] 0 00
+          71: tbl_act_7
+          80: dst_sram_table_0{ E 10+10, 2 [1x4 4K 4K 4K 4K] }
+            $hit: [37]
+              81: tbl_act_9
+            $miss: [38]
+          90: tbl_drop(!ingress::dst_tcam_match_0 && !ingress::dst_sram_match_0;, 1 => $false)
+            $false: [45]
+        $miss: [36] 0
+          80: dst_sram_table_0{ E 10+10, 2 [1x4 4K 4K 4K 4K] }
+            $hit: [37]...
+            $miss: [38]...
+          90: tbl_drop(!ingress::dst_tcam_match_0 && !ingress::dst_sram_match_0;, 1 => $false)
+            $false: [45]...
+    $miss: [41]
+      11: tbl_drop_1
+egress: [42]
 

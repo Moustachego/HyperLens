@@ -1,6 +1,6 @@
 version:
   version: 1.0.1
-  run_id: "ebb2921b54f74acd"
+  run_id: "0bee7d560cb1406f"
   target: Tofino2
 error_mode: propagate_and_disable
 phv ingress:
@@ -12,16 +12,21 @@ phv ingress:
   p.udp.dport: MW0(0..15)
   vrf_0: {  stage 0: MH1 } 
   ig_md.Group_id: {  stage 1..2: MH2(0..8) } 
-  ig_md.Group_id2: {  stage 2..4: MH3(0..8) } 
+  ig_md.Group_id_secondary.0-7: {  stage 1..5: MB1 } 
+  ig_md.Group_id_secondary.8-8: {  stage 1..5: MH2(9) } 
+  ig_md.Group_id2: {  stage 2..8: MH3(0..8) } 
   ig_intr_md_for_dprsr.drop_ctl: {  stage 1..20: MB5(0..2) } 
   ig_intr_md_for_dprsr.mirror_type: {  stage 20: MB4(0..3) } 
   ig_intr_md_for_dprsr.drop_ctl.$valid: {  stage 1..20: B1(1) } 
-  src_tcam_match_0: {  stage 2..3: B1(7) } 
-  src_sram_match_0: {  stage 3: MB1(0) } 
-  ig_intr_md_for_tm.ucast_egress_port: {  stage 4..20: MH4(0..8) } 
-  ig_intr_md_for_tm.ucast_egress_port.$valid: {  stage 4..20: B1(2) } 
-  dst_tcam_match_0: {  stage 4..5: MB2(0) } 
-  dst_sram_match_0: {  stage 5: MB3(0) } 
+  src_tcam_match_0: {  stage 4..7: B1(7) } 
+  src_sram_match_0: {  stage 3..7: MB2(0) } 
+  src_tcam_match_sec_0: {  stage 5..6: MB3(0) } 
+  src_sram_match_sec_0: {  stage 6: MB8(0) } 
+  src_match_secondary_0: {  stage 7: MB9(0) } 
+  ig_intr_md_for_tm.ucast_egress_port: {  stage 8..20: MH4(0..8) } 
+  ig_intr_md_for_tm.ucast_egress_port.$valid: {  stage 8..20: B1(2) } 
+  dst_tcam_match_0: {  stage 8..9: MB10(0) } 
+  dst_sram_match_0: {  stage 9: MB11(0) } 
   $tmp2: {  stage 20: B0 } 
   p.ethernet.$valid: B1(3)
   p.ipv4.$valid: B1(4)
@@ -29,25 +34,34 @@ phv ingress:
   p.udp.$valid: B1(6)
   context_json:
     MB1:
-    - { name : src_sram_match_0, live_start : 3, live_end : 3, mutually_exclusive_with: [  ] }
+    - { name : ig_md.Group_id_secondary, live_start : 1, live_end : 5, mutually_exclusive_with: [  ] }
     MB2:
-    - { name : dst_tcam_match_0, live_start : 4, live_end : 5, mutually_exclusive_with: [  ] }
+    - { name : src_sram_match_0, live_start : 3, live_end : 7, mutually_exclusive_with: [  ] }
     MB3:
-    - { name : dst_sram_match_0, live_start : 5, live_end : 5, mutually_exclusive_with: [  ] }
+    - { name : src_tcam_match_sec_0, live_start : 5, live_end : 6, mutually_exclusive_with: [  ] }
     MB4:
     - { name : ig_intr_md_for_dprsr.mirror_type, live_start : deparser, live_end : deparser, mutually_exclusive_with: [  ] }
     MB5:
     - { name : ig_intr_md_for_dprsr.drop_ctl, live_start : 1, live_end : deparser, mutually_exclusive_with: [  ] }
     MB6:
     - { name : p.ipv4.proto, live_start : parser, live_end : deparser, mutually_exclusive_with: [  ] }
+    MB8:
+    - { name : src_sram_match_sec_0, live_start : 6, live_end : 6, mutually_exclusive_with: [  ] }
+    MB9:
+    - { name : src_match_secondary_0, live_start : 7, live_end : 7, mutually_exclusive_with: [  ] }
+    MB10:
+    - { name : dst_tcam_match_0, live_start : 8, live_end : 9, mutually_exclusive_with: [  ] }
+    MB11:
+    - { name : dst_sram_match_0, live_start : 9, live_end : 9, mutually_exclusive_with: [  ] }
     MH1:
     - { name : vrf_0, live_start : 0, live_end : 0, mutually_exclusive_with: [  ] }
     MH2:
     - { name : ig_md.Group_id, live_start : 1, live_end : 2, mutually_exclusive_with: [  ] }
+    - { name : ig_md.Group_id_secondary, live_start : 1, live_end : 5, mutually_exclusive_with: [  ] }
     MH3:
-    - { name : ig_md.Group_id2, live_start : 2, live_end : 4, mutually_exclusive_with: [  ] }
+    - { name : ig_md.Group_id2, live_start : 2, live_end : 8, mutually_exclusive_with: [  ] }
     MH4:
-    - { name : ig_intr_md_for_tm.ucast_egress_port, live_start : 4, live_end : deparser, mutually_exclusive_with: [  ] }
+    - { name : ig_intr_md_for_tm.ucast_egress_port, live_start : 8, live_end : deparser, mutually_exclusive_with: [  ] }
     MW0:
     - { name : p.udp.sport, live_start : parser, live_end : deparser, mutually_exclusive_with: [  ] }
     - { name : p.udp.dport, live_start : parser, live_end : deparser, mutually_exclusive_with: [  ] }
@@ -60,8 +74,8 @@ phv ingress:
     B1:
     - { name : ig_intr_md_for_dprsr.mirror_type.$valid, live_start : parser, live_end : deparser, mutually_exclusive_with: [  ] }
     - { name : ig_intr_md_for_dprsr.drop_ctl.$valid, live_start : 1, live_end : deparser, mutually_exclusive_with: [  ] }
-    - { name : src_tcam_match_0, live_start : 2, live_end : 3, mutually_exclusive_with: [  ] }
-    - { name : ig_intr_md_for_tm.ucast_egress_port.$valid, live_start : 4, live_end : deparser, mutually_exclusive_with: [  ] }
+    - { name : src_tcam_match_0, live_start : 4, live_end : 7, mutually_exclusive_with: [  ] }
+    - { name : ig_intr_md_for_tm.ucast_egress_port.$valid, live_start : 8, live_end : deparser, mutually_exclusive_with: [  ] }
     - { name : p.ethernet.$valid, live_start : parser, live_end : deparser, mutually_exclusive_with: [  ] }
     - { name : p.ipv4.$valid, live_start : parser, live_end : deparser, mutually_exclusive_with: [  ] }
     - { name : p.tcp.$valid, live_start : parser, live_end : deparser, mutually_exclusive_with: [  ] }
@@ -298,19 +312,20 @@ stage 0 ingress:
       ternary group 0: { 0: p.ipv4.dst(0..7), 8: p.ipv4.src(8..15), 16: p.ipv4.dst(16..31), 32: p.ipv4.src(0..7) }
       ternary group 1: { 0: p.ipv4.src(16..31), 16: vrf_0, 32: p.ipv4.proto }
       byte group 0: { 0: p.ipv4.dst(8..15) }
-    format: { action: 0..0, immediate: 1..9 }
-    action_bus: { 32..33 : immediate(0..8) }
+    format: { action: 0..0, immediate: 1..24 }
+    action_bus: { 2 : immediate(16..23), 32..33 : immediate(0..15) }
     instruction: ip_table_0$tind(action, $DEFAULT)
     actions:
       SwitchIngress.set_gid1(0, 1):
-      - p4_param_order: { gid1: 9 }
+      - p4_param_order: { gid1: 9, gid_secondary: 9 }
       - hit_allowed: { allowed: true }
       - default_action: { allowed: true }
       - handle: 0x20000001
       - next_table_miss:  tbl_drop_1
       - next_table: 0
-      - { gid1: immediate(0..8) }
-      - set MH2, gid1
+      - { $data0: immediate(0..9), gid1: $data0(0..8), gid_secondary.8-8: $data0(9..9), gid_secondary.0-7: immediate(16..23) }
+      - set MB1, gid_secondary.0-7
+      - set MH2, $data0
       SwitchIngress.drop(1, 2):
       - hit_allowed: { allowed: true }
       - default_action: { allowed: true }
@@ -328,8 +343,8 @@ stage 1 ingress:
   mpr_bus_dep_long_brch: 0x0
   mpr_always_run: 0x0
   mpr_glob_exec_lut: 
-    0: 0x3
-    2: 0x4
+    0: 0x1
+    1: 0x2
   ternary_match src_tcam_table_0 0:
     p4: { name: SwitchIngress.src_tcam_table, size: 2048 }
     p4_param_order: 
@@ -368,47 +383,31 @@ stage 1 ingress:
       - next_table: 0
       - { gid2: immediate(0..8) }
       - set MH3, gid2
-      SwitchIngress.nop(1, 0):
+      SwitchIngress.drop(1, 2):
       - hit_allowed: { allowed: true }
       - default_action: { allowed: true }
       - handle: 0x20000004
       - next_table_miss:  src_sram_table_0
       - next_table: 0
       - {  }
-    default_action: SwitchIngress.nop
-  ternary_match tbl_act 1:
-    p4: { name: tbl_act, hidden: true }
-    hit: [  END ]
-    miss:  END
-    indirect: tbl_act$tind
-  ternary_indirect tbl_act$tind:
-    row: 0
-    bus: 1
-    format: { action: 0..0 }
-    instruction: tbl_act$tind(action, $DEFAULT)
-    actions:
-      act(0, 2):
-      - hit_allowed: { allowed: true }
-      - default_action: { allowed: true, is_constant: true }
-      - handle: 0x20000005
-      - next_table: 0
-      - set src_tcam_match_0, 1
-    default_action: act
-  ternary_match tbl_drop_1 2:
+      - set ig_intr_md_for_dprsr.drop_ctl.$valid, 1
+      - set MB5, 1
+    default_action: SwitchIngress.drop
+  ternary_match tbl_drop_1 1:
     p4: { name: tbl_drop_1, hidden: true }
     hit: [  END ]
     miss:  END
     indirect: tbl_drop_1$tind
   ternary_indirect tbl_drop_1$tind:
-    row: 1
-    bus: 0
+    row: 0
+    bus: 1
     format: { action: 0..0 }
     instruction: tbl_drop_1$tind(action, $DEFAULT)
     actions:
       SwitchIngress.drop(0, 4):
       - hit_allowed: { allowed: true }
       - default_action: { allowed: true, is_constant: true }
-      - handle: 0x20000013
+      - handle: 0x20000018
       - next_table: 0
       - set ig_intr_md_for_dprsr.drop_ctl.$valid, 1
       - set MB5, 1
@@ -419,6 +418,8 @@ stage 2 ingress:
   mpr_bus_dep_glob_exec: 0x0
   mpr_bus_dep_long_brch: 0x0
   mpr_always_run: 0x0
+  mpr_next_table_lut: 
+    0: 0x3
   mpr_glob_exec_lut: 
     0: 0x3
   exact_match src_sram_table_0 0:
@@ -453,12 +454,14 @@ stage 2 ingress:
         30..32: random(ig_md.Group_id(6..7), p.udp.sport(8..15)) ^ p.udp.sport(5..7)
       hash group 0:
         table: [0]
-        seed: 0x9a9c47831a
+        seed: 0xbc63abbd62
     format: { action(0): 0..0, immediate(0): 4..12, version(0): 48..51, match(0): [ 54..55, 40..47 ], action(1): 1..1, immediate(1): 13..21, version(1): 64..67, match(1): [ 70..71, 56..63 ], action(2): 2..2, immediate(2): 22..30, version(2): 80..83, match(2): [ 86..87, 72..79 ], action(3): 3..3, immediate(3): 31..39, version(3): 96..99, match(3): [ 102..103, 88..95 ] }
     match: [ ig_md.Group_id(6..7), p.udp.sport(8..15) ]
     match_group_map: [ [ 0, 1, 2, 3 ] ]
-    hit: [ [ tbl_act_1, dst_tcam_table_0 ] ]
-    miss:  dst_tcam_table_0
+    long_branch:
+      0: [ src_tcam_table_secondary_0 ]
+    hit: [ [ tbl_act_1, src_tcam_table_secondary_0 ] ]
+    miss:  src_tcam_table_secondary_0
     action_bus: { 32..33 : immediate(0..8) }
     instruction: src_sram_table_0(action, $DEFAULT)
     actions:
@@ -467,18 +470,20 @@ stage 2 ingress:
       - hit_allowed: { allowed: true }
       - default_action: { allowed: true }
       - handle: 0x20000006
-      - next_table_miss:  dst_tcam_table_0
+      - next_table_miss:  src_tcam_table_secondary_0
       - next_table: 0
-      - { gid2_2: immediate(0..8), gid2: gid2_2 }
+      - { gid2_4: immediate(0..8), gid2: gid2_4 }
       - set MH3, gid2
-      SwitchIngress.nop(1, 0):
+      SwitchIngress.drop(1, 2):
       - hit_allowed: { allowed: true }
       - default_action: { allowed: true }
       - handle: 0x20000007
-      - next_table_miss:  dst_tcam_table_0
+      - next_table_miss:  src_tcam_table_secondary_0
       - next_table: 0
       - {  }
-    default_action: SwitchIngress.nop
+      - set ig_intr_md_for_dprsr.drop_ctl.$valid, 1
+      - set MB5, 1
+    default_action: SwitchIngress.drop
   ternary_match tbl_act_1 1:
     p4: { name: tbl_act_1, hidden: true }
     hit: [  END ]
@@ -490,20 +495,268 @@ stage 2 ingress:
     format: { action: 0..0 }
     instruction: tbl_act_1$tind(action, $DEFAULT)
     actions:
-      act_1(0, 2):
+      act_1(0, 3):
       - hit_allowed: { allowed: true }
       - default_action: { allowed: true, is_constant: true }
       - handle: 0x20000008
       - next_table: 0
-      - set MB1, 1
+      - set MB2, 1
     default_action: act_1
 stage 3 ingress:
-  dependency: match
+  dependency: action
   mpr_stage_id: 3
   mpr_bus_dep_glob_exec: 0x0
   mpr_bus_dep_long_brch: 0x0
   mpr_always_run: 0x0
+  mpr_next_table_lut: 
+    0: 0x1
+  ternary_match tbl_act 0:
+    p4: { name: tbl_act, hidden: true }
+    hit: [  END ]
+    miss:  END
+    indirect: tbl_act$tind
+  ternary_indirect tbl_act$tind:
+    row: 0
+    bus: 0
+    format: { action: 0..0 }
+    instruction: tbl_act$tind(action, $DEFAULT)
+    actions:
+      act(0, 1):
+      - hit_allowed: { allowed: true }
+      - default_action: { allowed: true, is_constant: true }
+      - handle: 0x20000005
+      - next_table: 0
+      - set src_tcam_match_0, 1
+    default_action: act
+stage 4 ingress:
+  dependency: match
+  mpr_stage_id: 4
+  mpr_bus_dep_glob_exec: 0x0
+  mpr_bus_dep_long_brch: 0x0
+  mpr_always_run: 0x0
+  mpr_long_brch_lut: 
+    0: 0x3
+  ternary_match src_tcam_table_secondary_0 0:
+    p4: { name: SwitchIngress.src_tcam_table_secondary, size: 2048 }
+    p4_param_order: 
+      ig_md.Group_id_secondary: { type: exact, size: 9, full_size: 9 }
+      p.udp.sport: { type: ternary, size: 16, full_size: 16 }
+    row: [ 0, 1, 2, 3 ]
+    bus: [ 0, 0, 0, 0 ]
+    column:
+    - 0
+    - 0
+    - 0
+    - 0
+    input_xbar:
+      ternary group 0: { 0: ig_md.Group_id_secondary.0-7, 9: ig_md.Group_id_secondary.8-8, 16: p.udp.sport }
+    match:
+    - { group: 0, byte_config: 3, dirtcam: 0x55 }
+    long_branch:
+      0: [ dst_tcam_table_0 ]
+    gateway:
+      name: cond-5
+      input_xbar:
+        exact group 0: { 0: ig_md.Group_id_secondary.0-7, 9: ig_md.Group_id_secondary.8-8, 16: src_sram_match_0, 31: src_tcam_match_0 }
+      row: 0
+      bus: 0
+      unit: 0
+      match: { 23: src_tcam_match_0, 24: src_sram_match_0, 0: ig_md.Group_id_secondary.0-7, 9: ig_md.Group_id_secondary.8-8 }
+      0b*1***********************:
+        next:  dst_tcam_table_0
+      0x1******:
+        next:  dst_tcam_table_0
+      0b***************1*11111111:
+        next:  dst_tcam_table_0
+      miss:
+        run_table: true
+      condition: 
+        expression: "(!(src_tcam_match_0 || src_sram_match_0) && ig_md.Group_id_secondary != 511)"
+        true:  src_tcam_table_secondary_0
+        false:  dst_tcam_table_0
+    hit: [ [ tbl_act_3, dst_tcam_table_0 ] ]
+    miss: [ src_sram_table_secondary_0, dst_tcam_table_0 ]
+    indirect: src_tcam_table_secondary_0$tind
+  ternary_indirect src_tcam_table_secondary_0$tind:
+    row: 0
+    bus: 0
+    column: 2
+    input_xbar:
+      ternary group 0: { 0: ig_md.Group_id_secondary.0-7, 9: ig_md.Group_id_secondary.8-8, 16: p.udp.sport }
+    format: { action: 0..1, immediate: 2..10 }
+    action_bus: { 32..33 : immediate(0..8) }
+    instruction: src_tcam_table_secondary_0$tind(action, $DEFAULT)
+    actions:
+      SwitchIngress.set_gid2_from_tcam_secondary(1, 1):
+      - p4_param_order: { gid2: 9 }
+      - hit_allowed: { allowed: true }
+      - default_action: { allowed: true }
+      - handle: 0x20000009
+      - next_table_miss: [ src_sram_table_secondary_0, dst_tcam_table_0 ]
+      - next_table: 0
+      - { gid2_5: immediate(0..8), gid2: gid2_5 }
+      - set MH3, gid2
+      SwitchIngress.nop(2, 0):
+      - hit_allowed: { allowed: true }
+      - default_action: { allowed: true }
+      - handle: 0x2000000a
+      - next_table_miss: [ src_sram_table_secondary_0, dst_tcam_table_0 ]
+      - next_table: 0
+      - {  }
+    default_action: SwitchIngress.nop
+  ternary_match tbl_act_3 1:
+    p4: { name: tbl_act_3, hidden: true }
+    hit: [  src_sram_table_secondary_0 ]
+    miss:  src_sram_table_secondary_0
+    indirect: tbl_act_3$tind
+  ternary_indirect tbl_act_3$tind:
+    row: 0
+    bus: 1
+    format: { action: 0..0 }
+    instruction: tbl_act_3$tind(action, $DEFAULT)
+    actions:
+      act_3(0, 2):
+      - hit_allowed: { allowed: true }
+      - default_action: { allowed: true, is_constant: true }
+      - handle: 0x2000000b
+      - next_table: 0
+      - set MB3, 1
+    default_action: act_3
+stage 5 ingress:
+  dependency: match
+  mpr_stage_id: 5
+  mpr_bus_dep_glob_exec: 0x0
+  mpr_bus_dep_long_brch: 0x0
+  mpr_always_run: 0x0
   mpr_glob_exec_lut: 
+    0: 0x3
+  exact_match src_sram_table_secondary_0 0:
+    p4: { name: SwitchIngress.src_sram_table_secondary, size: 4096 }
+    p4_param_order: 
+      ig_md.Group_id_secondary: { type: exact, size: 9, full_size: 9 }
+      p.udp.sport: { type: exact, size: 11, full_size: 16, key_name: "ig_md.src_quotient", start_bit: 5 }
+    row: 7
+    bus: 0
+    column: [ 2, 3, 4, 5 ]
+    ways:
+      - { group: 0, index: 0..9, select: 40..51 & 0x0, rams: [[7, 2]] }
+      - { group: 0, index: 10..19, select: 40..51 & 0x0, rams: [[7, 3]] }
+      - { group: 0, index: 20..29, select: 40..51 & 0x0, rams: [[7, 4]] }
+      - { group: 0, index: 30..39, select: 40..51 & 0x0, rams: [[7, 5]] }
+    input_xbar:
+      exact group 0: { 0: ig_md.Group_id_secondary.0-7, 9: ig_md.Group_id_secondary.8-8, 21: p.udp.sport(5..15) }
+      hash 0:
+        0..5: random(ig_md.Group_id_secondary.0-7(6..7), p.udp.sport(8..15)) ^ ig_md.Group_id_secondary.0-7(0..5)
+        6: random(ig_md.Group_id_secondary.0-7(6..7), p.udp.sport(8..15)) ^ ig_md.Group_id_secondary.8-8
+        7..9: random(ig_md.Group_id_secondary.0-7(6..7), p.udp.sport(8..15)) ^ p.udp.sport(5..7)
+        11..16: random(ig_md.Group_id_secondary.0-7(6..7), p.udp.sport(8..15)) ^ ig_md.Group_id_secondary.0-7(0..5)
+        17: random(ig_md.Group_id_secondary.0-7(6..7), p.udp.sport(8..15)) ^ ig_md.Group_id_secondary.8-8
+        18..19: random(ig_md.Group_id_secondary.0-7(6..7), p.udp.sport(8..15)) ^ p.udp.sport(5..6)
+        10: random(ig_md.Group_id_secondary.0-7(6..7), p.udp.sport(8..15)) ^ p.udp.sport(7)
+        22..27: random(ig_md.Group_id_secondary.0-7(6..7), p.udp.sport(8..15)) ^ ig_md.Group_id_secondary.0-7(0..5)
+        28: random(ig_md.Group_id_secondary.0-7(6..7), p.udp.sport(8..15)) ^ ig_md.Group_id_secondary.8-8
+        29: random(ig_md.Group_id_secondary.0-7(6..7), p.udp.sport(8..15)) ^ p.udp.sport(5)
+        20..21: random(ig_md.Group_id_secondary.0-7(6..7), p.udp.sport(8..15)) ^ p.udp.sport(6..7)
+        33..38: random(ig_md.Group_id_secondary.0-7(6..7), p.udp.sport(8..15)) ^ ig_md.Group_id_secondary.0-7(0..5)
+        39: random(ig_md.Group_id_secondary.0-7(6..7), p.udp.sport(8..15)) ^ ig_md.Group_id_secondary.8-8
+        30..32: random(ig_md.Group_id_secondary.0-7(6..7), p.udp.sport(8..15)) ^ p.udp.sport(5..7)
+      hash group 0:
+        table: [0]
+        seed: 0x9d1aa87666
+    format: { action(0): 0..0, immediate(0): 4..12, version(0): 48..51, match(0): [ 54..55, 40..47 ], action(1): 1..1, immediate(1): 13..21, version(1): 64..67, match(1): [ 70..71, 56..63 ], action(2): 2..2, immediate(2): 22..30, version(2): 80..83, match(2): [ 86..87, 72..79 ], action(3): 3..3, immediate(3): 31..39, version(3): 96..99, match(3): [ 102..103, 88..95 ] }
+    match: [ ig_md.Group_id_secondary.0-7(6..7), p.udp.sport(8..15) ]
+    match_group_map: [ [ 0, 1, 2, 3 ] ]
+    hit: [ [ tbl_act_5, tbl_tofino2l358 ] ]
+    miss:  tbl_tofino2l358
+    action_bus: { 32..33 : immediate(0..8) }
+    instruction: src_sram_table_secondary_0(action, $DEFAULT)
+    actions:
+      SwitchIngress.set_src_bitmap_secondary(0, 1):
+      - p4_param_order: { bitmap: 32, gid2: 9 }
+      - hit_allowed: { allowed: true }
+      - default_action: { allowed: true }
+      - handle: 0x2000000c
+      - next_table_miss:  tbl_tofino2l358
+      - next_table: 0
+      - { gid2_6: immediate(0..8), gid2: gid2_6 }
+      - set MH3, gid2
+      SwitchIngress.nop(1, 0):
+      - hit_allowed: { allowed: true }
+      - default_action: { allowed: true }
+      - handle: 0x2000000d
+      - next_table_miss:  tbl_tofino2l358
+      - next_table: 0
+      - {  }
+    default_action: SwitchIngress.nop
+  ternary_match tbl_act_5 1:
+    p4: { name: tbl_act_5, hidden: true }
+    hit: [  END ]
+    miss:  END
+    indirect: tbl_act_5$tind
+  ternary_indirect tbl_act_5$tind:
+    row: 0
+    bus: 0
+    format: { action: 0..0 }
+    instruction: tbl_act_5$tind(action, $DEFAULT)
+    actions:
+      act_5(0, 2):
+      - hit_allowed: { allowed: true }
+      - default_action: { allowed: true, is_constant: true }
+      - handle: 0x2000000e
+      - next_table: 0
+      - set MB8, 1
+    default_action: act_5
+stage 6 ingress:
+  dependency: match
+  mpr_stage_id: 6
+  mpr_bus_dep_glob_exec: 0x0
+  mpr_bus_dep_long_brch: 0x0
+  mpr_always_run: 0x0
+  mpr_glob_exec_lut: 
+    0: 0x1
+  ternary_match tbl_tofino2l358 0:
+    p4: { name: tbl_tofino2l358, hidden: true }
+    gateway:
+      name: cond-6
+      input_xbar:
+        exact group 0: { 0: src_tcam_match_sec_0, 8: src_sram_match_sec_0 }
+      row: 0
+      bus: 0
+      unit: 0
+      match: { 0: src_tcam_match_sec_0, 8: src_sram_match_sec_0 }
+      0b********1:
+        run_table: true
+      0x1**:
+        run_table: true
+      miss:
+        next:  END
+      condition: 
+        expression: "(src_tcam_match_sec_0 || src_sram_match_sec_0)"
+        true:  tbl_tofino2l358
+        false:  END
+    hit: [  END ]
+    miss:  END
+    indirect: tbl_tofino2l358$tind
+  ternary_indirect tbl_tofino2l358$tind:
+    row: 0
+    bus: 0
+    format: { action: 0..0 }
+    instruction: tbl_tofino2l358$tind(action, $DEFAULT)
+    actions:
+      tofino2l358(1, 1):
+      - hit_allowed: { allowed: true }
+      - default_action: { allowed: true, is_constant: true }
+      - handle: 0x2000000f
+      - next_table: 0
+      - set MB9, 1
+    default_action: tofino2l358
+stage 7 ingress:
+  dependency: match
+  mpr_stage_id: 7
+  mpr_bus_dep_glob_exec: 0x0
+  mpr_bus_dep_long_brch: 0x0
+  mpr_always_run: 0x0
+  mpr_long_brch_lut: 
     0: 0x7
   ternary_match dst_tcam_table_0 0:
     p4: { name: SwitchIngress.dst_tcam_table, size: 2048 }
@@ -522,24 +775,26 @@ stage 3 ingress:
     match:
     - { group: 0, byte_config: 3, dirtcam: 0x55 }
     gateway:
-      name: cond-3
+      name: cond-7
       input_xbar:
-        exact group 0: { 0: src_sram_match_0, 15: src_tcam_match_0 }
+        exact group 0: { 0: src_sram_match_0, 8: src_match_secondary_0, 23: src_tcam_match_0 }
       row: 0
       bus: 0
       unit: 0
-      match: { 7: src_tcam_match_0, 8: src_sram_match_0 }
-      0b*1:
+      match: { 7: src_tcam_match_0, 8: src_sram_match_0, 16: src_match_secondary_0 }
+      0b*********1:
         run_table: true
-      0b1*:
+      0b********1*:
+        run_table: true
+      0o1***:
         run_table: true
       miss:
         next:  tbl_drop_0
       condition: 
-        expression: "(src_tcam_match_0 || src_sram_match_0)"
+        expression: "(src_tcam_match_0 || src_sram_match_0 || src_match_secondary_0)"
         true:  dst_tcam_table_0
         false:  tbl_drop_0
-    hit: [  tbl_act_3 ]
+    hit: [  tbl_act_7 ]
     miss:  dst_sram_table_0
     indirect: dst_tcam_table_0$tind
   ternary_indirect dst_tcam_table_0$tind:
@@ -556,7 +811,7 @@ stage 3 ingress:
       - p4_param_order: { egress_port: 9 }
       - hit_allowed: { allowed: true }
       - default_action: { allowed: true }
-      - handle: 0x20000009
+      - handle: 0x20000010
       - next_table_miss:  dst_sram_table_0
       - next_table: 0
       - { egress_port_2: immediate(0..8), egress_port: egress_port_2 }
@@ -565,20 +820,13 @@ stage 3 ingress:
       SwitchIngress.drop(2, 2):
       - hit_allowed: { allowed: true }
       - default_action: { allowed: true }
-      - handle: 0x2000000a
+      - handle: 0x20000011
       - next_table_miss:  dst_sram_table_0
       - next_table: 0
       - {  }
       - set ig_intr_md_for_dprsr.drop_ctl.$valid, 1
       - set MB5, 1
-      SwitchIngress.nop(3, 0):
-      - hit_allowed: { allowed: true }
-      - default_action: { allowed: true }
-      - handle: 0x2000000b
-      - next_table_miss:  dst_sram_table_0
-      - next_table: 0
-      - {  }
-    default_action: SwitchIngress.nop
+    default_action: SwitchIngress.drop
   ternary_match tbl_drop_0 2:
     p4: { name: tbl_drop_0, hidden: true }
     hit: [  END ]
@@ -593,32 +841,32 @@ stage 3 ingress:
       SwitchIngress.drop(0, 4):
       - hit_allowed: { allowed: true }
       - default_action: { allowed: true, is_constant: true }
-      - handle: 0x20000012
+      - handle: 0x20000017
       - next_table: 0
       - set ig_intr_md_for_dprsr.drop_ctl.$valid, 1
       - set MB5, 1
     default_action: SwitchIngress.drop
-  ternary_match tbl_act_3 1:
-    p4: { name: tbl_act_3, hidden: true }
+  ternary_match tbl_act_7 1:
+    p4: { name: tbl_act_7, hidden: true }
     hit: [  dst_sram_table_0 ]
     miss:  dst_sram_table_0
-    indirect: tbl_act_3$tind
-  ternary_indirect tbl_act_3$tind:
+    indirect: tbl_act_7$tind
+  ternary_indirect tbl_act_7$tind:
     row: 0
     bus: 1
     format: { action: 0..0 }
-    instruction: tbl_act_3$tind(action, $DEFAULT)
+    instruction: tbl_act_7$tind(action, $DEFAULT)
     actions:
-      act_3(0, 3):
+      act_7(0, 3):
       - hit_allowed: { allowed: true }
       - default_action: { allowed: true, is_constant: true }
-      - handle: 0x2000000c
+      - handle: 0x20000012
       - next_table: 0
-      - set MB2, 1
-    default_action: act_3
-stage 4 ingress:
+      - set MB10, 1
+    default_action: act_7
+stage 8 ingress:
   dependency: match
-  mpr_stage_id: 4
+  mpr_stage_id: 8
   mpr_bus_dep_glob_exec: 0x0
   mpr_bus_dep_long_brch: 0x0
   mpr_always_run: 0x0
@@ -656,11 +904,11 @@ stage 4 ingress:
         32: random(p.udp.dport(8..15), ig_md.Group_id2(6..7)) ^ ig_md.Group_id2(8)
       hash group 0:
         table: [0]
-        seed: 0x48822e79aa
-    format: { action(0): 0..1, immediate(0): 8..16, version(0): 112..115, match(0): 46..55, action(1): 2..3, immediate(1): 17..25, version(1): 64..67, match(1): [ 70..71, 56..63 ], action(2): 4..5, immediate(2): 26..34, version(2): 80..83, match(2): [ 86..87, 72..79 ], action(3): 6..7, immediate(3): 35..43, version(3): 96..99, match(3): [ 102..103, 88..95 ] }
+        seed: 0xd8874fabc4
+    format: { action(0): 0..0, immediate(0): 4..12, version(0): 48..51, match(0): [ 54..55, 40..47 ], action(1): 1..1, immediate(1): 13..21, version(1): 64..67, match(1): [ 70..71, 56..63 ], action(2): 2..2, immediate(2): 22..30, version(2): 80..83, match(2): [ 86..87, 72..79 ], action(3): 3..3, immediate(3): 31..39, version(3): 96..99, match(3): [ 102..103, 88..95 ] }
     match: [ ig_md.Group_id2(6..7), p.udp.dport(8..15) ]
     match_group_map: [ [ 0, 1, 2, 3 ] ]
-    hit: [ [ tbl_act_5, tbl_drop ] ]
+    hit: [ [ tbl_act_9, tbl_drop ] ]
     miss:  tbl_drop
     action_bus: { 32..33 : immediate(0..8) }
     instruction: dst_sram_table_0(action, $DEFAULT)
@@ -669,7 +917,7 @@ stage 4 ingress:
       - p4_param_order: { bitmap: 32, egress_port: 9 }
       - hit_allowed: { allowed: true }
       - default_action: { allowed: true }
-      - handle: 0x2000000d
+      - handle: 0x20000013
       - next_table_miss:  tbl_drop
       - next_table: 0
       - { egress_port_3: immediate(0..8), egress_port: egress_port_3 }
@@ -678,41 +926,34 @@ stage 4 ingress:
       SwitchIngress.drop(1, 2):
       - hit_allowed: { allowed: true }
       - default_action: { allowed: true }
-      - handle: 0x2000000e
+      - handle: 0x20000014
       - next_table_miss:  tbl_drop
       - next_table: 0
       - {  }
       - set ig_intr_md_for_dprsr.drop_ctl.$valid, 1
       - set MB5, 1
-      SwitchIngress.nop(2, 0):
-      - hit_allowed: { allowed: true }
-      - default_action: { allowed: true }
-      - handle: 0x2000000f
-      - next_table_miss:  tbl_drop
-      - next_table: 0
-      - {  }
-    default_action: SwitchIngress.nop
-  ternary_match tbl_act_5 1:
-    p4: { name: tbl_act_5, hidden: true }
+    default_action: SwitchIngress.drop
+  ternary_match tbl_act_9 1:
+    p4: { name: tbl_act_9, hidden: true }
     hit: [  END ]
     miss:  END
-    indirect: tbl_act_5$tind
-  ternary_indirect tbl_act_5$tind:
+    indirect: tbl_act_9$tind
+  ternary_indirect tbl_act_9$tind:
     row: 0
     bus: 0
     format: { action: 0..0 }
-    instruction: tbl_act_5$tind(action, $DEFAULT)
+    instruction: tbl_act_9$tind(action, $DEFAULT)
     actions:
-      act_5(0, 3):
+      act_9(0, 3):
       - hit_allowed: { allowed: true }
       - default_action: { allowed: true, is_constant: true }
-      - handle: 0x20000010
+      - handle: 0x20000015
       - next_table: 0
-      - set MB3, 1
-    default_action: act_5
-stage 5 ingress:
+      - set MB11, 1
+    default_action: act_9
+stage 9 ingress:
   dependency: match
-  mpr_stage_id: 5
+  mpr_stage_id: 9
   mpr_bus_dep_glob_exec: 0x0
   mpr_bus_dep_long_brch: 0x0
   mpr_always_run: 0x0
@@ -721,7 +962,7 @@ stage 5 ingress:
   ternary_match tbl_drop 0:
     p4: { name: tbl_drop, hidden: true }
     gateway:
-      name: cond-4
+      name: cond-8
       input_xbar:
         exact group 0: { 0: dst_tcam_match_0, 8: dst_sram_match_0 }
       row: 0
@@ -748,7 +989,7 @@ stage 5 ingress:
       SwitchIngress.drop(1, 1):
       - hit_allowed: { allowed: true }
       - default_action: { allowed: true, is_constant: true }
-      - handle: 0x20000011
+      - handle: 0x20000016
       - next_table: 0
       - set ig_intr_md_for_dprsr.drop_ctl.$valid, 1
       - set MB5, 1

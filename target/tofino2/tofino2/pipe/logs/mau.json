@@ -1,7 +1,7 @@
 {
-    "build_date": "Tue Nov 25 11:18:28 2025", 
+    "build_date": "Tue Nov 25 16:43:23 2025", 
     "program_name": "tofino2", 
-    "run_id": "ebb2921b54f74acd", 
+    "run_id": "0bee7d560cb1406f", 
     "compiler_version": "9.13.1 (e558d01)", 
     "schema_version": "1.0.0", 
     "tables": [
@@ -44,15 +44,11 @@
                 {
                     "action_name": "SwitchIngress.drop", 
                     "parameters": []
-                }, 
-                {
-                    "action_name": "SwitchIngress.nop", 
-                    "parameters": []
                 }
             ], 
             "stage_allocation": [
                 {
-                    "stage_number": 4, 
+                    "stage_number": 8, 
                     "memories": [
                         {
                             "memory_type": "sram", 
@@ -66,7 +62,7 @@
                             "imm_bit_width_in_overhead_requested": 9, 
                             "imm_bit_width_in_overhead_allocated": 9, 
                             "entry_bit_width_requested": 33, 
-                            "entry_bit_width_allocated": 25, 
+                            "entry_bit_width_allocated": 24, 
                             "ideal_entries_per_table_word": 22, 
                             "ideal_table_word_bit_width": 640
                         }
@@ -88,15 +84,15 @@
                                 "fields": [
                                     {
                                         "name": "action", 
-                                        "bit_width": 2, 
+                                        "bit_width": 1, 
                                         "start_bit": 0, 
-                                        "memory_start_bit": 6
+                                        "memory_start_bit": 3
                                     }, 
                                     {
                                         "name": "immediate", 
                                         "bit_width": 9, 
                                         "start_bit": 0, 
-                                        "memory_start_bit": 35
+                                        "memory_start_bit": 31
                                     }, 
                                     {
                                         "name": "version", 
@@ -123,15 +119,15 @@
                                 "fields": [
                                     {
                                         "name": "action", 
-                                        "bit_width": 2, 
+                                        "bit_width": 1, 
                                         "start_bit": 0, 
-                                        "memory_start_bit": 4
+                                        "memory_start_bit": 2
                                     }, 
                                     {
                                         "name": "immediate", 
                                         "bit_width": 9, 
                                         "start_bit": 0, 
-                                        "memory_start_bit": 26
+                                        "memory_start_bit": 22
                                     }, 
                                     {
                                         "name": "version", 
@@ -158,15 +154,15 @@
                                 "fields": [
                                     {
                                         "name": "action", 
-                                        "bit_width": 2, 
+                                        "bit_width": 1, 
                                         "start_bit": 0, 
-                                        "memory_start_bit": 2
+                                        "memory_start_bit": 1
                                     }, 
                                     {
                                         "name": "immediate", 
                                         "bit_width": 9, 
                                         "start_bit": 0, 
-                                        "memory_start_bit": 17
+                                        "memory_start_bit": 13
                                     }, 
                                     {
                                         "name": "version", 
@@ -193,7 +189,7 @@
                                 "fields": [
                                     {
                                         "name": "action", 
-                                        "bit_width": 2, 
+                                        "bit_width": 1, 
                                         "start_bit": 0, 
                                         "memory_start_bit": 0
                                     }, 
@@ -201,25 +197,25 @@
                                         "name": "immediate", 
                                         "bit_width": 9, 
                                         "start_bit": 0, 
-                                        "memory_start_bit": 8
+                                        "memory_start_bit": 4
                                     }, 
                                     {
                                         "name": "version", 
                                         "bit_width": 4, 
                                         "start_bit": 0, 
-                                        "memory_start_bit": 112
+                                        "memory_start_bit": 48
                                     }, 
                                     {
                                         "name": "ig_md.Group_id2", 
                                         "bit_width": 2, 
                                         "start_bit": 6, 
-                                        "memory_start_bit": 46
+                                        "memory_start_bit": 54
                                     }, 
                                     {
                                         "name": "ig_md.dst_quotient", 
                                         "bit_width": 8, 
                                         "start_bit": 8, 
-                                        "memory_start_bit": 48
+                                        "memory_start_bit": 40
                                     }
                                 ]
                             }
@@ -265,15 +261,11 @@
                 {
                     "action_name": "SwitchIngress.drop", 
                     "parameters": []
-                }, 
-                {
-                    "action_name": "SwitchIngress.nop", 
-                    "parameters": []
                 }
             ], 
             "stage_allocation": [
                 {
-                    "stage_number": 3, 
+                    "stage_number": 7, 
                     "memories": [
                         {
                             "memory_type": "tcam", 
@@ -381,6 +373,10 @@
                         {
                             "name": "gid1", 
                             "bit_width": 9
+                        }, 
+                        {
+                            "name": "gid_secondary", 
+                            "bit_width": 9
                         }
                     ]
                 }, 
@@ -402,8 +398,8 @@
                             "num_memories": 6, 
                             "entries_requested": 1024, 
                             "entries_allocated": 1024, 
-                            "imm_bit_width_in_overhead_requested": 9, 
-                            "imm_bit_width_in_overhead_allocated": 9, 
+                            "imm_bit_width_in_overhead_requested": 18, 
+                            "imm_bit_width_in_overhead_allocated": 24, 
                             "entry_bit_width_requested": 92, 
                             "entry_bit_width_allocated": 132, 
                             "ideal_entries_per_table_word": 1, 
@@ -413,17 +409,17 @@
                             "memory_type": "sram", 
                             "table_word_width": 128, 
                             "memory_word_width": 128, 
-                            "entries_per_table_word": 8, 
+                            "entries_per_table_word": 4, 
                             "table_type": "tind", 
                             "num_memories": 1, 
-                            "entry_bit_width_requested": 9, 
-                            "entry_bit_width_allocated": 16
+                            "entry_bit_width_requested": 24, 
+                            "entry_bit_width_allocated": 32
                         }
                     ], 
                     "overhead_fields": [
                         {
                             "name": "immediate", 
-                            "bit_width": 9
+                            "bit_width": 24
                         }
                     ], 
                     "match_format": {
@@ -536,7 +532,7 @@
                     ]
                 }, 
                 {
-                    "action_name": "SwitchIngress.nop", 
+                    "action_name": "SwitchIngress.drop", 
                     "parameters": []
                 }
             ], 
@@ -720,6 +716,226 @@
             ]
         }, 
         {
+            "name": "SwitchIngress.src_sram_table_secondary", 
+            "gress": "ingress", 
+            "lookup_types": [
+                "exact"
+            ], 
+            "entries_requested": 4096, 
+            "entries_allocated": 16384, 
+            "match_fields": [
+                {
+                    "name": "ig_md.Group_id_secondary", 
+                    "start_bit": 0, 
+                    "bit_width": 9, 
+                    "lookup_type": "exact"
+                }, 
+                {
+                    "name": "ig_md.src_quotient", 
+                    "start_bit": 5, 
+                    "bit_width": 11, 
+                    "lookup_type": "exact"
+                }
+            ], 
+            "action_parameters": [
+                {
+                    "action_name": "SwitchIngress.set_src_bitmap_secondary", 
+                    "parameters": [
+                        {
+                            "name": "bitmap", 
+                            "bit_width": 32
+                        }, 
+                        {
+                            "name": "gid2", 
+                            "bit_width": 9
+                        }
+                    ]
+                }, 
+                {
+                    "action_name": "SwitchIngress.nop", 
+                    "parameters": []
+                }
+            ], 
+            "stage_allocation": [
+                {
+                    "stage_number": 5, 
+                    "memories": [
+                        {
+                            "memory_type": "sram", 
+                            "table_word_width": 128, 
+                            "memory_word_width": 128, 
+                            "entries_per_table_word": 4, 
+                            "table_type": "match", 
+                            "num_memories": 4, 
+                            "entries_requested": 4096, 
+                            "entries_allocated": 16384, 
+                            "imm_bit_width_in_overhead_requested": 9, 
+                            "imm_bit_width_in_overhead_allocated": 9, 
+                            "entry_bit_width_requested": 33, 
+                            "entry_bit_width_allocated": 24, 
+                            "ideal_entries_per_table_word": 22, 
+                            "ideal_table_word_bit_width": 640
+                        }
+                    ], 
+                    "overhead_fields": [
+                        {
+                            "name": "immediate", 
+                            "bit_width": 9
+                        }, 
+                        {
+                            "name": "version/valid", 
+                            "bit_width": 4
+                        }
+                    ], 
+                    "match_format": {
+                        "entries": [
+                            {
+                                "entry_number": 3, 
+                                "fields": [
+                                    {
+                                        "name": "action", 
+                                        "bit_width": 1, 
+                                        "start_bit": 0, 
+                                        "memory_start_bit": 3
+                                    }, 
+                                    {
+                                        "name": "immediate", 
+                                        "bit_width": 9, 
+                                        "start_bit": 0, 
+                                        "memory_start_bit": 31
+                                    }, 
+                                    {
+                                        "name": "version", 
+                                        "bit_width": 4, 
+                                        "start_bit": 0, 
+                                        "memory_start_bit": 96
+                                    }, 
+                                    {
+                                        "name": "ig_md.Group_id_secondary", 
+                                        "bit_width": 2, 
+                                        "start_bit": 6, 
+                                        "memory_start_bit": 102
+                                    }, 
+                                    {
+                                        "name": "ig_md.src_quotient", 
+                                        "bit_width": 8, 
+                                        "start_bit": 8, 
+                                        "memory_start_bit": 88
+                                    }
+                                ]
+                            }, 
+                            {
+                                "entry_number": 2, 
+                                "fields": [
+                                    {
+                                        "name": "action", 
+                                        "bit_width": 1, 
+                                        "start_bit": 0, 
+                                        "memory_start_bit": 2
+                                    }, 
+                                    {
+                                        "name": "immediate", 
+                                        "bit_width": 9, 
+                                        "start_bit": 0, 
+                                        "memory_start_bit": 22
+                                    }, 
+                                    {
+                                        "name": "version", 
+                                        "bit_width": 4, 
+                                        "start_bit": 0, 
+                                        "memory_start_bit": 80
+                                    }, 
+                                    {
+                                        "name": "ig_md.Group_id_secondary", 
+                                        "bit_width": 2, 
+                                        "start_bit": 6, 
+                                        "memory_start_bit": 86
+                                    }, 
+                                    {
+                                        "name": "ig_md.src_quotient", 
+                                        "bit_width": 8, 
+                                        "start_bit": 8, 
+                                        "memory_start_bit": 72
+                                    }
+                                ]
+                            }, 
+                            {
+                                "entry_number": 1, 
+                                "fields": [
+                                    {
+                                        "name": "action", 
+                                        "bit_width": 1, 
+                                        "start_bit": 0, 
+                                        "memory_start_bit": 1
+                                    }, 
+                                    {
+                                        "name": "immediate", 
+                                        "bit_width": 9, 
+                                        "start_bit": 0, 
+                                        "memory_start_bit": 13
+                                    }, 
+                                    {
+                                        "name": "version", 
+                                        "bit_width": 4, 
+                                        "start_bit": 0, 
+                                        "memory_start_bit": 64
+                                    }, 
+                                    {
+                                        "name": "ig_md.Group_id_secondary", 
+                                        "bit_width": 2, 
+                                        "start_bit": 6, 
+                                        "memory_start_bit": 70
+                                    }, 
+                                    {
+                                        "name": "ig_md.src_quotient", 
+                                        "bit_width": 8, 
+                                        "start_bit": 8, 
+                                        "memory_start_bit": 56
+                                    }
+                                ]
+                            }, 
+                            {
+                                "entry_number": 0, 
+                                "fields": [
+                                    {
+                                        "name": "action", 
+                                        "bit_width": 1, 
+                                        "start_bit": 0, 
+                                        "memory_start_bit": 0
+                                    }, 
+                                    {
+                                        "name": "immediate", 
+                                        "bit_width": 9, 
+                                        "start_bit": 0, 
+                                        "memory_start_bit": 4
+                                    }, 
+                                    {
+                                        "name": "version", 
+                                        "bit_width": 4, 
+                                        "start_bit": 0, 
+                                        "memory_start_bit": 48
+                                    }, 
+                                    {
+                                        "name": "ig_md.Group_id_secondary", 
+                                        "bit_width": 2, 
+                                        "start_bit": 6, 
+                                        "memory_start_bit": 54
+                                    }, 
+                                    {
+                                        "name": "ig_md.src_quotient", 
+                                        "bit_width": 8, 
+                                        "start_bit": 8, 
+                                        "memory_start_bit": 40
+                                    }
+                                ]
+                            }
+                        ]
+                    }, 
+                    "action_formats": []
+                }
+            ]
+        }, 
+        {
             "name": "SwitchIngress.src_tcam_table", 
             "gress": "ingress", 
             "lookup_types": [
@@ -753,7 +969,7 @@
                     ]
                 }, 
                 {
-                    "action_name": "SwitchIngress.nop", 
+                    "action_name": "SwitchIngress.drop", 
                     "parameters": []
                 }
             ], 
@@ -810,6 +1026,118 @@
                                         "bit_width": 9, 
                                         "start_bit": 0, 
                                         "memory_start_bit": 0
+                                    }, 
+                                    {
+                                        "name": "p.udp.sport", 
+                                        "bit_width": 16, 
+                                        "start_bit": 0, 
+                                        "memory_start_bit": 16
+                                    }
+                                ]
+                            }
+                        ]
+                    }, 
+                    "action_formats": []
+                }
+            ]
+        }, 
+        {
+            "name": "SwitchIngress.src_tcam_table_secondary", 
+            "gress": "ingress", 
+            "lookup_types": [
+                "exact", 
+                "ternary"
+            ], 
+            "entries_requested": 2048, 
+            "entries_allocated": 2048, 
+            "match_fields": [
+                {
+                    "name": "ig_md.Group_id_secondary", 
+                    "start_bit": 0, 
+                    "bit_width": 9, 
+                    "lookup_type": "exact"
+                }, 
+                {
+                    "name": "p.udp.sport", 
+                    "start_bit": 0, 
+                    "bit_width": 16, 
+                    "lookup_type": "ternary"
+                }
+            ], 
+            "action_parameters": [
+                {
+                    "action_name": "SwitchIngress.set_gid2_from_tcam_secondary", 
+                    "parameters": [
+                        {
+                            "name": "gid2", 
+                            "bit_width": 9
+                        }
+                    ]
+                }, 
+                {
+                    "action_name": "SwitchIngress.nop", 
+                    "parameters": []
+                }
+            ], 
+            "stage_allocation": [
+                {
+                    "stage_number": 4, 
+                    "memories": [
+                        {
+                            "memory_type": "tcam", 
+                            "table_word_width": 44, 
+                            "memory_word_width": 44, 
+                            "entries_per_table_word": 1, 
+                            "table_type": "match", 
+                            "num_memories": 4, 
+                            "entries_requested": 2048, 
+                            "entries_allocated": 2048, 
+                            "imm_bit_width_in_overhead_requested": 9, 
+                            "imm_bit_width_in_overhead_allocated": 9, 
+                            "entry_bit_width_requested": 29, 
+                            "entry_bit_width_allocated": 44, 
+                            "ideal_entries_per_table_word": 1, 
+                            "ideal_table_word_bit_width": 44
+                        }, 
+                        {
+                            "memory_type": "sram", 
+                            "table_word_width": 128, 
+                            "memory_word_width": 128, 
+                            "entries_per_table_word": 8, 
+                            "table_type": "tind", 
+                            "num_memories": 1, 
+                            "entry_bit_width_requested": 9, 
+                            "entry_bit_width_allocated": 16
+                        }
+                    ], 
+                    "overhead_fields": [
+                        {
+                            "name": "immediate", 
+                            "bit_width": 9
+                        }
+                    ], 
+                    "match_format": {
+                        "entries": [
+                            {
+                                "entry_number": 0, 
+                                "fields": [
+                                    {
+                                        "name": "--version--", 
+                                        "bit_width": 2, 
+                                        "start_bit": 0, 
+                                        "memory_start_bit": 42
+                                    }, 
+                                    {
+                                        "name": "ig_md.Group_id_secondary", 
+                                        "bit_width": 8, 
+                                        "start_bit": 0, 
+                                        "memory_start_bit": 0
+                                    }, 
+                                    {
+                                        "name": "ig_md.Group_id_secondary", 
+                                        "bit_width": 1, 
+                                        "start_bit": 8, 
+                                        "memory_start_bit": 9
                                     }, 
                                     {
                                         "name": "p.udp.sport", 
@@ -908,7 +1236,7 @@
             ], 
             "stage_allocation": [
                 {
-                    "stage_number": 1, 
+                    "stage_number": 3, 
                     "memories": [
                         {
                             "memory_type": "sram", 
@@ -1002,7 +1330,7 @@
             ], 
             "stage_allocation": [
                 {
-                    "stage_number": 3, 
+                    "stage_number": 4, 
                     "memories": [
                         {
                             "memory_type": "sram", 
@@ -1049,7 +1377,101 @@
             ], 
             "stage_allocation": [
                 {
-                    "stage_number": 4, 
+                    "stage_number": 5, 
+                    "memories": [
+                        {
+                            "memory_type": "sram", 
+                            "table_word_width": 0, 
+                            "memory_word_width": 44, 
+                            "entries_per_table_word": 1, 
+                            "table_type": "match", 
+                            "num_memories": 0, 
+                            "entries_requested": 0, 
+                            "entries_allocated": 0, 
+                            "imm_bit_width_in_overhead_requested": 0, 
+                            "imm_bit_width_in_overhead_allocated": 0, 
+                            "entry_bit_width_requested": 0, 
+                            "entry_bit_width_allocated": 0, 
+                            "ideal_entries_per_table_word": 0, 
+                            "ideal_table_word_bit_width": 0
+                        }
+                    ], 
+                    "overhead_fields": [], 
+                    "match_format": {
+                        "entries": [
+                            {
+                                "entry_number": 0, 
+                                "fields": []
+                            }
+                        ]
+                    }, 
+                    "action_formats": []
+                }
+            ]
+        }, 
+        {
+            "name": "tbl_act_7", 
+            "gress": "ingress", 
+            "lookup_types": [], 
+            "entries_requested": 0, 
+            "entries_allocated": 0, 
+            "match_fields": [], 
+            "action_parameters": [
+                {
+                    "action_name": "act_7", 
+                    "parameters": []
+                }
+            ], 
+            "stage_allocation": [
+                {
+                    "stage_number": 7, 
+                    "memories": [
+                        {
+                            "memory_type": "sram", 
+                            "table_word_width": 0, 
+                            "memory_word_width": 44, 
+                            "entries_per_table_word": 1, 
+                            "table_type": "match", 
+                            "num_memories": 0, 
+                            "entries_requested": 0, 
+                            "entries_allocated": 0, 
+                            "imm_bit_width_in_overhead_requested": 0, 
+                            "imm_bit_width_in_overhead_allocated": 0, 
+                            "entry_bit_width_requested": 0, 
+                            "entry_bit_width_allocated": 0, 
+                            "ideal_entries_per_table_word": 0, 
+                            "ideal_table_word_bit_width": 0
+                        }
+                    ], 
+                    "overhead_fields": [], 
+                    "match_format": {
+                        "entries": [
+                            {
+                                "entry_number": 0, 
+                                "fields": []
+                            }
+                        ]
+                    }, 
+                    "action_formats": []
+                }
+            ]
+        }, 
+        {
+            "name": "tbl_act_9", 
+            "gress": "ingress", 
+            "lookup_types": [], 
+            "entries_requested": 0, 
+            "entries_allocated": 0, 
+            "match_fields": [], 
+            "action_parameters": [
+                {
+                    "action_name": "act_9", 
+                    "parameters": []
+                }
+            ], 
+            "stage_allocation": [
+                {
+                    "stage_number": 8, 
                     "memories": [
                         {
                             "memory_type": "sram", 
@@ -1096,7 +1518,7 @@
             ], 
             "stage_allocation": [
                 {
-                    "stage_number": 5, 
+                    "stage_number": 9, 
                     "memories": [
                         {
                             "memory_type": "sram", 
@@ -1143,7 +1565,7 @@
             ], 
             "stage_allocation": [
                 {
-                    "stage_number": 3, 
+                    "stage_number": 7, 
                     "memories": [
                         {
                             "memory_type": "sram", 
@@ -1191,6 +1613,53 @@
             "stage_allocation": [
                 {
                     "stage_number": 1, 
+                    "memories": [
+                        {
+                            "memory_type": "sram", 
+                            "table_word_width": 0, 
+                            "memory_word_width": 44, 
+                            "entries_per_table_word": 1, 
+                            "table_type": "match", 
+                            "num_memories": 0, 
+                            "entries_requested": 0, 
+                            "entries_allocated": 0, 
+                            "imm_bit_width_in_overhead_requested": 0, 
+                            "imm_bit_width_in_overhead_allocated": 0, 
+                            "entry_bit_width_requested": 0, 
+                            "entry_bit_width_allocated": 0, 
+                            "ideal_entries_per_table_word": 0, 
+                            "ideal_table_word_bit_width": 0
+                        }
+                    ], 
+                    "overhead_fields": [], 
+                    "match_format": {
+                        "entries": [
+                            {
+                                "entry_number": 0, 
+                                "fields": []
+                            }
+                        ]
+                    }, 
+                    "action_formats": []
+                }
+            ]
+        }, 
+        {
+            "name": "tbl_tofino2l358", 
+            "gress": "ingress", 
+            "lookup_types": [], 
+            "entries_requested": 0, 
+            "entries_allocated": 0, 
+            "match_fields": [], 
+            "action_parameters": [
+                {
+                    "action_name": "tofino2l358", 
+                    "parameters": []
+                }
+            ], 
+            "stage_allocation": [
+                {
+                    "stage_number": 6, 
                     "memories": [
                         {
                             "memory_type": "sram", 

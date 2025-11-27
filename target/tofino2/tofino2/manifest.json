@@ -1,11 +1,11 @@
 {
   "schema_version": "3.0.1",
   "target": "tofino2",
-  "build_date": "Tue Nov 25 11:18:28 2025",
+  "build_date": "Tue Nov 25 16:43:23 2025",
   "compiler_version": "9.13.1 (e558d01)",
   "compilation_succeeded": true,
-  "compilation_time": "5.801676273345947",
-  "run_id": "ebb2921b54f74acd",
+  "compilation_time": "6.113018035888672",
+  "run_id": "0bee7d560cb1406f",
   "target_data": {
     "architecture": "t2na",
     "architectureConfig": {
@@ -65,9 +65,9 @@
                 "graph_format": ".dot"
               },
               {
-                "path": "pipe/graphs/program_graph.dot",
+                "path": "pipe/graphs/SwitchIngressParser.dot",
                 "gress": "ingress",
-                "graph_type": "table",
+                "graph_type": "parser",
                 "graph_format": ".dot"
               },
               {
@@ -83,9 +83,9 @@
                 "graph_format": ".dot"
               },
               {
-                "path": "pipe/graphs/SwitchIngressParser.dot",
+                "path": "pipe/graphs/program_graph.dot",
                 "gress": "ingress",
-                "graph_type": "parser",
+                "graph_type": "table",
                 "graph_format": ".dot"
               },
               {
@@ -95,16 +95,16 @@
                 "graph_format": ".dot"
               },
               {
-                "path": "pipe/graphs/power_graph.dot",
-                "gress": "ingress",
-                "graph_type": "table",
-                "graph_format": ".dot"
-              },
-              {
                 "path": "pipe/graphs/dep.json",
                 "gress": "ingress",
                 "graph_type": "table",
                 "graph_format": ".json"
+              },
+              {
+                "path": "pipe/graphs/power_graph.dot",
+                "gress": "ingress",
+                "graph_type": "table",
+                "graph_format": ".dot"
               },
               {
                 "path": "pipe/graphs/placement_graph.dot",

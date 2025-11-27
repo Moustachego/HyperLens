@@ -1,8 +1,8 @@
 +---------------------------------------------------------------------+
 |  Log file: pa.results.log                                           |
 |  Compiler version: 9.13.1                                           |
-|  Created on: Tue Nov 25 11:18:28 2025                               |
-|  Run ID: ebb2921b54f74acd                                           |
+|  Created on: Tue Nov 25 16:43:23 2025                               |
+|  Run ID: 0bee7d560cb1406f                                           |
 +---------------------------------------------------------------------+
 
 Allocation state: Final Allocation
@@ -16,21 +16,21 @@ Allocation state: Final Allocation
 |         3 (32)         |    0 (0.00%)    |  0 (0.00%)  |      640       |
 |    Total for 32 bit    |    3 (3.75%)    |  96 (3.75%) |      2560      |
 |                        |                 |             |                |
-|         4 (8)          |    6 (30.00%)   | 24 (15.00%) |      160       |
+|         4 (8)          |    6 (30.00%)   | 31 (19.38%) |      160       |
 |         5 (8)          |    3 (15.00%)   |  15 (9.38%) |      160       |
-|         6 (8)          |    0 (0.00%)    |  0 (0.00%)  |      160       |
+|         6 (8)          |    4 (20.00%)   |  4 (2.50%)  |      160       |
 |         7 (8)          |    0 (0.00%)    |  0 (0.00%)  |      160       |
-|    Total for 8 bit     |    9 (11.25%)   |  39 (6.09%) |      640       |
+|    Total for 8 bit     |   13 (16.25%)   |  50 (7.81%) |      640       |
 |                        |                 |             |                |
-|         8 (16)         |    4 (20.00%)   | 43 (13.44%) |      320       |
+|         8 (16)         |    4 (20.00%)   | 44 (13.75%) |      320       |
 |         9 (16)         |    1 (5.00%)    |  9 (2.81%)  |      320       |
 |        10 (16)         |    0 (0.00%)    |  0 (0.00%)  |      320       |
 |        11 (16)         |    0 (0.00%)    |  0 (0.00%)  |      320       |
 |        12 (16)         |    0 (0.00%)    |  0 (0.00%)  |      320       |
 |        13 (16)         |    0 (0.00%)    |  0 (0.00%)  |      320       |
-|    Total for 16 bit    |    5 (4.17%)    |  52 (2.71%) |      1920      |
+|    Total for 16 bit    |    5 (4.17%)    |  53 (2.76%) |      1920      |
 |                        |                 |             |                |
-|     Overall total      |    17 (6.07%)   | 187 (3.65%) |      5120      |
+|     Overall total      |    21 (7.50%)   | 199 (3.89%) |      5120      |
 ----------------------------------------------------------------------------
 
 --------------------------------------------
@@ -59,9 +59,9 @@ Allocations in Group 4 8 bits
   8-bit PHV 92m (egress): phv92[2:2] = p.ethernet.$valid[0:0] (deparsed)
   8-bit PHV 92m (egress): phv92[1:1] = eg_intr_md.egress_port.$valid[0:0] (deparsed)
   8-bit PHV 92m (egress): phv92[0:0] = eg_intr_md_for_dprsr.mirror_io_select.$valid[0:0] (deparsed)
-  8-bit PHV 93m (ingress): phv93[0:0] = src_sram_match_0[0:0]
-  8-bit PHV 94m (ingress): phv94[0:0] = dst_tcam_match_0[0:0]
-  8-bit PHV 95m (ingress): phv95[0:0] = dst_sram_match_0[0:0]
+  8-bit PHV 93m (ingress): phv93[7:0] = ig_md.Group_id_secondary[7:0]
+  8-bit PHV 94m (ingress): phv94[0:0] = src_sram_match_0[0:0]
+  8-bit PHV 95m (ingress): phv95[0:0] = src_tcam_match_sec_0[0:0]
   >> 5 in ingress and 1 in egress
 
 Allocations in Group 5 8 bits
@@ -70,9 +70,17 @@ Allocations in Group 5 8 bits
   8-bit PHV 114m (ingress): phv114[7:0] = p.ipv4.proto[7:0] (deparsed)
   >> 3 in ingress and 0 in egress
 
+Allocations in Group 6 8 bits
+  8-bit PHV 132m (ingress): phv132[0:0] = src_sram_match_sec_0[0:0]
+  8-bit PHV 133m (ingress): phv133[0:0] = src_match_secondary_0[0:0]
+  8-bit PHV 134m (ingress): phv134[0:0] = dst_tcam_match_0[0:0]
+  8-bit PHV 135m (ingress): phv135[0:0] = dst_sram_match_0[0:0]
+  >> 4 in ingress and 0 in egress
+
 Allocations in Group 8 16 bits
   16-bit PHV 172m (egress): phv172[8:0] = eg_intr_md.egress_port[8:0] (deparsed)
   16-bit PHV 173m (ingress): phv173[15:0] = vrf_0[15:0]
+  16-bit PHV 174m (ingress): phv174[9:9] = ig_md.Group_id_secondary[8:8]
   16-bit PHV 174m (ingress): phv174[8:0] = ig_md.Group_id[8:0]
   16-bit PHV 175m (ingress): phv175[8:0] = ig_md.Group_id2[8:0]
   >> 3 in ingress and 1 in egress

@@ -79,18 +79,20 @@ struct headers {
 
 // user defined metadata
 struct user_metadata_t {
-    bit<9> Group_id;      // GID1 from Stage-1
-    bit<9> Group_id2;     // GID2 from Stage-2
-    bit<11> src_quotient; // Source port quotient (high 11 bits)
-    bit<11> dst_quotient; // Dest port quotient (high 11 bits)
-    bit<5> src_remainder; // Source port remainder (low 5 bits)
-    bit<5> dst_remainder; // Dest port remainder (low 5 bits)
-    bit<32> src_bitmap;   // Source port bitmap from SRAM
-    bit<32> dst_bitmap;   // Dest port bitmap from SRAM
-    bool src_tcam_hit;    // SRC_TCAM hit flag
-    bool src_sram_hit;    // SRC_SRAM hit flag
-    bool dst_tcam_hit;    // DST_TCAM hit flag
-    bool dst_sram_hit;    // DST_SRAM hit flag
+    bit<9> Group_id;           // GID1 from Stage-1 (primary)
+    bit<9> Group_id_secondary; // Secondary GID from Stage-1 (e.g., for backup path)
+    bit<9> Group_id2;          // GID2 from Stage-2
+    bit<11> src_quotient;      // Source port quotient (high 11 bits)
+    bit<11> dst_quotient;      // Dest port quotient (high 11 bits)
+    bit<5> src_remainder;      // Source port remainder (low 5 bits)
+    bit<5> dst_remainder;      // Dest port remainder (low 5 bits)
+    bit<32> src_bitmap;        // Source port bitmap from SRAM
+    bit<32> dst_bitmap;        // Dest port bitmap from SRAM
+    bool ip_table_hit;      // IP table hit flag
+    bool src_tcam_hit;         // SRC_TCAM hit flag
+    bool src_sram_hit;         // SRC_SRAM hit flag
+    bool dst_tcam_hit;         // DST_TCAM hit flag
+    bool dst_sram_hit;         // DST_SRAM hit flag
  }
 
 struct eg_metadata_t {
@@ -113,6 +115,7 @@ parser SwitchIngressParser(
         
         // Initialize metadata
         ig_md.Group_id = 0;
+        ig_md.Group_id_secondary = 0;
         ig_md.Group_id2 = 0;
         ig_md.src_quotient = 0;
         ig_md.dst_quotient = 0;
@@ -190,8 +193,10 @@ control SwitchIngress(
     }
 
     // ========== Stage-1: IP Table ==========
-    action set_gid1(bit<9> gid1) {              
+    action set_gid1(bit<9> gid1, bit<9> gid_secondary) {              
         ig_md.Group_id = gid1;
+        ig_md.Group_id_secondary = gid_secondary;
+        ig_md.ip_table_hit = true;
     }
 
     table ip_table {
@@ -211,7 +216,7 @@ control SwitchIngress(
 
     // ========== Stage-2: SRC Port Matching ==========
     
-    // SRC_TCAM: Ternary matching for sparse port rules
+    // SRC_TCAM (Primary GID): Ternary matching for sparse port rules
     action set_gid2_from_tcam(bit<9> gid2) {
         ig_md.Group_id2 = gid2;
         ig_md.src_tcam_hit = true;
@@ -224,9 +229,9 @@ control SwitchIngress(
         }
         actions = {
             set_gid2_from_tcam;
-            nop;
+            drop;
         }
-        default_action = nop;
+        default_action = drop;
         size = 2048;
     }
 
@@ -234,8 +239,7 @@ control SwitchIngress(
     action set_src_bitmap(bit<32> bitmap, bit<9> gid2) {
         ig_md.src_bitmap = bitmap;
         ig_md.Group_id2 = gid2;
-        // Bitmap check will be done in control flow
-        // Set hit flag, actual bit check needs to happen in apply block
+        ig_md.src_sram_hit = true;
     }
 
     table src_sram_table {
@@ -245,6 +249,45 @@ control SwitchIngress(
         }
         actions = {
             set_src_bitmap;
+            drop;
+        }
+        default_action = drop;
+        size = 4096;
+    }
+
+    // SRC_TCAM (Secondary GID): For fallback matching
+    action set_gid2_from_tcam_secondary(bit<9> gid2) {
+        ig_md.Group_id2 = gid2;
+        ig_md.src_tcam_hit = true;
+    }
+
+    table src_tcam_table_secondary {
+        key = {
+            ig_md.Group_id_secondary : exact;
+            p.udp.sport : ternary;
+        }
+        actions = {
+            set_gid2_from_tcam_secondary;
+            nop;
+        }
+        default_action = nop;
+        size = 2048;
+    }
+
+    // SRC_SRAM (Secondary GID): For fallback matching
+    action set_src_bitmap_secondary(bit<32> bitmap, bit<9> gid2) {
+        ig_md.src_bitmap = bitmap;
+        ig_md.Group_id2 = gid2;
+        ig_md.src_sram_hit = true;
+    }
+
+    table src_sram_table_secondary {
+        key = {
+            ig_md.Group_id_secondary : exact;
+            ig_md.src_quotient : exact;
+        }
+        actions = {
+            set_src_bitmap_secondary;
             nop;
         }
         default_action = nop;
@@ -255,8 +298,7 @@ control SwitchIngress(
     
     // DST_TCAM: Ternary matching for sparse port rules
     action set_action_from_tcam(bit<9> egress_port) {
-        ig_tm_md.ucast_egress_port = egress_port;
-        ig_md.dst_tcam_hit = true;
+        ig_tm_md.ucast_egress_port = egress_port;   // this should be action value
     }
 
     table dst_tcam_table {
@@ -267,17 +309,15 @@ control SwitchIngress(
         actions = {
             set_action_from_tcam;
             drop;
-            nop;
         }
-        default_action = nop;
+        default_action = drop;
         size = 2048;
     }
 
     // DST_SRAM: Exact matching with bitmap for dense port sets
     action set_dst_bitmap(bit<32> bitmap, bit<9> egress_port) {
         ig_md.dst_bitmap = bitmap;
-        ig_tm_md.ucast_egress_port = egress_port;
-        // Bitmap check will be done in control flow
+        ig_tm_md.ucast_egress_port = egress_port;      
     }
 
     table dst_sram_table {
@@ -288,16 +328,15 @@ control SwitchIngress(
         actions = {
             set_dst_bitmap;
             drop;
-            nop;
         }
-        default_action = nop;
+        default_action = drop;
         size = 4096;
     }
 
     // ========== Apply Block ==========
     apply {
         vrf = 16w0;
-
+        
         // Stage-1: IP + Protocol Matching
         if (ip_table.apply().hit) {
             
@@ -305,14 +344,24 @@ control SwitchIngress(
             ig_md.src_quotient = p.udp.sport[15:5];  // High 11 bits
             ig_md.dst_quotient = p.udp.dport[15:5];
 
-            // Stage-2: SRC Port Matching (Parallel TCAM + SRAM)
+            // Stage-2: SRC Port Matching (Parallel check primary and secondary GID)
             bool src_tcam_match = src_tcam_table.apply().hit;
             bool src_sram_match = src_sram_table.apply().hit;
+            bool src_match_primary = src_tcam_match || src_sram_match;
+            
+            // Try secondary GID tables if primary fails (轮询机制)
+            bool src_match_secondary = false;
+            if (!src_match_primary && ig_md.Group_id_secondary != 511) {
+                bool src_tcam_match_sec = src_tcam_table_secondary.apply().hit;
+                bool src_sram_match_sec = src_sram_table_secondary.apply().hit;
+                if (src_tcam_match_sec || src_sram_match_sec) {
+                    src_match_secondary = true;
+                }
+            }
+            
+            bool src_match = src_match_primary || src_match_secondary;
 
-            // Stage-2 Decision: Prefer TCAM, fallback to SRAM
-            // Note: SRAM bitmap check is done by control plane - only valid entries are installed
-            if (src_tcam_match || src_sram_match) {
-                
+            if (src_match) {
                 // Stage-3: DST Port Matching (Parallel TCAM + SRAM)
                 bool dst_tcam_match = dst_tcam_table.apply().hit;
                 bool dst_sram_match = dst_sram_table.apply().hit;

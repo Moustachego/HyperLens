@@ -21,6 +21,22 @@
                 "type" : "action_param",
                 "name" : "gid1"
               }
+            },
+            {
+              "name" : "ModifyFieldPrimitive",
+              "operation" : "set",
+              "dst" : {
+                "type" : "phv",
+                "name" : "ig_md.Group_id_secondary"
+              },
+              "dst_mask" : {
+                "type" : "immediate",
+                "name" : "511"
+              },
+              "src1" : {
+                "type" : "action_param",
+                "name" : "gid_secondary"
+              }
             }
           ]
         },
@@ -74,8 +90,27 @@
           ]
         },
         {
-          "name" : "SwitchIngress.nop",
-          "primitives" : []
+          "name" : "SwitchIngress.drop",
+          "primitives" : [
+            {
+              "name" : "DropPrimitive",
+              "dst" : {
+                "type" : "phv",
+                "name" : "ig_intr_md_for_dprsr.drop_ctl"
+              },
+              "src1" : {
+                "type" : "immediate",
+                "name" : "1"
+              }
+            },
+            {
+              "name" : "AddHeaderPrimitive",
+              "dst" : {
+                "type" : "header",
+                "name" : "ig_intr_md_for_dprsr.drop_ctl.$valid"
+              }
+            }
+          ]
         }
       ]
     },
@@ -130,8 +165,27 @@
           ]
         },
         {
-          "name" : "SwitchIngress.nop",
-          "primitives" : []
+          "name" : "SwitchIngress.drop",
+          "primitives" : [
+            {
+              "name" : "DropPrimitive",
+              "dst" : {
+                "type" : "phv",
+                "name" : "ig_intr_md_for_dprsr.drop_ctl"
+              },
+              "src1" : {
+                "type" : "immediate",
+                "name" : "1"
+              }
+            },
+            {
+              "name" : "AddHeaderPrimitive",
+              "dst" : {
+                "type" : "header",
+                "name" : "ig_intr_md_for_dprsr.drop_ctl.$valid"
+              }
+            }
+          ]
         }
       ]
     },
@@ -147,6 +201,144 @@
               "dst" : {
                 "type" : "phv",
                 "name" : "src_sram_match_0"
+              },
+              "dst_mask" : {
+                "type" : "immediate",
+                "name" : "1"
+              },
+              "src1" : {
+                "type" : "immediate",
+                "name" : "1w1"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name" : "SwitchIngress.src_tcam_table_secondary",
+      "actions" : [
+        {
+          "name" : "SwitchIngress.set_gid2_from_tcam_secondary",
+          "primitives" : [
+            {
+              "name" : "ModifyFieldPrimitive",
+              "operation" : "set",
+              "dst" : {
+                "type" : "phv",
+                "name" : "ig_md.Group_id2"
+              },
+              "dst_mask" : {
+                "type" : "immediate",
+                "name" : "511"
+              },
+              "src1" : {
+                "type" : "action_param",
+                "name" : "gid2"
+              }
+            }
+          ]
+        },
+        {
+          "name" : "SwitchIngress.nop",
+          "primitives" : []
+        }
+      ]
+    },
+    {
+      "name" : "tbl_act_3",
+      "actions" : [
+        {
+          "name" : "act_3",
+          "primitives" : [
+            {
+              "name" : "ModifyFieldPrimitive",
+              "operation" : "set",
+              "dst" : {
+                "type" : "phv",
+                "name" : "src_tcam_match_sec_0"
+              },
+              "dst_mask" : {
+                "type" : "immediate",
+                "name" : "1"
+              },
+              "src1" : {
+                "type" : "immediate",
+                "name" : "1w1"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name" : "SwitchIngress.src_sram_table_secondary",
+      "actions" : [
+        {
+          "name" : "SwitchIngress.set_src_bitmap_secondary",
+          "primitives" : [
+            {
+              "name" : "ModifyFieldPrimitive",
+              "operation" : "set",
+              "dst" : {
+                "type" : "phv",
+                "name" : "ig_md.Group_id2"
+              },
+              "dst_mask" : {
+                "type" : "immediate",
+                "name" : "511"
+              },
+              "src1" : {
+                "type" : "action_param",
+                "name" : "gid2"
+              }
+            }
+          ]
+        },
+        {
+          "name" : "SwitchIngress.nop",
+          "primitives" : []
+        }
+      ]
+    },
+    {
+      "name" : "tbl_act_5",
+      "actions" : [
+        {
+          "name" : "act_5",
+          "primitives" : [
+            {
+              "name" : "ModifyFieldPrimitive",
+              "operation" : "set",
+              "dst" : {
+                "type" : "phv",
+                "name" : "src_sram_match_sec_0"
+              },
+              "dst_mask" : {
+                "type" : "immediate",
+                "name" : "1"
+              },
+              "src1" : {
+                "type" : "immediate",
+                "name" : "1w1"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name" : "tbl_tofino2l358",
+      "actions" : [
+        {
+          "name" : "tofino2l358",
+          "primitives" : [
+            {
+              "name" : "ModifyFieldPrimitive",
+              "operation" : "set",
+              "dst" : {
+                "type" : "phv",
+                "name" : "src_match_secondary_0"
               },
               "dst_mask" : {
                 "type" : "immediate",
@@ -214,18 +406,14 @@
               }
             }
           ]
-        },
-        {
-          "name" : "SwitchIngress.nop",
-          "primitives" : []
         }
       ]
     },
     {
-      "name" : "tbl_act_3",
+      "name" : "tbl_act_7",
       "actions" : [
         {
-          "name" : "act_3",
+          "name" : "act_7",
           "primitives" : [
             {
               "name" : "ModifyFieldPrimitive",
@@ -300,18 +488,14 @@
               }
             }
           ]
-        },
-        {
-          "name" : "SwitchIngress.nop",
-          "primitives" : []
         }
       ]
     },
     {
-      "name" : "tbl_act_5",
+      "name" : "tbl_act_9",
       "actions" : [
         {
-          "name" : "act_5",
+          "name" : "act_9",
           "primitives" : [
             {
               "name" : "ModifyFieldPrimitive",
