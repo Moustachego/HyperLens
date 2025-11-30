@@ -24,7 +24,7 @@ using std::vector;
 using std::endl;
 
 /*
- * Main entry point for P4Lens
+ * Main entry point for HyperLens
  * 
  * Accepts an optional command-line argument for the rules file path.
  * Default: "src/ACL_rules/test_port.rules"
@@ -45,9 +45,9 @@ int main(int argc, char **argv)
         rules_path = string(argv[1]);
     }
 
-    cout << "============================================================================\n";
-    cout << "----------------------------------P4Lens------------------------------------\n";
-    cout << "============================================================================\n\n";
+    cout << "===============================================================================\n";
+    cout << "---------------------------------- HyperLens ----------------------------------\n";
+    cout << "===============================================================================\n\n";
 
     // Step 1: Load rules from file
     cout << "[STEP 1] Loading rules from: " << rules_path << endl;
@@ -82,8 +82,8 @@ int main(int argc, char **argv)
     create_Table_for_port(port_table, merged_ip_table, mateifno);
     cout << "[SUCCESS] Port lookup tables generated\n\n";
 
-    cout << "============================================================================\n";
-    cout << "P4Lens processing completed successfully!\n";
+    cout << "===============================================================================\n";
+    cout << "HyperLens processing completed successfully!\n";
     cout << "Output files generated:\n";
     cout << "  - SRC_TCAM_Table.txt\n";
     cout << "  - SRC_SRAM_Table.txt\n";
@@ -91,7 +91,7 @@ int main(int argc, char **argv)
     cout << "  - DST_SRAM_Table.txt\n";
     cout << "  - final_ip_table_cidr.txt\n";
     cout << "  - meta_merged.txt\n";
-    cout << "============================================================================\n";
+    cout << "===============================================================================\n";
 
     return 0;
 }

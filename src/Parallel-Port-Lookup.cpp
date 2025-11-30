@@ -41,7 +41,10 @@ std::bitset<32> generate_32bit_bitmap(uint32_t block_base, uint32_t L, uint32_t 
     uint32_t e = std::min<uint32_t>(block_base + 31u, H);
     if (s <= e) {
         for (uint32_t p = s; p <= e; ++p) {
-            bitmap.set(p - block_base); // bit index = offset inside 32-port block
+            // 反转位序：高端口对应低位（右侧），低端口对应高位（左侧）
+            // 原本 port p 对应 bit[p-block_base]，现在改为 bit[31-(p-block_base)]
+            uint32_t bit_idx = 31u - (p - block_base);
+            bitmap.set(bit_idx);
         }
     }
     // 未命中的位保持 0（bitset 初始化为 0）
