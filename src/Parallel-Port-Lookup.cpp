@@ -736,7 +736,7 @@ void assign_blocks_to_sram_tcam(
 
 // 将 merged_output 格式的 mateifno 拆分为以 src 为主和以 dst 为主的两个列表
 void split_mateinfo_into_src_dst(
-    const std::map<std::tuple<std::vector<int>, int, int>, MergedItem> &mateifno,
+    const std::map<std::tuple<std::vector<int>, int, int, int, int>, MergedItem> &mateifno,
     std::vector<Mate_SRC_LIST> &mate_src,
     std::vector<Mate_DST_LIST> &mate_dst)
 {
@@ -896,7 +896,7 @@ void output_src_items_to_txt(const std::vector<SRC_Port_Item> &src_items)
 void create_Table_for_port(
     const vector<PortRule>& /* port_table */,
     const vector<IPRule>& /* merged_ip_table */,
-    std::map<std::tuple<std::vector<int>, int, int>, MergedItem>& mateifno
+    std::map<std::tuple<std::vector<int>, int, int, int, int>, MergedItem>& mateifno
 ){  
     vector<Mate_SRC_LIST> mate_src;
     vector<Mate_DST_LIST> mate_dst;
@@ -946,7 +946,7 @@ void create_Table_for_port(
 void laod_and_create_IP_table(vector<IPRule>& ip_table,
     vector<PortRule>& port_table, 
     vector<IPRule>& merged_ip_table,
-    std::map<std::tuple<std::vector<int>, int, int>, MergedItem>& mateifno)
+    std::map<std::tuple<std::vector<int>, int, int, int, int>, MergedItem>& mateifno)
 {
     //1) merge identical IP entries
     merge_same_ip_entry(ip_table, merged_ip_table);

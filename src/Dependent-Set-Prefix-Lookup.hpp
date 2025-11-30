@@ -123,5 +123,5 @@ void Create_Metainfo_for_port(
     const vector<IPRule>& merged_ip_table,
     const vector<IntersectionCell>& IntersectionCell,
     const vector<FinalIPRule>& final_ip_table,
-    std::map<std::tuple<std::vector<int>, int, int>, MergedItem>& merged_output
+    std::map<std::tuple<std::vector<int>, int, int, int, int>, MergedItem>& merged_output
 );

@@ -73,7 +73,7 @@ int main(int argc, char **argv)
     // (laod_and_create_IP_table internally handles IP merge, intersection detection, and metainfo generation)
     cout << "[STEP 3] Creating IP Table and port metadata...\n";
     vector<IPRule> merged_ip_table;
-    std::map<std::tuple<std::vector<int>, int, int>, MergedItem> mateifno;
+    std::map<std::tuple<std::vector<int>, int, int, int, int>, MergedItem> mateifno;
     laod_and_create_IP_table(ip_table, port_table, merged_ip_table, mateifno);
     cout << "[SUCCESS] IP Table and metadata processing completed (Merged to " << merged_ip_table.size() << " unique IP entries)\n\n";
 

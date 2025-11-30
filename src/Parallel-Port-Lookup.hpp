@@ -126,13 +126,13 @@ void laod_and_create_IP_table(
     std::vector<IPRule>& ip_table,
     std::vector<PortRule>& port_table,
     std::vector<IPRule>& merged_ip_table,
-    std::map<std::tuple<std::vector<int>, int, int>, MergedItem>& mateifno
+    std::map<std::tuple<std::vector<int>, int, int, int, int>, MergedItem>& mateifno
 );
 
 void create_Table_for_port(
     const std::vector<PortRule>& port_table,
     const std::vector<IPRule>& merged_ip_table,
-    std::map<std::tuple<std::vector<int>, int, int>, MergedItem>& mateifno
+    std::map<std::tuple<std::vector<int>, int, int, int, int>, MergedItem>& mateifno
 );
 
 

@@ -1289,12 +1289,7 @@ void Generate_MergedR_GID_to_metaifno(
     const vector<PortRule>& port_table,
     vector<Metainfo_for_SRC_port>& meta_src)
 {
-    unordered_map<size_t, size_t> rid_to_port_index;
-    rid_to_port_index.reserve(port_table.size());
-
-    for (size_t i = 0; i < port_table.size(); ++i)
-        rid_to_port_index[port_table[i].rid] = i;
-
+    // 遍历 final_ip_table 中的非 cell 规则
     for (const auto& fr : final_ip_table)
     {
         // 🚫 跳过 cell
@@ -1302,17 +1297,45 @@ void Generate_MergedR_GID_to_metaifno(
 
         if (fr.group_ids.empty()) continue;
 
-        uint32_t gid = fr.group_ids[0];  // 只处理第一个 G-ID
+        uint32_t gid = fr.group_ids[0];  // 取该规则的 G-ID
 
-        for (size_t rid : fr.merged_R)
+        // 用于在相同 G-ID 内部去重（检查 Src_lo, Src_hi, Dst_lo, Dst_hi 是否相同）
+        std::set<std::tuple<int, int, int, int>> seen_in_gid;  // (Src_lo, Src_hi, Dst_lo, Dst_hi)
+
+        // 遍历该规则关联的所有原始规则 ID
+        for (size_t orig_rid : fr.merged_R)
         {
-            auto it = rid_to_port_index.find(rid);
-            if (it == rid_to_port_index.end()) continue;
+            // 在 port_table 中查找对应的端口规则
+            auto it = std::find_if(port_table.begin(), port_table.end(),
+                [orig_rid](const PortRule &pr) { return pr.rid == orig_rid; });
 
-            auto& vec = meta_src[it->second].group_ids;
+            if (it == port_table.end()) {
+                continue;  // 未找到对应的端口规则，跳过
+            }
 
-            if (vec.empty() || vec.back() != static_cast<int>(gid))
-                vec.push_back(gid);
+            const PortRule &por = *it;
+
+            // 在相同 G-ID 内部去重（检查完整的四元组）
+            auto dedup_key = std::make_tuple(por.src_port_lo, por.src_port_hi, 
+                                             por.dst_port_lo, por.dst_port_hi);
+            
+            if (seen_in_gid.find(dedup_key) != seen_in_gid.end()) {
+                // 已存在相同的端口范围，跳过
+                continue;
+            }
+            seen_in_gid.insert(dedup_key);
+
+            // 创建新的 metainfo entry
+            Metainfo_for_SRC_port new_entry;
+            new_entry.Inital_Number = { static_cast<uint32_t>(orig_rid) };
+            new_entry.Src_lo   = por.src_port_lo;
+            new_entry.Src_hi   = por.src_port_hi;
+            new_entry.Dst_lo   = por.dst_port_lo;
+            new_entry.Dst_hi   = por.dst_port_hi;
+            new_entry.action   = por.action;
+            new_entry.group_ids = { static_cast<int>(gid) };
+
+            meta_src.push_back(new_entry);
         }
     }
 }
@@ -1322,7 +1345,7 @@ void Generate_MergedR_GID_to_metaifno(
 // 功能：对 metainfo 列表按 GID 排序，合并相同 (GroupIDs, Src_lo, Src_hi) 的条目，并重新分配 ID
 void Merge_and_Reorder_Metainfo(
     const vector<Metainfo_for_SRC_port>& meta,
-    std::map<std::tuple<std::vector<int>, int, int>, MergedItem>& merged_output)
+    std::map<std::tuple<std::vector<int>, int, int, int, int>, MergedItem>& merged_output)
 {
     // DEBUG: 统计空GID条目
     int empty_gid_count = 0;
@@ -1356,12 +1379,12 @@ void Merge_and_Reorder_Metainfo(
         }
     );
 
-    // Step 3: 合并相同 (GroupIDs, Src_lo, Src_hi) 的条目
-    std::map<std::tuple<std::vector<int>, int, int>, MergedItem> merged_map;
+    // Step 3: 合并相同 (GroupIDs, Src_lo, Src_hi, Dst_lo, Dst_hi) 的条目
+    std::map<std::tuple<std::vector<int>, int, int, int, int>, MergedItem> merged_map;
 
     for (size_t i = 0; i < filtered_meta.size(); ++i) {
         const auto& m = filtered_meta[i];
-        auto key = std::make_tuple(m.group_ids, m.Src_lo, m.Src_hi);
+        auto key = std::make_tuple(m.group_ids, m.Src_lo, m.Src_hi, m.Dst_lo, m.Dst_hi);
 
         // 如果键不存在，创建新条目
         if (merged_map.find(key) == merged_map.end()) {
@@ -1391,7 +1414,7 @@ void Merge_and_Reorder_Metainfo(
     }
 
     // Step 3: 将 map 转换为 vector 并按 GID1 排序
-    std::vector<std::pair<std::tuple<std::vector<int>, int, int>, MergedItem>> merged_vec(
+    std::vector<std::pair<std::tuple<std::vector<int>, int, int, int, int>, MergedItem>> merged_vec(
         merged_map.begin(), merged_map.end()
     );
     
@@ -1422,7 +1445,7 @@ void Merge_and_Reorder_Metainfo(
 // 函数2：输出 Metainfo 到文件
 // 功能：将合并后的 metainfo 输出到 meta_merged.txt 文件
 void Write_Metainfo_to_File(
-    const std::map<std::tuple<std::vector<int>, int, int>, MergedItem>& merged_output,
+    const std::map<std::tuple<std::vector<int>, int, int, int, int>, MergedItem>& merged_output,
     const std::string& filename = "meta_merged.txt")
 {
     std::ofstream fout(filename);
@@ -1485,31 +1508,18 @@ void Create_Metainfo_for_port(
     const vector<IPRule>& merged_ip_table,
     const vector<IntersectionCell>& IntersectionCell,
     const vector<FinalIPRule>& final_ip_table,
-    std::map<std::tuple<std::vector<int>, int, int>, MergedItem>& merged_output)
+    std::map<std::tuple<std::vector<int>, int, int, int, int>, MergedItem>& merged_output)
 {
     vector<Metainfo_for_SRC_port> meta;
 
-    // 初始化 meta：每个端口规则一个条目
+    // 初始化为空，由下面两个函数填充
     meta.clear();
-    meta.resize(port_table.size());
-
-    for (size_t i = 0; i < port_table.size(); ++i) {
-        const auto& p = port_table[i];
-
-        meta[i].Inital_Number = {static_cast<uint32_t>(i)};
-        meta[i].Src_lo        = p.src_port_lo;
-        meta[i].Src_hi        = p.src_port_hi;
-        meta[i].Dst_lo        = p.dst_port_lo;
-        meta[i].Dst_hi        = p.dst_port_hi;
-        meta[i].action        = p.action;
-        meta[i].group_ids.clear();
-    }
     
-    // 为合并规则生成 GID 映射
-    Generate_MergedR_GID_to_metaifno(final_ip_table, port_table, meta);
-    
-    // 为交叉单元生成 GID 映射
+    // 为交叉单元生成 GID 映射（创建新的 meta entries）
     Generate_cell_GID_to_metainfo(IntersectionCell, merged_ip_table, port_table, final_ip_table, meta);
+    
+    // 为合并规则生成 GID 映射（创建新的 meta entries）
+    Generate_MergedR_GID_to_metaifno(final_ip_table, port_table, meta);
 
     // 合并与重排 Metainfo
     Merge_and_Reorder_Metainfo(meta, merged_output);
