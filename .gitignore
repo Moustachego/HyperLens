@@ -17,8 +17,8 @@ src/*.debug
 # Output files (generated tables)
 src/output/*.txt
 
-# ACL rules files
-src/ACL_rules/
+# ACL rules files (exclude subfolders, keep only test.rules and acl_10k.rules)
+src/ACL_rules/*/
 
 # Python cache
 __pycache__/
