@@ -611,7 +611,7 @@ void assign_blocks_to_dst_sram_tcam(const std::vector<BlockMeta_DST>& blocks,
     std::sort(dst_tcam_table.begin(), dst_tcam_table.end(), [](const DST_TCAM_Table &a, const DST_TCAM_Table &b){
         return a.GroupID2 < b.GroupID2;
     });
-    std::ofstream dtcam("DST_TCAM_Table.txt");
+    std::ofstream dtcam("src/output/DST_TCAM_Table.txt");
     dtcam << std::left << std::setw(12) << "GroupID2" << std::setw(20) << "DstPort" << std::setw(10) << "Action" << "\n";
     for (const auto &e : dst_tcam_table) {
         dtcam << std::left << std::setw(12) << e.GroupID2 << std::setw(20) << e.bin_prefix << std::setw(10) << e.Action << "\n";
@@ -622,7 +622,7 @@ void assign_blocks_to_dst_sram_tcam(const std::vector<BlockMeta_DST>& blocks,
         if (a.GroupID2 != b.GroupID2) return a.GroupID2 < b.GroupID2;
         return a.SP_Quotient < b.SP_Quotient;
     });
-    std::ofstream dsram("DST_SRAM_Table.txt");
+    std::ofstream dsram("src/output/DST_SRAM_Table.txt");
     dsram << std::left << std::setw(12) << "GroupID2" << std::setw(12) << "SP_Quotient" << std::setw(40) << "Bitmap32" << std::setw(10) << "Action" << "\n";
     for (const auto &e : dst_sram_table) {
         std::bitset<32> b;
@@ -659,7 +659,7 @@ void output_sram_tcam_tables(
         }
     );
 
-    std::ofstream tcam_file("SRC_TCAM_Table.txt");
+    std::ofstream tcam_file("src/output/SRC_TCAM_Table.txt");
     tcam_file << std::left
               << std::setw(20) << "GroupID1"
               << std::setw(40) << "SrcPort"
@@ -681,7 +681,7 @@ void output_sram_tcam_tables(
         }
     );
 
-    std::ofstream sram_file("SRC_SRAM_Table.txt");
+    std::ofstream sram_file("src/output/SRC_SRAM_Table.txt");
     sram_file << std::left
               << std::setw(20) << "GroupID1"
               << std::setw(22) << "SP_Quotient"
@@ -859,7 +859,7 @@ void apply_src_items_back_to_meta(std::vector<MergedItem> &meta_src_list, const 
 
 void output_src_items_to_txt(const std::vector<SRC_Port_Item> &src_items)
 {
-    std::ofstream fout("src_items.txt");
+    std::ofstream fout("src/output/src_items.txt");
     if (!fout) {
         std::cerr << "Error: cannot open src_items.txt\n";
         return;
@@ -982,7 +982,7 @@ void laod_and_create_IP_table(vector<IPRule>& ip_table,
     Create_Metainfo_for_port(port_table, merged_ip_table, intersections, final_ip_table, mateifno);
     
     //8) write final ip table into file
-    write_final_table_in_cidr(final_ip_table, "final_ip_table_cidr.txt");
+    write_final_table_in_cidr(final_ip_table, "src/output/final_ip_table_cidr.txt");
 }
 
 

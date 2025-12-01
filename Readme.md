@@ -182,7 +182,7 @@ If you use HyperLens in academic work, please cite our paper:
 ```bibtex
 @inproceedings{HyperLens2025,
   title={HyperLens: Scalable High-Speed Packet Classification on Programmable Switches},
-  author={Wei, Jiazhen and others},
+  author={Wei, Juzhong and others},
   booktitle={Proceedings of [Conference Name]},
   year={2025}
 }

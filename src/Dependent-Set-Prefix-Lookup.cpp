@@ -1446,7 +1446,7 @@ void Merge_and_Reorder_Metainfo(
 // 功能：将合并后的 metainfo 输出到 meta_merged.txt 文件
 void Write_Metainfo_to_File(
     const std::map<std::tuple<std::vector<int>, int, int, int, int>, MergedItem>& merged_output,
-    const std::string& filename = "meta_merged.txt")
+    const std::string& filename = "src/output/meta_merged.txt")
 {
     std::ofstream fout(filename);
     if (!fout) {

@@ -1,7 +1,7 @@
 /** *************************************************************/
-// -------------------Main Entry Point for P4Lens--------------------
+// -------------------Main Entry Point for HyperLens--------------------
 // 
-// This file serves as the unified main entry point for the P4Lens project.
+// This file serves as the unified main entry point for the HyperLens project.
 // It orchestrates the loading of ACL rules and the generation of TCAM/SRAM tables
 // for both SRC and DST port lookups.
 // @Author: weijzh (weijzh@pcl.ac.cn)
@@ -45,9 +45,9 @@ int main(int argc, char **argv)
         rules_path = string(argv[1]);
     }
 
-    cout << "===============================================================================\n";
-    cout << "---------------------------------- HyperLens ----------------------------------\n";
-    cout << "===============================================================================\n\n";
+    cout << "============================================================================\n";
+    cout << "----------------------------------HyperLens------------------------------------\n";
+    cout << "============================================================================\n\n";
 
     // Step 1: Load rules from file
     cout << "[STEP 1] Loading rules from: " << rules_path << endl;
@@ -84,7 +84,7 @@ int main(int argc, char **argv)
 
     cout << "===============================================================================\n";
     cout << "HyperLens processing completed successfully!\n";
-    cout << "Output files generated:\n";
+    cout << "Output files generated in src/output/:\n";
     cout << "  - SRC_TCAM_Table.txt\n";
     cout << "  - SRC_SRAM_Table.txt\n";
     cout << "  - DST_TCAM_Table.txt\n";

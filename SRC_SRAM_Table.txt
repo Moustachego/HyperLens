@@ -1,1 +1,0 @@
-GroupID1            SP_Quotient           Bitmap32                                          GroupID2  
