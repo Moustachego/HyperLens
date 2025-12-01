@@ -1,8 +1,7 @@
-# HyperLens
+# HyperLens:Scalable High-Speed Packet Classification on Programmable Switches
 
-高性能可编程交换机包分类工具链，基于三阶段依赖查找架构，实现 99.9% 的内存优化。
 
-## 项目简介
+## Introducing HyperLens 
 
 HyperLens 是一个针对可编程交换机的 ACL 规则优化工具，通过创新的**依赖查找策略**将传统的笛卡尔积查找转换为三阶段流水线：
 
@@ -10,29 +9,21 @@ HyperLens 是一个针对可编程交换机的 ACL 规则优化工具，通过�
 [数据包] → [阶段1: IP+协议] → GID1 → [阶段2: 源端口] → GID2 → [阶段3: 目的端口] → 动作
 ```
 
-**核心优势：**
-- 内存占用减少 100-1000 倍（测试：505K 条目 → 1.4K 条目）
-- 保持线速查找性能
-- 支持 Intel Tofino 等 P4 可编程交换机
 
-## 快速开始
+### Setting up the HyperLens environment
 
-### 环境要求
+- `g++-11` 
+- `Intel bf-SDE-9.13.1` 
 
-- `g++-11` 或更高版本（支持 C++17）
-- （可选）Intel SDE + conda 环境用于硬件集成
+### Getting started with HyperLens
 
-### 编译运行
+```
+bash./build_and_run.sh
 
-```bash
-# 一键编译并运行示例
-./build_and_run.sh
-
-# 使用自定义规则集
 ./src/HyperLens src/ACL_rules/your_rules.rules
 ```
 
-### 输入格式
+### ACL rules
 
 规则文件格式（五元组 ACL）：
 ```
@@ -44,14 +35,13 @@ HyperLens 是一个针对可编程交换机的 ACL 规则优化工具，通过�
 @10.1.0.0/16 20.0.0.0/8 1000:2000 3000:4000 0x06/0xFF 0x0000/0x0000
 ```
 
-### 输出文件
+### Output
 
 生成的表文件位于 `src/output/`：
 
-- `final_ip_table_cidr.txt` - 阶段1 IP 表（含 GID1 分配）
-- `SRC_TCAM_Table.txt` / `SRC_SRAM_Table.txt` - 阶段2 源端口表
-- `DST_TCAM_Table.txt` / `DST_SRAM_Table.txt` - 阶段3 目的端口表（含最终动作）
-- `meta_merged.txt` - GID 到端口范围的元数据映射
+- `final_ip_table_cidr.txt` - stage1 IP table
+- `SRC_TCAM_Table.txt` / `SRC_SRAM_Table.txt` - stage2 Src port
+- `DST_TCAM_Table.txt` / `DST_SRAM_Table.txt` - stage3 Dst port
 
 ## 项目结构
 
@@ -96,16 +86,6 @@ export SDE_INSTALL=/opt/bf-sde-install
 conda activate controller
 ./run_controller.sh
 ```
-
-## 性能数据
-
-基于 ClassBench 数据集测试（10 万条规则，70% 重叠）：
-
-| 指标 | 传统方法 | HyperLens | 改进 |
-|------|---------|-----------|------|
-| IP 表条目 | 505,186 | 1,412 | **357× ↓** |
-| TCAM 占用 | ~2M | ~5K | **400× ↓** |
-| 内存占用 | ~50 MB | ~150 KB | **99.7% ↓** |
 
 ## 作者信息
 
