@@ -40,7 +40,7 @@ using std::endl;
 int main(int argc, char **argv)
 {
     // Parse command-line arguments
-    string rules_path = "src/ACL_rules/test-rules/Region_test.rules";
+    string rules_path = "src/ACL_rules/test-rules/Line_test.rules";
     if (argc >= 2) {
         rules_path = string(argv[1]);
     }

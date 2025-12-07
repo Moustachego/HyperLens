@@ -155,7 +155,7 @@ void collect_line_and_point_cells(
     unordered_set<string>& seen_keys,
     size_t rmax_id
  )
-{
+{   
     // Helper: check if a cell is duplicate of any merged_ip_table rule
     auto is_duplicate_of_merged_rule = [&](uint32_t s_lo, uint32_t s_hi, 
                                            uint32_t d_lo, uint32_t d_hi) -> bool {
