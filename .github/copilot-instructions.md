@@ -49,7 +49,7 @@ target/tofino2/            # Compiled P4 artifacts (bf-rt.json, pipe/, logs/)
 
 ### 1. Build C++ Toolchain (g++-11)
 ```bash
-# Quick build + run with sample rules
+# Quick build + run with default test rules (test.rules)
 ./build_and_run.sh
 
 # Or manual compilation
@@ -58,13 +58,14 @@ target/tofino2/            # Compiled P4 artifacts (bf-rt.json, pipe/, logs/)
     src/Dependent-Set-Prefix-Lookup.cpp src/Parallel-Port-Lookup.cpp \
     -o src/HyperLens
 
-# Run with custom rules
+# Run with custom rules (default: src/ACL_rules/test.rules)
 ./src/HyperLens src/ACL_rules/acl1/acl1_100k_0.7.rules
 ```
 
 **Output:** Generates 6 tables in `src/output/`:
 - `final_ip_table_cidr.txt` — Stage 1 IP entries with GID1 assignments
 - `meta_merged.txt` — GID-to-port-range metadata
+- `src_items.txt` — Source port metadata items
 - `SRC_{TCAM,SRAM}_Table.txt` — Stage 2 tables
 - `DST_{TCAM,SRAM}_Table.txt` — Stage 3 tables with actions
 
@@ -183,7 +184,7 @@ For dense port ranges, use quotient/remainder scheme:
 ### Issue: GID Assignment Starts from Wrong Number
 **Symptom:** Intersection cells have GIDs > N (where N = number of cells).
 **Cause:** Old code assigned merged rule GIDs first. Now fixed: cells get 0-(N-1), merged rules get N+.
-**Verify:** Check `laod_and_create_IP_table()` in `Dependent-Set-Prefix-Lookup.cpp`.
+**Verify:** Check `laod_and_create_IP_table()` in `Dependent-Set-Prefix-Lookup.cpp` (note: function name has typo "laod" instead of "load" - this is intentional in the codebase).
 
 ### Issue: Test.py Fails with "Table Not Found"
 **Cause:** P4 table names mismatch between `tofino2.p4` and `Test.py`.
@@ -226,10 +227,25 @@ conda env list | grep controller
 ```
 
 ## VSCode Tasks Available
-- `Build: P4Lens (g++-11) - Debug` — Compiles C++ with full debug symbols
-- `Build: quick single-file` — Fast compile for single .cpp files
+- `Build: P4Lens (g++-11) - Debug` — Compiles C++ with full debug symbols, outputs to `src/P4Lens.debug`
+- `Build: quick single-file` — Fast compile for single .cpp files (current file only)
+
+## File Naming Note
+The main executable is built as `src/HyperLens` by `build_and_run.sh`, but VSCode tasks build to `src/P4Lens.debug`. Both use the same source files (`HyperLens.cpp`, `Loader.cpp`, `Dependent-Set-Prefix-Lookup.cpp`, `Parallel-Port-Lookup.cpp`).
+
+## Environment Setup
+**Required:**
+- `g++-11` with C++17 support
+- Intel bf-SDE-9.13.1 (for P4 compilation only)
+- Python 3 with conda environment `controller` (for control plane)
+
+**SDE Environment Variables:**
+```bash
+export SDE=/opt/bf-sde
+export SDE_INSTALL=/opt/bf-sde-install
+```
 
 ---
 
-**Last Updated:** 2025-12-01  
+**Last Updated:** 2025-12-02  
 **Contact:** weijzh@pcl.ac.cn for architecture questions

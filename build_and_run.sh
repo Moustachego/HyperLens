@@ -4,7 +4,7 @@
 
 set -e  # 任何错误就停止
 
-PROJECT_ROOT="/home/long/Desktop/P4lens"
+PROJECT_ROOT="/home/long/Desktop/HyperLens"
 cd "$PROJECT_ROOT"
 
 echo "=============================================================================="

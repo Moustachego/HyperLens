@@ -40,14 +40,14 @@ using std::endl;
 int main(int argc, char **argv)
 {
     // Parse command-line arguments
-    string rules_path = "src/ACL_rules/test.rules";
+    string rules_path = "src/ACL_rules/test-rules/Region_test.rules";
     if (argc >= 2) {
         rules_path = string(argv[1]);
     }
 
-    cout << "============================================================================\n";
-    cout << "----------------------------------HyperLens---------------------------------\n";
-    cout << "============================================================================\n\n";
+    cout << "===============================================================================\n";
+    cout << "---------------------------------- HyperLens ----------------------------------\n";
+    cout << "===============================================================================\n\n";
 
     // Step 1: Load rules from file
     cout << "[STEP 1] Loading rules from: " << rules_path << endl;

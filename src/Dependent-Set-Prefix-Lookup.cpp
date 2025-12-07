@@ -356,9 +356,6 @@ static void build_ancestors(
 )
 {
     vector<size_t> rem = remaining;
-    // -------------------------------------
-    // Step 0: 把 Rmax 移除（关键！你之前漏掉的）
-    // -------------------------------------
     rem.erase(std::remove(rem.begin(), rem.end(), rmax_id), rem.end());
 
     ancestors.clear();
@@ -408,7 +405,9 @@ static bool cell_is_invalid(
     const vector<size_t>& covered,
     const unordered_map<size_t, vector<size_t>>& ancestors,
     const vector<IPRule>& merged_ip_table,
-    vector<size_t>& out_minimal    
+    vector<size_t>& out_minimal,
+    uint32_t cell_src_lo, uint32_t cell_src_hi,
+    uint32_t cell_dst_lo, uint32_t cell_dst_hi
 )
 {
     if (covered.size() < 2) return true;
@@ -451,36 +450,47 @@ static bool cell_is_invalid(
         return true;
     }
 
-    // ★ 恢复正确逻辑: 更小的规则决定更大的规则
+    // ★★★ 新方案: 识别真正参与相交的规则 ★★★
+    // 核心思路: 真正的相交规则是那些与其他规则"真正相交"（部分重叠）的规则
+    //          而不是完全包含或被完全包含的规则
     vector<size_t> minimal;
     minimal.reserve(unique_covered.size());
 
-    auto strictly_smaller = [&](const IPRule& small, const IPRule& big) {
-        return (small.src_ip_lo >= big.src_ip_lo &&
-                small.src_ip_hi <= big.src_ip_hi &&
-                small.dst_ip_lo >= big.dst_ip_lo &&
-                small.dst_ip_hi <= big.dst_ip_hi) &&
-               !(small.src_ip_lo == big.src_ip_lo &&
-                 small.src_ip_hi == big.src_ip_hi &&
-                 small.dst_ip_lo == big.dst_ip_lo &&
-                 small.dst_ip_hi == big.dst_ip_hi);  // 不能完全相同
+    // 检查两个规则是否"真正相交"（部分重叠，但非完全包含）
+    auto is_proper_intersection = [&](size_t r1, size_t r2) -> bool {
+        const auto& a = merged_ip_table[r1];
+        const auto& b = merged_ip_table[r2];
+        
+        // 首先检查是否有交集
+        bool has_overlap = (a.src_ip_lo <= b.src_ip_hi && b.src_ip_lo <= a.src_ip_hi) &&
+                          (a.dst_ip_lo <= b.dst_ip_hi && b.dst_ip_lo <= a.dst_ip_hi);
+        if (!has_overlap) return false;
+        
+        // 检查是否是完全包含关系（一个完全包含另一个）
+        bool a_contains_b = (a.src_ip_lo <= b.src_ip_lo && a.src_ip_hi >= b.src_ip_hi &&
+                            a.dst_ip_lo <= b.dst_ip_lo && a.dst_ip_hi >= b.dst_ip_hi);
+        bool b_contains_a = (b.src_ip_lo <= a.src_ip_lo && b.src_ip_hi >= a.src_ip_hi &&
+                            b.dst_ip_lo <= a.dst_ip_lo && b.dst_ip_hi >= a.dst_ip_hi);
+        
+        // 真正的相交 = 有交集 但 不是完全包含关系
+        return has_overlap && !a_contains_b && !b_contains_a;
     };
 
+    // 对每个covered规则，检查它是否与其他规则"真正相交"
     for (size_t r : unique_covered) {
-        bool dominated = false;
-
+        bool has_proper_intersection = false;
+        
         for (size_t s : unique_covered) {
             if (r == s) continue;
-
-            // ★ 恢复原逻辑：小规则覆盖大规则（移除被小规则包含的大规则）
-            if (strictly_smaller(merged_ip_table[s], merged_ip_table[r])) {
-                dominated = true;
+            if (is_proper_intersection(r, s)) {
+                has_proper_intersection = true;
                 break;
             }
         }
-
-        if (!dominated) {
-            minimal.push_back(r);  // r is minimal (不被其他更小规则包含)
+        
+        // 只保留与其他规则有真正相交的规则
+        if (has_proper_intersection) {
+            minimal.push_back(r);
         }
     }
 
@@ -572,67 +582,245 @@ static inline bool is_duplicate_in_set(
     return false;
 }
 
-// Collect elementary cells (face intersections)
+// =====================================================================
+// 连续区域重建辅助函数
+// =====================================================================
+
+// 检查规则 r1 是否在全局空间中完全包含规则 r2
+static inline bool rule_contains_in_global(
+    size_t r1, size_t r2,
+    const vector<IPRule>& merged_ip_table)
+{
+    const auto& a = merged_ip_table[r1];
+    const auto& b = merged_ip_table[r2];
+    return (a.src_ip_lo <= b.src_ip_lo && a.src_ip_hi >= b.src_ip_hi &&
+            a.dst_ip_lo <= b.dst_ip_lo && a.dst_ip_hi >= b.dst_ip_hi);
+}
+
+// 计算两个 minimal 集合的交集
+static inline vector<size_t> compute_common_rules(
+    const vector<size_t>& a,
+    const vector<size_t>& b)
+{
+    vector<size_t> common;
+    for (size_t r : a) {
+        if (find(b.begin(), b.end(), r) != b.end()) {
+            common.push_back(r);
+        }
+    }
+    return common;
+}
+
+// 筛选公共规则：去掉完全包含其他规则的"干扰大规则"
+static inline vector<size_t> filter_common_rules(
+    const vector<size_t>& common,
+    const vector<IPRule>& merged_ip_table)
+{
+    vector<size_t> filtered;
+    for (size_t r : common) {
+        bool is_container = false;
+        for (size_t s : common) {
+            if (r != s && rule_contains_in_global(r, s, merged_ip_table)) {
+                is_container = true;
+                break;
+            }
+        }
+        if (!is_container) {
+            filtered.push_back(r);
+        }
+    }
+    return filtered;
+}
+
+// 检查两个 cell 是否空间相邻（可以合并）
+static inline bool cells_are_adjacent(
+    const IntersectionCell& a,
+    const IntersectionCell& b)
+{
+    // Src 维度相邻或包含
+    bool src_adj = (a.src_hi + 1 == b.src_lo) || (b.src_hi + 1 == a.src_lo) ||
+                   (a.src_lo <= b.src_lo && b.src_hi <= a.src_hi) ||
+                   (b.src_lo <= a.src_lo && a.src_hi <= b.src_hi);
+    // Dst 维度相邻或包含
+    bool dst_adj = (a.dst_hi + 1 == b.dst_lo) || (b.dst_hi + 1 == a.dst_lo) ||
+                   (a.dst_lo <= b.dst_lo && b.dst_hi <= a.dst_hi) ||
+                   (b.dst_lo <= a.dst_lo && a.dst_hi <= b.dst_hi);
+    // Src/Dst 维度重叠
+    bool src_overlap = (a.src_lo <= b.src_hi && b.src_lo <= a.src_hi);
+    bool dst_overlap = (a.dst_lo <= b.dst_hi && b.dst_lo <= a.dst_hi);
+    
+    return (src_adj && dst_overlap) || (dst_adj && src_overlap);
+}
+
+// =====================================================================
+// rebuild_continuous_cells: 连续区域重建
+// =====================================================================
+// 
+// 功能：合并具有相同公共规则且空间相邻的 cells，减少冗余
+// 
+// 算法（自顶向下逐层剥离）：
+// 1. 按 minimal.size() 降序排序所有 cells
+// 2. 从最大的 cell 开始，寻找可以匹配的较小 cell
+// 3. 匹配条件：公共规则 >= 2，且在全局空间中大的包含小的
+// 4. 匹配成功后：小 cell 扩展范围，大 cell 的 minimal 减小到公共部分
+//
+static void rebuild_continuous_cells(
+    vector<IntersectionCell>& cells,
+    const vector<IPRule>& merged_ip_table)
+{
+    if (cells.size() < 2) return;
+
+    // 按 minimal.size() 降序排序索引
+    vector<size_t> sorted_idx(cells.size());
+    for (size_t i = 0; i < cells.size(); ++i) sorted_idx[i] = i;
+    sort(sorted_idx.begin(), sorted_idx.end(), [&](size_t a, size_t b) {
+        return cells[a].minimal.size() > cells[b].minimal.size();
+    });
+
+    // 自顶向下处理
+    for (size_t idx : sorted_idx) {
+        auto& big = cells[idx];
+        if (big.minimal.size() < 3) continue;  // minimal <= 2 无需简化
+
+        // 寻找最佳匹配
+        size_t best_match = SIZE_MAX;
+        size_t best_score = 0;
+        vector<size_t> best_common;
+
+        for (size_t j = 0; j < cells.size(); ++j) {
+            if (j == idx) continue;
+            auto& small = cells[j];
+            
+            // 条件：minimal 更小、空间相邻
+            if (small.minimal.size() >= big.minimal.size()) continue;
+            if (!cells_are_adjacent(big, small)) continue;
+            
+            // 计算并筛选公共规则
+            auto common = compute_common_rules(big.minimal, small.minimal);
+            if (common.size() < 2) continue;
+            auto filtered = filter_common_rules(common, merged_ip_table);
+            if (filtered.size() < 2) continue;
+            
+            // 选择最佳匹配（公共规则最多）
+            if (filtered.size() > best_score) {
+                best_score = filtered.size();
+                best_match = j;
+                best_common = filtered;
+            }
+        }
+
+        // 执行合并
+        if (best_match != SIZE_MAX) {
+            auto& small = cells[best_match];
+            
+            // 扩展 small 的范围（取并集）
+            small.src_lo = min(small.src_lo, big.src_lo);
+            small.src_hi = max(small.src_hi, big.src_hi);
+            small.dst_lo = min(small.dst_lo, big.dst_lo);
+            small.dst_hi = max(small.dst_hi, big.dst_hi);
+            
+            // 更新 big 的 minimal 和 Extraction（注意：priority 不变）
+            big.minimal = best_common;
+            Map_cell_to_origID(merged_ip_table, best_common, big.Extraction);
+        }
+    }
+
+    // ========== 按优先级排序：priority 越大（初始 minimal 越多）排越前面 ==========
+    sort(cells.begin(), cells.end(), [](const IntersectionCell& a, const IntersectionCell& b) {
+        return a.priority > b.priority;  // 降序
+    });
+}
+
+// =====================================================================
+// collect_elementary_cells: 收集区间相交产生的 cells 并进行连续区域重建
+// =====================================================================
+//
+// 流程：
+// 1. 枚举所有 elementary cells（由端点划分的区间）
+// 2. 对每个 cell 计算 covered 规则和 minimal 集合
+// 3. 收集所有有效 cells 到临时列表
+// 4. 在同一 Rmax 区域内执行连续区域重建（合并相邻 cells）
+// 5. 将结果添加到 local_cells
+//
 static void collect_elementary_cells(
     const ProtoProcessContext& ctx,
     const vector<uint32_t>& src_ep,
     const vector<uint32_t>& dst_ep)
 {
+    // ========== Phase 1: 枚举并收集所有有效 cells ==========
+    
+    vector<IntersectionCell> temp_cells;  // 临时存储本轮收集的 cells
+    
     auto src_bounds = find_endpoint_bounds(src_ep, ctx.Rmax.src_ip_lo, ctx.Rmax.src_ip_hi);
     auto dst_bounds = find_endpoint_bounds(dst_ep, ctx.Rmax.dst_ip_lo, ctx.Rmax.dst_ip_hi);
     
-    // Enumerate elementary cells
     for (size_t si = src_bounds.start_idx; si + 1 < src_ep.size() && si + 1 <= src_bounds.end_idx; ++si) {
         uint32_t cell_src_lo = src_ep[si];
-        uint32_t next_src = src_ep[si + 1];
-        uint32_t cell_src_hi = (next_src == 0 ? numeric_limits<uint32_t>::max() : next_src);
+        uint32_t cell_src_hi = src_ep[si + 1];
+        if (cell_src_hi == 0) cell_src_hi = numeric_limits<uint32_t>::max();
         
-        if (cell_src_lo < ctx.Rmax.src_ip_lo || cell_src_hi > ctx.Rmax.src_ip_hi || cell_src_hi < cell_src_lo)
-            continue;
+        if (cell_src_lo < ctx.Rmax.src_ip_lo || cell_src_hi > ctx.Rmax.src_ip_hi) continue;
 
         for (size_t dj = dst_bounds.start_idx; dj + 1 < dst_ep.size() && dj + 1 <= dst_bounds.end_idx; ++dj) {
             uint32_t cell_dst_lo = dst_ep[dj];
-            uint32_t next_dst = dst_ep[dj + 1];
-            uint32_t cell_dst_hi = (next_dst == 0 ? numeric_limits<uint32_t>::max() : next_dst);
+            uint32_t cell_dst_hi = dst_ep[dj + 1];
+            if (cell_dst_hi == 0) cell_dst_hi = numeric_limits<uint32_t>::max();
             
-            if (cell_dst_lo < ctx.Rmax.dst_ip_lo || cell_dst_hi > ctx.Rmax.dst_ip_hi || cell_dst_hi < cell_dst_lo)
-                continue;
+            if (cell_dst_lo < ctx.Rmax.dst_ip_lo || cell_dst_hi > ctx.Rmax.dst_ip_hi) continue;
 
-            // Check if identical to any existing rule
+            // 跳过与现有规则完全相同的 cell
             if (is_duplicate_in_set(cell_src_lo, cell_src_hi, cell_dst_lo, cell_dst_hi, 
-                                   ctx.S, ctx.merged_ip_table))
-                continue;
+                                   ctx.S, ctx.merged_ip_table)) continue;
 
-            // Find rules covering this cell
+            // 找出覆盖此 cell 的所有规则
             vector<size_t> covered;
-            covered.reserve(8);
             for (size_t rid : ctx.S) {
                 const auto& rule = ctx.merged_ip_table[rid];
-                if ((rule.src_ip_lo <= cell_src_lo && cell_src_hi <= rule.src_ip_hi) &&
-                    (rule.dst_ip_lo <= cell_dst_lo && cell_dst_hi <= rule.dst_ip_hi)) {
+                if (rule.src_ip_lo <= cell_src_lo && cell_src_hi <= rule.src_ip_hi &&
+                    rule.dst_ip_lo <= cell_dst_lo && cell_dst_hi <= rule.dst_ip_hi) {
                     covered.push_back(rid);
                 }
             }
 
-            // Validate cell
+            // 验证 cell 有效性，计算 minimal
             vector<size_t> minimal;
-            if (cell_is_invalid(covered, ctx.ancestors, ctx.merged_ip_table, minimal) || covered.size() < 2)
+            if (cell_is_invalid(covered, ctx.ancestors, ctx.merged_ip_table, minimal,
+                               cell_src_lo, cell_src_hi, cell_dst_lo, cell_dst_hi)) {
                 continue;
+            }
+            if (covered.size() < 2) continue;
 
-            // Deduplicate and add
+            // 去重检查
             string key = to_string(cell_src_lo) + "-" + to_string(cell_src_hi) + "-" +
                         to_string(cell_dst_lo) + "-" + to_string(cell_dst_hi) + "-" +
                         to_string(ctx.proto);
+            if (!ctx.seen_keys.insert(key).second) continue;
+
+            // 创建 cell
+            IntersectionCell cell;
+            cell.src_lo = cell_src_lo;
+            cell.src_hi = cell_src_hi;
+            cell.dst_lo = cell_dst_lo;
+            cell.dst_hi = cell_dst_hi;
+            cell.proto = ctx.proto;
+            cell.rmax_id = ctx.best_rid;
+            cell.rule_indices = covered;
+            cell.minimal = minimal;
+            cell.priority = minimal.size();  // ★ 优先级 = 初始 minimal 数量
+            Map_cell_to_origID(ctx.merged_ip_table, minimal, cell.Extraction);
             
-            bool is_new = ctx.seen_keys.insert(key).second;
+            temp_cells.push_back(cell);
             
-            if (is_new) {
-                vector<size_t> Extraction;
-                Map_cell_to_origID(ctx.merged_ip_table, minimal, Extraction);
-                ctx.local_cells.push_back({cell_src_lo, cell_src_hi, cell_dst_lo, cell_dst_hi, 
-                                          ctx.proto, ctx.best_rid, covered, Extraction});
-            }
         }
+    }
+
+    // ========== Phase 2: 连续区域重建 ==========
+    rebuild_continuous_cells(temp_cells, ctx.merged_ip_table);
+
+    // ========== Phase 3: 将结果添加到 local_cells ==========
+    
+    for (auto& cell : temp_cells) {
+        ctx.local_cells.push_back(cell);
     }
 }
 
@@ -724,7 +912,7 @@ void find_intersections_per_proto(
         vector<IntersectionCell> local_cells;
         unordered_set<string> seen_keys;
         vector<size_t> remaining = initial_remaining;
-      
+       
         //3) Find intersections within this protocol region
         while (remaining.size() >= 2) {
             // 3.1 Find Rmax and kick off

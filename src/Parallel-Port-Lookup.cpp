@@ -28,7 +28,7 @@
 using namespace std;
 
 
-static const size_t MAX_BLOCKS_ALLOWED = 3000000;    // 总 blocks 上限（防止 OOM），可调 这有什么作用？
+static const size_t MAX_BLOCKS_ALLOWED = 1000000000;    // 总 blocks 上限（防止 OOM），可调 这有什么作用？
 static const uint32_t MAX_SINGLE_RANGE = 1u << 20; 
 
 
