@@ -23,6 +23,7 @@ struct IPRule {
     int src_prefix_len;
     int dst_prefix_len;
     std::vector<size_t> merged_R;  // original rule indices
+    size_t rmax_id; // 添加Rmax ID字段
 };
 
 struct PortRule {

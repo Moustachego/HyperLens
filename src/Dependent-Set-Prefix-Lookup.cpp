@@ -51,7 +51,8 @@ void merge_same_ip_entry(
         if (it == key_to_index.end()) {
             IPRule new_rule = rule;
             new_rule.merged_R.clear();
-            new_rule.merged_R.push_back(i);  
+            new_rule.merged_R.push_back(i);
+            new_rule.rmax_id = i; // 初始化rmax_id为自身索引
 
             merged_ip_table.push_back(new_rule);
             key_to_index[key] = merged_ip_table.size() - 1;
@@ -63,6 +64,7 @@ void merge_same_ip_entry(
 
     for (size_t i = 0; i < merged_ip_table.size(); ++i) {
         merged_ip_table[i].priority = static_cast<uint32_t>(i + 1);
+        merged_ip_table[i].rmax_id = i; // 确保rmax_id初始化为自身索引
     }
 
     std::cout << "[merge_same_ip_entry] Original IP rules = " << ip_table.size()
@@ -955,7 +957,7 @@ void find_intersections_per_proto(
         // 4. Merge into global results
         intersections.insert(intersections.end(), local_cells.begin(), local_cells.end());
     }
-
+    
     size_t global_added = intersections.size() - global_before;
     cout << "[find_intersections] Total intersection cells across all protocols="
          << intersections.size() << " (new added=" << global_added << ")\n";

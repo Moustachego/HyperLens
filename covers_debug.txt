@@ -1,0 +1,23 @@
+规则覆盖测试:
+==================
+Rule1 源IP范围: 3655431136 - 3655431167
+Rule2 源IP范围: 0 - 4294967295
+Rule1 目标IP范围: 3221225472 - 4294967295
+Rule2 目标IP范围: 3279945728 - 3288334335
+
+Rule1 覆盖 Rule2: 否
+Rule2 覆盖 Rule1: 否
+
+分析:
+=====
+Rule1 覆盖 Rule2 需要满足:
+  Rule1.src_lo <= Rule2.src_lo: 3655431136 <= 0 ? 否
+  Rule1.src_hi >= Rule2.src_hi: 3655431167 >= 4294967295 ? 否
+  Rule1.dst_lo <= Rule2.dst_lo: 3221225472 <= 3279945728 ? 是
+  Rule1.dst_hi >= Rule2.dst_hi: 4294967295 >= 3288334335 ? 是
+
+Rule2 覆盖 Rule1 需要满足:
+  Rule2.src_lo <= Rule1.src_lo: 0 <= 3655431136 ? 是
+  Rule2.src_hi >= Rule1.src_hi: 4294967295 >= 3655431167 ? 是
+  Rule2.dst_lo <= Rule1.dst_lo: 3279945728 <= 3221225472 ? 否
+  Rule2.dst_hi >= Rule1.dst_hi: 3288334335 >= 4294967295 ? 否
