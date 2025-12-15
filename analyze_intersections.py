@@ -128,36 +128,141 @@ def rule_relation(r1: IPRule, r2: IPRule) -> Tuple[str, Dict]:
     # 部分相交（会产生 intersection cell）
     return ("PARTIAL_INTERSECT", intersect_info)
 
-def analyze_all_relations(rules: List[IPRule]) -> Dict:
-    """分析所有规则对之间的关系"""
+def covers(rmax: IPRule, rule: IPRule) -> bool:
+    """
+    判断Rmax是否覆盖rule
+    """
+    # 协议必须相同
+    if rmax.proto != rule.proto:
+        return False
+        
+    # 源IP和目标IP都需要被覆盖
+    src_covered = rmax.src_lo <= rule.src_lo and rule.src_hi <= rmax.src_hi
+    dst_covered = rmax.dst_lo <= rule.dst_lo and rule.dst_hi <= rmax.dst_hi
     
+    return src_covered and dst_covered
+
+def find_rmax_for_rules(rules: List[IPRule]) -> Dict[int, int]:
+    """
+    为每个规则找到对应的Rmax
+    返回: 字典 {规则索引: Rmax索引}
+    """
     # 按协议分组
     rules_by_proto = defaultdict(list)
     for r in rules:
         rules_by_proto[r.proto].append(r)
     
+    rule_to_rmax = {}
+    
+    # 对每个协议单独处理
+    for proto, proto_rules in rules_by_proto.items():
+        if len(proto_rules) < 2:
+            # 只有一个规则，它本身就是Rmax
+            for rule in proto_rules:
+                rule_to_rmax[rule.index] = rule.index
+            continue
+            
+        remaining = list(proto_rules)
+        
+        # 迭代处理直到所有规则都被分配
+        while len(remaining) >= 2:
+            # 找到最佳覆盖规则（Rmax）
+            best_rule = None
+            best_area = -1
+            
+            for rule in remaining:
+                area = (rule.src_hi - rule.src_lo + 1) * (rule.dst_hi - rule.dst_lo + 1)
+                if area > best_area:
+                    best_area = area
+                    best_rule = rule
+            
+            # 找到被这个Rmax覆盖的所有规则
+            covered = [r for r in remaining if covers(best_rule, r)]
+            
+            # 为所有被覆盖的规则分配这个Rmax
+            for rule in covered:
+                rule_to_rmax[rule.index] = best_rule.index
+                
+            # 从剩余列表中移除已处理的规则
+            remaining = [r for r in remaining if r not in covered]
+        
+        # 处理剩余的单个规则
+        for rule in remaining:
+            rule_to_rmax[rule.index] = rule.index
+    
+    return rule_to_rmax
+
+def group_rules_by_rmax(rules: List[IPRule], rule_to_rmax: Dict[int, int]) -> Dict[int, List[IPRule]]:
+    """
+    根据Rmax对规则进行分组
+    """
+    rmax_groups = defaultdict(list)
+    for rule in rules:
+        rmax_id = rule_to_rmax.get(rule.index, rule.index)
+        rmax_groups[rmax_id].append(rule)
+    return rmax_groups
+
+def analyze_intersections_by_rmax(rules: List[IPRule]) -> Dict:
+    """
+    按Rmax分组分析规则间的相交关系
+    """
+    # 为每个规则找到对应的Rmax
+    rule_to_rmax = find_rmax_for_rules(rules)
+    
+    # 按Rmax分组规则
+    rmax_groups = group_rules_by_rmax(rules, rule_to_rmax)
+    
+    # 按协议分组Rmax
+    rmax_by_proto = defaultdict(list)
+    rmax_rules_dict = {rule.index: rule for rule in rules}
+    for rmax_id in rmax_groups.keys():
+        if rmax_id in rmax_rules_dict:
+            rmax_rule = rmax_rules_dict[rmax_id]
+            rmax_by_proto[rmax_rule.proto].append(rmax_id)
+    
     results = {
         "summary": {
             "total_rules": len(rules),
-            "rules_by_proto": {proto: len(rs) for proto, rs in rules_by_proto.items()},
+            "total_rmax": len(rmax_groups),
+            "rules_by_proto": {},
+            "rmax_by_proto": {proto: len(rmax_list) for proto, rmax_list in rmax_by_proto.items()},
             "total_pairs_checked": 0,
             "disjoint_pairs": 0,
             "equal_pairs": 0,
-            "subset_pairs": 0,  # 包含关系
-            "partial_intersect_pairs": 0  # ★ 这是产生 intersection cell 的来源
+            "subset_pairs": 0,
+            "partial_intersect_pairs": 0,
+            "cross_rmax_intersections": 0
         },
-        "partial_intersections": [],  # 详细的部分相交信息
-        "subset_relations": []  # 包含关系
+        "rmax_details": {},  # 每个Rmax的详细信息
+        "partial_intersections": [],  # 部分相交信息
+        "subset_relations": [],  # 包含关系
+        "cross_rmax_intersections": []  # 跨Rmax相交
     }
     
-    # 只在同协议内分析
-    for proto, proto_rules in rules_by_proto.items():
-        n = len(proto_rules)
-        print(f"分析协议 {proto}: {n} 条规则, {n*(n-1)//2} 对组合...")
+    # 统计各协议规则数
+    rules_by_proto = defaultdict(int)
+    for rule in rules:
+        rules_by_proto[rule.proto] += 1
+    results["summary"]["rules_by_proto"] = dict(rules_by_proto)
+    
+    # 分析每个Rmax组内的规则关系
+    for rmax_id, group_rules in rmax_groups.items():
+        rmax_rule = rmax_rules_dict[rmax_id]
+        results["rmax_details"][rmax_id] = {
+            "proto": rmax_rule.proto,
+            "src_range": f"{int_to_ip(rmax_rule.src_lo)}-{int_to_ip(rmax_rule.src_hi)}",
+            "dst_range": f"{int_to_ip(rmax_rule.dst_lo)}-{int_to_ip(rmax_rule.dst_hi)}",
+            "member_count": len(group_rules),
+            "members": [r.index for r in group_rules]
+        }
+        
+        # 分析组内规则对的关系
+        n = len(group_rules)
+        print(f"分析Rmax {rmax_id} (协议 {rmax_rule.proto}): {n} 条规则, {n*(n-1)//2} 对组合...")
         
         for i in range(n):
             for j in range(i + 1, n):
-                r1, r2 = proto_rules[i], proto_rules[j]
+                r1, r2 = group_rules[i], group_rules[j]
                 rel_type, intersect_info = rule_relation(r1, r2)
                 
                 results["summary"]["total_pairs_checked"] += 1
@@ -169,6 +274,7 @@ def analyze_all_relations(rules: List[IPRule]) -> Dict:
                 elif rel_type in ("R1_SUBSET_R2", "R2_SUBSET_R1"):
                     results["summary"]["subset_pairs"] += 1
                     results["subset_relations"].append({
+                        "rmax_id": rmax_id,
                         "rule_a": r1.index,
                         "rule_b": r2.index,
                         "type": rel_type,
@@ -177,6 +283,7 @@ def analyze_all_relations(rules: List[IPRule]) -> Dict:
                 elif rel_type == "PARTIAL_INTERSECT":
                     results["summary"]["partial_intersect_pairs"] += 1
                     results["partial_intersections"].append({
+                        "rmax_id": rmax_id,
                         "rule_a": r1.index,
                         "rule_b": r2.index,
                         "rule_a_info": {
@@ -186,6 +293,49 @@ def analyze_all_relations(rules: List[IPRule]) -> Dict:
                         "rule_b_info": {
                             "src": f"{int_to_ip(r2.src_lo)} - {int_to_ip(r2.src_hi)}",
                             "dst": f"{int_to_ip(r2.dst_lo)} - {int_to_ip(r2.dst_hi)}"
+                        },
+                        "intersection_region": intersect_info
+                    })
+    
+    # 分析跨Rmax的相交关系
+    for proto, rmax_list in rmax_by_proto.items():
+        print(f"分析协议 {proto} 内的跨Rmax相交: {len(rmax_list)} 个Rmax...")
+        n = len(rmax_list)
+        for i in range(n):
+            for j in range(i + 1, n):
+                rmax_id1, rmax_id2 = rmax_list[i], rmax_list[j]
+                rmax1, rmax2 = rmax_rules_dict[rmax_id1], rmax_rules_dict[rmax_id2]
+                
+                # 检查两个Rmax是否有交集
+                src_overlap = not (rmax1.src_hi < rmax2.src_lo or rmax2.src_hi < rmax1.src_lo)
+                dst_overlap = not (rmax1.dst_hi < rmax2.dst_lo or rmax2.dst_hi < rmax1.dst_lo)
+                
+                if src_overlap and dst_overlap:
+                    # 计算交集区域
+                    intersect_src_lo = max(rmax1.src_lo, rmax2.src_lo)
+                    intersect_src_hi = min(rmax1.src_hi, rmax2.src_hi)
+                    intersect_dst_lo = max(rmax1.dst_lo, rmax2.dst_lo)
+                    intersect_dst_hi = min(rmax1.dst_hi, rmax2.dst_hi)
+                    
+                    intersect_info = {
+                        "src_lo": int_to_ip(intersect_src_lo),
+                        "src_hi": int_to_ip(intersect_src_hi),
+                        "dst_lo": int_to_ip(intersect_dst_lo),
+                        "dst_hi": int_to_ip(intersect_dst_hi),
+                        "proto": proto
+                    }
+                    
+                    results["summary"]["cross_rmax_intersections"] += 1
+                    results["cross_rmax_intersections"].append({
+                        "rmax_a": rmax_id1,
+                        "rmax_b": rmax_id2,
+                        "rmax_a_info": {
+                            "src": f"{int_to_ip(rmax1.src_lo)} - {int_to_ip(rmax1.src_hi)}",
+                            "dst": f"{int_to_ip(rmax1.dst_lo)} - {int_to_ip(rmax1.dst_hi)}"
+                        },
+                        "rmax_b_info": {
+                            "src": f"{int_to_ip(rmax2.src_lo)} - {int_to_ip(rmax2.src_hi)}",
+                            "dst": f"{int_to_ip(rmax2.dst_lo)} - {int_to_ip(rmax2.dst_hi)}"
                         },
                         "intersection_region": intersect_info
                     })
@@ -202,7 +352,9 @@ def print_report(results: Dict):
     
     print(f"\n【基本统计】")
     print(f"  总规则数: {summary['total_rules']}")
-    print(f"  按协议分布: {summary['rules_by_proto']}")
+    print(f"  总Rmax数: {summary['total_rmax']}")
+    print(f"  按协议规则分布: {summary['rules_by_proto']}")
+    print(f"  按协议Rmax分布: {summary['rmax_by_proto']}")
     print(f"  检查的规则对数: {summary['total_pairs_checked']}")
     
     print(f"\n【关系分类】")
@@ -210,15 +362,37 @@ def print_report(results: Dict):
     print(f"  完全相等 (EQUAL):          {summary['equal_pairs']}")
     print(f"  包含关系 (SUBSET):         {summary['subset_pairs']}")
     print(f"  ★ 部分相交 (INTERSECT):    {summary['partial_intersect_pairs']}  ← 产生 intersection cell 的来源")
+    print(f"  ★ 跨Rmax相交:              {summary['cross_rmax_intersections']}  ← 跨Rmax的相交关系")
     
     if results["partial_intersections"]:
         print(f"\n【部分相交详情】(前 20 条)")
         for i, item in enumerate(results["partial_intersections"][:20]):
-            print(f"\n  #{i+1}: Rule[{item['rule_a']}] ∩ Rule[{item['rule_b']}]")
+            print(f"\n  #{i+1}: Rmax[{item['rmax_id']}] 内 Rule[{item['rule_a']}] ∩ Rule[{item['rule_b']}]")
             print(f"       Rule[{item['rule_a']}]: src={item['rule_a_info']['src']}, dst={item['rule_a_info']['dst']}")
             print(f"       Rule[{item['rule_b']}]: src={item['rule_b_info']['src']}, dst={item['rule_b_info']['dst']}")
             region = item['intersection_region']
             print(f"       相交区域: src={region['src_lo']}-{region['src_hi']}, dst={region['dst_lo']}-{region['dst_hi']}, proto={region['proto']}")
+    
+    if results["cross_rmax_intersections"]:
+        print(f"\n【跨Rmax相交详情】(前 10 条)")
+        for i, item in enumerate(results["cross_rmax_intersections"][:10]):
+            print(f"\n  #{i+1}: Rmax[{item['rmax_a']}] ∩ Rmax[{item['rmax_b']}]")
+            print(f"       Rmax[{item['rmax_a']}]: src={item['rmax_a_info']['src']}, dst={item['rmax_a_info']['dst']}")
+            print(f"       Rmax[{item['rmax_b']}]: src={item['rmax_b_info']['src']}, dst={item['rmax_b_info']['dst']}")
+            region = item['intersection_region']
+            print(f"       相交区域: src={region['src_lo']}-{region['src_hi']}, dst={region['dst_lo']}-{region['dst_hi']}, proto={region['proto']}")
+    
+    # 显示部分Rmax详情
+    print(f"\n【Rmax组详情】(前 10 个)")
+    count = 0
+    for rmax_id, details in results["rmax_details"].items():
+        if count >= 10:
+            break
+        print(f"\n  Rmax[{rmax_id}]: 协议={details['proto']}, 成员数={details['member_count']}")
+        print(f"    SRC范围: {details['src_range']}")
+        print(f"    DST范围: {details['dst_range']}")
+        print(f"    成员: {details['members'][:10]}{'...' if len(details['members']) > 10 else ''}")
+        count += 1
     
     print("\n" + "=" * 80)
 
@@ -301,354 +475,199 @@ def visualize_all_rules(rules: List[IPRule], results: Dict, highlight_rules: Lis
     try:
         import matplotlib.pyplot as plt
         import matplotlib.patches as patches
-        from matplotlib.collections import PatchCollection
-        import numpy as np
     except ImportError:
         print("错误: 需要安装 matplotlib。运行: pip install matplotlib")
         return
     
-    if highlight_rules is None:
-        highlight_rules = []
-    
-    # 按协议分组
+    # 按协议分组规则
     rules_by_proto = defaultdict(list)
     for r in rules:
         rules_by_proto[r.proto].append(r)
     
-    # 获取相交规则的索引
-    intersecting_rules = set()
-    for item in results['partial_intersections']:
-        intersecting_rules.add(item['rule_a'])
-        intersecting_rules.add(item['rule_b'])
-    
-    # 相交区域按协议分组
-    intersections_by_proto = defaultdict(list)
-    for item in results['partial_intersections']:
-        proto = item['intersection_region']['proto']
-        intersections_by_proto[proto].append(item)
-    
-    proto_names = {0: 'HOPOPT/Any', 1: 'ICMP', 6: 'TCP', 17: 'UDP'}
-    
-    # 创建每个协议一张图
-    protos = sorted(rules_by_proto.keys())
-    n_protos = len(protos)
-    
-    fig, axes = plt.subplots(1, n_protos, figsize=(7 * n_protos, 7))
-    if n_protos == 1:
-        axes = [axes]
-    
-    for ax_idx, proto in enumerate(protos):
-        ax = axes[ax_idx]
-        proto_rules = rules_by_proto[proto]
-        proto_intersections = intersections_by_proto.get(proto, [])
-        
-        # 计算归一化范围
-        all_src = []
-        all_dst = []
-        for r in proto_rules:
-            all_src.extend([r.src_lo, r.src_hi])
-            all_dst.extend([r.dst_lo, r.dst_hi])
-        
-        if not all_src:
+    # 为每个协议生成图表
+    for proto, proto_rules in rules_by_proto.items():
+        if not proto_rules:
             continue
             
-        src_min, src_max = min(all_src), max(all_src)
-        dst_min, dst_max = min(all_dst), max(all_dst)
+        fig, ax = plt.subplots(1, 1, figsize=(12, 10))
         
-        # 避免除以零
-        src_range = max(src_max - src_min, 1)
-        dst_range = max(dst_max - dst_min, 1)
-        
-        def norm_src(x):
-            return (x - src_min) / src_range * 100
-        def norm_dst(x):
-            return (x - dst_min) / dst_range * 100
-        
-        # 先绘制普通规则（灰色/蓝色）
-        for r in proto_rules:
-            is_intersecting = r.index in intersecting_rules
-            is_highlighted = r.index in highlight_rules
-            
-            if is_highlighted:
-                continue  # 高亮规则稍后绘制
-            elif is_intersecting:
-                color = 'blue'
-                alpha = 0.3
-                linewidth = 1
-            else:
-                color = 'gray'
-                alpha = 0.1
-                linewidth = 0.5
-            
-            w = norm_src(r.src_hi) - norm_src(r.src_lo)
-            h = norm_dst(r.dst_hi) - norm_dst(r.dst_lo)
-            rect = patches.Rectangle(
-                (norm_src(r.src_lo), norm_dst(r.dst_lo)),
-                max(w, 0.5), max(h, 0.5),
-                linewidth=linewidth, edgecolor=color, facecolor=color, alpha=alpha
+        # 绘制所有规则
+        for rule in proto_rules:
+            # 绘制源IP矩形
+            src_width = (rule.src_hi - rule.src_lo) / (2**32)
+            src_height = 0.4
+            src_rect = patches.Rectangle(
+                (rule.src_lo / (2**32), 0.3), 
+                src_width, src_height,
+                linewidth=1, edgecolor='blue', facecolor='lightblue', alpha=0.5
             )
-            ax.add_patch(rect)
-        
-        # 绘制相交区域（红色高亮）
-        for item in proto_intersections:
-            region = item['intersection_region']
-            i_src_lo = ip_to_int(region['src_lo'])
-            i_src_hi = ip_to_int(region['src_hi'])
-            i_dst_lo = ip_to_int(region['dst_lo'])
-            i_dst_hi = ip_to_int(region['dst_hi'])
+            ax.add_patch(src_rect)
             
-            w = norm_src(i_src_hi) - norm_src(i_src_lo)
-            h = norm_dst(i_dst_hi) - norm_dst(i_dst_lo)
-            rect = patches.Rectangle(
-                (norm_src(i_src_lo), norm_dst(i_dst_lo)),
-                max(w, 0.5), max(h, 0.5),
-                linewidth=2, edgecolor='red', facecolor='red', alpha=0.5
+            # 绘制目标IP矩形
+            dst_width = (rule.dst_hi - rule.dst_lo) / (2**32)
+            dst_height = 0.4
+            dst_rect = patches.Rectangle(
+                (rule.dst_lo / (2**32), 1.3), 
+                dst_width, dst_height,
+                linewidth=1, edgecolor='green', facecolor='lightgreen', alpha=0.5
             )
-            ax.add_patch(rect)
-        
-        # 最后绘制高亮规则（确保在最上层）
-        # 先收集所有高亮规则的位置
-        highlight_data = []
-        for r in proto_rules:
-            if r.index not in highlight_rules:
-                continue
+            ax.add_patch(dst_rect)
             
-            w = norm_src(r.src_hi) - norm_src(r.src_lo)
-            h = norm_dst(r.dst_hi) - norm_dst(r.dst_lo)
-            center_x = norm_src(r.src_lo) + w / 2
-            center_y = norm_dst(r.dst_lo) + h / 2
-            highlight_data.append((r.index, center_x, center_y, w, h))
-        
-        # 用于跟踪已使用的标签位置，避免重叠
-        used_label_positions = []
-        
-        for idx, center_x, center_y, w, h in highlight_data:
-            # 用星号标记真实位置（不放大）
-            ax.plot(center_x, center_y, 'g*', markersize=15, zorder=10, 
-                    markeredgecolor='darkgreen', markeredgewidth=1)
-            
-            # 如果规则有实际大小，也画出真实的矩形
-            if w > 0.1 or h > 0.1:
-                rect = patches.Rectangle(
-                    (norm_src(r.src_lo), norm_dst(r.dst_lo)),
-                    max(w, 0.5), max(h, 0.5),
-                    linewidth=2, edgecolor='lime', facecolor='lime', alpha=0.5,
-                    zorder=9
+            # 如果需要高亮，则添加标签
+            if highlight_rules and rule.index in highlight_rules:
+                ax.text(
+                    rule.src_lo / (2**32), 0.5, 
+                    f'R{rule.index}', 
+                    ha='left', va='center',
+                    fontsize=8, color='darkblue'
                 )
-                ax.add_patch(rect)
-            
-            # 计算基础标签偏移方向
-            base_offset_x = 8 if center_x < 50 else -8
-            base_offset_y = 8 if center_y < 50 else -8
-            
-            # 尝试不同的偏移量，避免标签重叠
-            label_x = center_x + base_offset_x
-            label_y = center_y + base_offset_y
-            
-            # 检查是否与已有标签重叠，如果重叠则调整位置
-            offset_multiplier = 1
-            while any(abs(label_x - px) < 6 and abs(label_y - py) < 6 for px, py in used_label_positions):
-                offset_multiplier += 1
-                # 尝试不同方向
-                if offset_multiplier % 4 == 1:
-                    label_x = center_x + base_offset_x * offset_multiplier
-                    label_y = center_y + base_offset_y
-                elif offset_multiplier % 4 == 2:
-                    label_x = center_x + base_offset_x
-                    label_y = center_y + base_offset_y * offset_multiplier
-                elif offset_multiplier % 4 == 3:
-                    label_x = center_x - base_offset_x
-                    label_y = center_y + base_offset_y
-                else:
-                    label_x = center_x + base_offset_x
-                    label_y = center_y - base_offset_y
-                
-                if offset_multiplier > 8:
-                    break  # 避免无限循环
-            
-            used_label_positions.append((label_x, label_y))
-            
-            ax.annotate(
-                f'R{idx}', 
-                xy=(center_x, center_y),
-                xytext=(label_x, label_y),
-                fontsize=10, fontweight='bold', color='darkred',
-                ha='center', va='center',
-                bbox=dict(boxstyle='round,pad=0.3', facecolor='yellow', edgecolor='orange', linewidth=2),
-                arrowprops=dict(arrowstyle='->', color='orange', lw=2),
-                zorder=20
-            )
         
-        ax.set_xlim(-2, 102)
-        ax.set_ylim(-2, 102)
-        ax.set_xlabel('SRC IP (normalized)', fontsize=10)
-        ax.set_ylabel('DST IP (normalized)', fontsize=10)
-        
-        proto_name = proto_names.get(proto, f'Proto {proto}')
-        n_rules = len(proto_rules)
-        n_intersect = len(proto_intersections)
-        n_involved = len([r for r in proto_rules if r.index in intersecting_rules])
-        
-        ax.set_title(f'{proto_name}\n{n_rules} rules, {n_involved} involved in {n_intersect} intersections', fontsize=11)
-        ax.set_aspect('equal')
+        ax.set_xlim(0, 1)
+        ax.set_ylim(0, 2)
+        ax.set_xlabel('IP Address Space (Normalized)')
+        ax.set_title(f'Protocol {proto} Rules Visualization')
         ax.grid(True, alpha=0.3)
-    
-    plt.suptitle('All Merged IP Rules by Protocol\n(Gray=isolated, Blue=has intersection, Red=intersection region)', fontsize=14)
-    plt.tight_layout()
-    
-    output_file = 'src/output/all_rules_visualization.png'
-    plt.savefig(output_file, dpi=200, bbox_inches='tight')
-    print(f"\n全局可视化结果已保存到: {output_file}")
-    
-    plt.show()
+        
+        # 保存图像
+        output_file = f'src/output/all_rules_proto_{proto}.png'
+        plt.savefig(output_file, dpi=150, bbox_inches='tight')
+        print(f"协议 {proto} 的所有规则可视化已保存到: {output_file}")
+        plt.close()
 
-def _draw_intersection_pair(pair_info: dict, pair_idx: int, ax):
-    """在一个子图上绘制一对相交规则"""
-    import matplotlib.patches as patches
+def _draw_intersection_pair(pair: Dict, index: int, ax):
+    """绘制一对相交规则"""
+    try:
+        import matplotlib.patches as patches
+    except ImportError:
+        return
     
-    rule_a_info = pair_info['rule_a_info']
-    rule_b_info = pair_info['rule_b_info']
-    intersect = pair_info['intersection_region']
+    # 解析规则A的信息
+    rule_a_src_parts = pair['rule_a_info']['src'].split(' - ')
+    rule_a_dst_parts = pair['rule_a_info']['dst'].split(' - ')
+    a_src_lo = ip_to_int(rule_a_src_parts[0])
+    a_src_hi = ip_to_int(rule_a_src_parts[1])
+    a_dst_lo = ip_to_int(rule_a_dst_parts[0])
+    a_dst_hi = ip_to_int(rule_a_dst_parts[1])
     
-    # 解析范围
-    src_a = rule_a_info['src'].split(' - ')
-    dst_a = rule_a_info['dst'].split(' - ')
-    a_src_lo, a_src_hi = ip_to_int(src_a[0]), ip_to_int(src_a[1])
-    a_dst_lo, a_dst_hi = ip_to_int(dst_a[0]), ip_to_int(dst_a[1])
+    # 解析规则B的信息
+    rule_b_src_parts = pair['rule_b_info']['src'].split(' - ')
+    rule_b_dst_parts = pair['rule_b_info']['dst'].split(' - ')
+    b_src_lo = ip_to_int(rule_b_src_parts[0])
+    b_src_hi = ip_to_int(rule_b_src_parts[1])
+    b_dst_lo = ip_to_int(rule_b_dst_parts[0])
+    b_dst_hi = ip_to_int(rule_b_dst_parts[1])
     
-    src_b = rule_b_info['src'].split(' - ')
-    dst_b = rule_b_info['dst'].split(' - ')
-    b_src_lo, b_src_hi = ip_to_int(src_b[0]), ip_to_int(src_b[1])
-    b_dst_lo, b_dst_hi = ip_to_int(dst_b[0]), ip_to_int(dst_b[1])
+    # 解析相交区域信息
+    region = pair['intersection_region']
+    intersect_src_lo = ip_to_int(region['src_lo'])
+    intersect_src_hi = ip_to_int(region['src_hi'])
+    intersect_dst_lo = ip_to_int(region['dst_lo'])
+    intersect_dst_hi = ip_to_int(region['dst_hi'])
     
-    i_src_lo, i_src_hi = ip_to_int(intersect['src_lo']), ip_to_int(intersect['src_hi'])
-    i_dst_lo, i_dst_hi = ip_to_int(intersect['dst_lo']), ip_to_int(intersect['dst_hi'])
-    
-    # 计算显示范围
-    all_src = [a_src_lo, a_src_hi, b_src_lo, b_src_hi]
-    all_dst = [a_dst_lo, a_dst_hi, b_dst_lo, b_dst_hi]
-    src_min, src_max = min(all_src), max(all_src)
-    dst_min, dst_max = min(all_dst), max(all_dst)
-    
-    # 归一化函数
-    def norm_src(x):
-        return 50 if src_max == src_min else (x - src_min) / (src_max - src_min) * 100
-    def norm_dst(x):
-        return 50 if dst_max == dst_min else (x - dst_min) / (dst_max - dst_min) * 100
-    
-    # 绘制 Rule A (蓝色)
-    rect_a = patches.Rectangle(
-        (norm_src(a_src_lo), norm_dst(a_dst_lo)),
-        norm_src(a_src_hi) - norm_src(a_src_lo) or 1,
-        norm_dst(a_dst_hi) - norm_dst(a_dst_lo) or 1,
-        linewidth=2, edgecolor='blue', facecolor='blue', alpha=0.3,
-        label=f"Rule[{pair_info['rule_a']}]"
+    # 绘制SRC维度
+    # 规则A (蓝色)
+    a_src_width = (a_src_hi - a_src_lo) / (2**32)
+    a_src_rect = patches.Rectangle(
+        (a_src_lo / (2**32), 0.1), a_src_width, 0.8,
+        linewidth=1, edgecolor='blue', facecolor='lightblue', alpha=0.7, label=f"Rule {pair['rule_a']}"
     )
-    ax.add_patch(rect_a)
+    ax.add_patch(a_src_rect)
     
-    # 绘制 Rule B (绿色)
-    rect_b = patches.Rectangle(
-        (norm_src(b_src_lo), norm_dst(b_dst_lo)),
-        norm_src(b_src_hi) - norm_src(b_src_lo) or 1,
-        norm_dst(b_dst_hi) - norm_dst(b_dst_lo) or 1,
-        linewidth=2, edgecolor='green', facecolor='green', alpha=0.3,
-        label=f"Rule[{pair_info['rule_b']}]"
+    # 规则B (绿色)
+    b_src_width = (b_src_hi - b_src_lo) / (2**32)
+    b_src_rect = patches.Rectangle(
+        (b_src_lo / (2**32), 0.1), b_src_width, 0.8,
+        linewidth=1, edgecolor='green', facecolor='lightgreen', alpha=0.7, label=f"Rule {pair['rule_b']}"
     )
-    ax.add_patch(rect_b)
+    ax.add_patch(b_src_rect)
     
-    # 绘制相交区域 (红色)
-    rect_i = patches.Rectangle(
-        (norm_src(i_src_lo), norm_dst(i_dst_lo)),
-        norm_src(i_src_hi) - norm_src(i_src_lo) or 1,
-        norm_dst(i_dst_hi) - norm_dst(i_dst_lo) or 1,
-        linewidth=3, edgecolor='red', facecolor='red', alpha=0.5,
-        label='Intersection'
+    # 相交区域 (红色)
+    intersect_src_width = (intersect_src_hi - intersect_src_lo) / (2**32)
+    intersect_src_rect = patches.Rectangle(
+        (intersect_src_lo / (2**32), 0.1), intersect_src_width, 0.8,
+        linewidth=2, edgecolor='red', facecolor='pink', alpha=0.7, label='Intersection'
     )
-    ax.add_patch(rect_i)
+    ax.add_patch(intersect_src_rect)
     
-    ax.set_xlim(-5, 105)
-    ax.set_ylim(-5, 105)
-    ax.set_xticks([0, 50, 100])
-    ax.set_xticklabels([int_to_ip(src_min), int_to_ip((src_min + src_max) // 2), int_to_ip(src_max)], fontsize=7, rotation=15)
-    ax.set_yticks([0, 50, 100])
-    ax.set_yticklabels([int_to_ip(dst_min), int_to_ip((dst_min + dst_max) // 2), int_to_ip(dst_max)], fontsize=7)
-    ax.set_xlabel('SRC IP', fontsize=9)
-    ax.set_ylabel('DST IP', fontsize=9)
-    ax.set_title(f"#{pair_idx+1}: Rule[{pair_info['rule_a']}] ∩ Rule[{pair_info['rule_b']}]", fontsize=10)
-    ax.legend(loc='upper right', fontsize=7)
-    ax.set_aspect('equal')
+    # 绘制DST维度
+    # 规则A (蓝色)
+    a_dst_width = (a_dst_hi - a_dst_lo) / (2**32)
+    a_dst_rect = patches.Rectangle(
+        (a_dst_lo / (2**32), 1.1), a_dst_width, 0.8,
+        linewidth=1, edgecolor='blue', facecolor='lightblue', alpha=0.7
+    )
+    ax.add_patch(a_dst_rect)
+    
+    # 规则B (绿色)
+    b_dst_width = (b_dst_hi - b_dst_lo) / (2**32)
+    b_dst_rect = patches.Rectangle(
+        (b_dst_lo / (2**32), 1.1), b_dst_width, 0.8,
+        linewidth=1, edgecolor='green', facecolor='lightgreen', alpha=0.7
+    )
+    ax.add_patch(b_dst_rect)
+    
+    # 相交区域 (红色)
+    intersect_dst_width = (intersect_dst_hi - intersect_dst_lo) / (2**32)
+    intersect_dst_rect = patches.Rectangle(
+        (intersect_dst_lo / (2**32), 1.1), intersect_dst_width, 0.8,
+        linewidth=2, edgecolor='red', facecolor='pink', alpha=0.7
+    )
+    ax.add_patch(intersect_dst_rect)
+    
+    ax.set_xlim(0, 1)
+    ax.set_ylim(0, 2)
+    ax.set_xlabel('IP Address Space (Normalized)')
+    ax.set_ylabel('Dimension (SRC=0-1, DST=1-2)')
+    ax.set_title(f'Pair #{index+1}: Rule {pair["rule_a"]} ∩ Rule {pair["rule_b"]}')
+    ax.legend()
     ax.grid(True, alpha=0.3)
 
+def save_detailed_results(results: Dict, output_file: str = "src/output/intersection_analysis.json"):
+    """保存详细分析结果到JSON文件"""
+    # 转换所有整数键为字符串，以便JSON序列化
+    def convert_keys(obj):
+        if isinstance(obj, dict):
+            return {str(k): convert_keys(v) for k, v in obj.items()}
+        elif isinstance(obj, list):
+            return [convert_keys(item) for item in obj]
+        else:
+            return obj
+    
+    converted_results = convert_keys(results)
+    
+    with open(output_file, 'w', encoding='utf-8') as f:
+        json.dump(converted_results, f, ensure_ascii=False, indent=2)
+    
+    print(f"\n详细分析结果已保存到: {output_file}")
+
 def main():
-    input_file = "src/output/merged_ip_table.txt"
-    output_json = "src/output/intersection_analysis.json"
-    output_csv = "src/output/partial_intersections.csv"
+    # 加载规则
+    merged_ip_table_file = 'src/output/merged_ip_table.txt'
+    print("加载 merged_ip_table...")
+    rules = load_merged_ip_table(merged_ip_table_file)
+    print(f"加载了 {len(rules)} 条规则")
     
-    # 解析命令行参数
-    visualize = False
-    visualize_all = False
-    num_visualize = 6
-    highlight_rules = []
-    
-    args = sys.argv[1:]
-    i = 0
-    while i < len(args):
-        arg = args[i]
-        if arg == '--visualize':
-            visualize = True
-            # 检查下一个参数是否是数字
-            if i + 1 < len(args) and args[i + 1].isdigit():
-                i += 1
-                num_visualize = int(args[i])
-        elif arg == '--all':
-            visualize_all = True
-        elif arg == '--highlight':
-            # 解析高亮规则，格式: --highlight 0-10 或 --highlight 0,1,2,3
-            if i + 1 < len(args):
-                i += 1
-                hl_arg = args[i]
-                if '-' in hl_arg and ',' not in hl_arg:
-                    # 范围格式: 0-10
-                    parts = hl_arg.split('-')
-                    start, end = int(parts[0]), int(parts[1])
-                    highlight_rules = list(range(start, end + 1))
-                else:
-                    # 逗号分隔格式: 0,1,2,3
-                    highlight_rules = [int(x) for x in hl_arg.split(',')]
-        elif not arg.startswith('--'):
-            input_file = arg
-        i += 1
-    
-    print(f"加载 {input_file}...")
-    rules = load_merged_ip_table(input_file)
-    print(f"加载了 {len(rules)} 条 merged IP 规则")
-    
-    print("\n开始分析规则间的相交关系...")
-    results = analyze_all_relations(rules)
+    # 分析相交关系
+    print("开始分析规则间的相交关系...")
+    results = analyze_intersections_by_rmax(rules)
     
     # 打印报告
     print_report(results)
     
-    # 保存 JSON
-    with open(output_json, 'w') as f:
-        json.dump(results, f, indent=2)
-    print(f"\n详细结果已保存到: {output_json}")
+    # 保存详细结果
+    save_detailed_results(results)
     
-    # 保存 CSV (只包含部分相交)
-    with open(output_csv, 'w') as f:
-        f.write("RuleA,RuleB,IntersectSrcLo,IntersectSrcHi,IntersectDstLo,IntersectDstHi,Proto\n")
-        for item in results["partial_intersections"]:
-            region = item["intersection_region"]
-            f.write(f"{item['rule_a']},{item['rule_b']},{region['src_lo']},{region['src_hi']},{region['dst_lo']},{region['dst_hi']},{region['proto']}\n")
-    print(f"部分相交列表已保存到: {output_csv}")
+    # 可视化选项
+    if "--visualize" in sys.argv:
+        num_samples = 6
+        if len(sys.argv) > 2:
+            try:
+                num_samples = int(sys.argv[2])
+            except ValueError:
+                pass
+        visualize_intersections(results, num_samples)
     
-    # 可视化
-    if visualize_all:
-        if highlight_rules:
-            print(f"\n高亮显示规则: R{min(highlight_rules)} - R{max(highlight_rules)}")
-        visualize_all_rules(rules, results, highlight_rules)
-    elif visualize:
-        visualize_intersections(results, num_visualize)
+    return 0
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

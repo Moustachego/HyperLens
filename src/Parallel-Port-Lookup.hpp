@@ -122,7 +122,7 @@ struct DST_TCAM_Table {
 
 // ===== Function Declarations =====
 
-void laod_and_create_IP_table(
+void load_and_create_IP_table(
     std::vector<IPRule>& ip_table,
     std::vector<PortRule>& port_table,
     std::vector<IPRule>& merged_ip_table,

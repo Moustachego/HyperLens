@@ -21,6 +21,7 @@
 #include <cmath>
 #include <iomanip>
 #include <queue>  // ★ 添加queue头文件用于BFS优化
+#include <cassert>
 
 #include "Loader.hpp"
 #include "Dependent-Set-Prefix-Lookup.hpp"
@@ -913,17 +914,6 @@ void find_intersections_per_proto(
 
         vector<IntersectionCell> local_cells;
         unordered_set<string> seen_keys;
-        
-        // ★ 修复：将已有的 intersections 中相同协议的 cell 的 key 添加到 seen_keys，避免重复
-        for (const auto& existing_cell : intersections) {
-            if (existing_cell.proto == proto) {
-                string existing_key = to_string(existing_cell.src_lo) + "-" + to_string(existing_cell.src_hi) + "-" +
-                                     to_string(existing_cell.dst_lo) + "-" + to_string(existing_cell.dst_hi) + "-" +
-                                     to_string(existing_cell.proto);
-                seen_keys.insert(existing_key);
-            }
-        }
-        
         vector<size_t> remaining = initial_remaining;
        
         //3) Find intersections within this protocol region
@@ -974,6 +964,7 @@ void find_intersections_per_proto(
          << intersections.size() << " (new added=" << global_added << ")\n";
 }
 
+
 // 过滤Rmax_intersections中与intersections重复的规则
 // 重复定义：源IP、目的IP和协议都相同的规则
 std::vector<IntersectionCell> filter_duplicate_rmax_intersections(
@@ -1007,65 +998,53 @@ std::vector<IntersectionCell> filter_duplicate_rmax_intersections(
 
 void merge_cells_and_ip_table(
     const std::vector<Rmax_IPRule>& Rmax_merged_ip_table,
-    const std::vector<IntersectionCell>& Rmax_intersections,
     const std::vector<IntersectionCell>& intersections,
+    const std::vector<IntersectionCell>& Rmax_intersections,
     std::vector<FinalIPRule>& final_ip_table)
 {
     final_ip_table.clear();
 
-    // 过滤掉与intersections重复的Rmax_intersections规则
-    std::vector<IntersectionCell> filtered_Rmax_intersections = 
+    // 过滤掉与 intersections 重复的 Rmax_intersections
+    std::vector<IntersectionCell> filtered_Rmax_intersections =
         filter_duplicate_rmax_intersections(Rmax_intersections, intersections);
 
     const int NO_RMAX = -1;
     const size_t N = Rmax_merged_ip_table.size();
 
-    // 1) 划分类别：leaders 与 non-leaders（保留原始顺序）
-    std::vector<size_t> leader_indices;     // 原始索引（在 Rmax_merged_ip_table 中）
-    std::vector<size_t> nonleader_indices;  // 原始索引（在 Rmax_merged_ip_table 中）
-
-    leader_indices.reserve(N);
-    nonleader_indices.reserve(N);
+    /*------------------------------------------------------------
+     * 1) leader / non-leader 划分
+     *------------------------------------------------------------*/
+    std::vector<size_t> leader_indices;
+    std::vector<size_t> nonleader_indices;
 
     for (size_t i = 0; i < N; ++i) {
-        const auto &r = Rmax_merged_ip_table[i];
-        // 认为 leader 的判定是 r.rmax_id == i
-        if (r.rmax_id == i) {
+        if (Rmax_merged_ip_table[i].rmax_id == i)
             leader_indices.push_back(i);
-        } else {
+        else
             nonleader_indices.push_back(i);
-        }
     }
 
-    // 2) 先决定 leaders 在 final_table 中的新位置（他们位于末尾）
-    size_t cells_count = intersections.size();
-    size_t Rmax_cells_count = filtered_Rmax_intersections.size();
-    size_t nonleader_count = nonleader_indices.size();
-    size_t leader_count = leader_indices.size();
+    final_ip_table.reserve(
+        intersections.size() +
+        filtered_Rmax_intersections.size() +
+        nonleader_indices.size() +
+        leader_indices.size());
 
-    size_t leaders_base_index = cells_count + Rmax_cells_count + nonleader_count; // leaders 在 final 表中起始索引
+    std::unordered_set<std::string> added_rules;
 
-    // 构造映射：原始 Rmax_merged_ip_table 索引 -> final 表中索引 (仅对 leader 有映射)
-    // 对于不能被识别为 leader 的 r (如 r.rmax_id == SIZE_MAX)，我们不会在 leader_map 中放映射
-    std::unordered_map<size_t, size_t> leader_to_final_index;
-    leader_to_final_index.reserve(leader_count);
-    for (size_t k = 0; k < leader_indices.size(); ++k) {
-        size_t orig_idx = leader_indices[k];
-        size_t final_idx = leaders_base_index + k;
-        leader_to_final_index[orig_idx] = final_idx;
-    }
+    auto make_key = [](uint32_t sl, uint32_t sh,
+                       uint32_t dl, uint32_t dh,
+                       uint8_t proto) {
+        return std::to_string(sl) + "-" + std::to_string(sh) + "-" +
+               std::to_string(dl) + "-" + std::to_string(dh) + "-" +
+               std::to_string(proto);
+    };
 
-    // 3) 开始构造 final_ip_table（按指定顺序：cells -> Rmax_cells -> nonleaders -> leaders）
-    final_ip_table.reserve(cells_count + Rmax_cells_count + nonleader_count + leader_count);
-
-    // 建立 cell 范围集合，用于去重检查（避免规则与 cell 重复）
-    std::unordered_set<std::string> cell_ranges;
-    cell_ranges.reserve(intersections.size() + filtered_Rmax_intersections.size());
-
-    // --- (A) append intersections (cells) ---
-    for (size_t i = 0; i < intersections.size(); ++i) {
-        const auto &cell = intersections[i];
-        FinalIPRule fr;
+    /*------------------------------------------------------------
+     * (A) intersections
+     *------------------------------------------------------------*/
+    for (const auto& cell : intersections) {
+        FinalIPRule fr{};
         fr.src_lo = cell.src_lo;
         fr.src_hi = cell.src_hi;
         fr.dst_lo = cell.dst_lo;
@@ -1074,101 +1053,83 @@ void merge_cells_and_ip_table(
         fr.priority = 0;
         fr.is_cell = true;
         fr.is_rmax = false;
-        fr.merged_R = cell.rule_indices; // optional
-        fr.original_merged_index = cell.Extraction.empty() ? SIZE_MAX : cell.Extraction[0];
+        fr.merged_R = cell.rule_indices;
+        fr.original_merged_index =
+            cell.Extraction.empty() ? SIZE_MAX : cell.Extraction[0];
 
-        int own_new_idx = static_cast<int>(final_ip_table.size()); // 当前将被放置的位置
-        int rmax_new_idx = NO_RMAX;
+        int own_idx = static_cast<int>(final_ip_table.size());
+        fr.group_ids = { own_idx };
 
-        if (cell.rmax_id != SIZE_MAX && cell.rmax_id < Rmax_merged_ip_table.size()) {
-            // 检查rmax_id是否为leader
-            const auto& rmax_rule = Rmax_merged_ip_table[cell.rmax_id];
-            if (rmax_rule.rmax_id == cell.rmax_id) {  // 确认是leader规则
-                auto it = leader_to_final_index.find(cell.rmax_id);
-                if (it != leader_to_final_index.end()) rmax_new_idx = static_cast<int>(it->second);
-                else rmax_new_idx = NO_RMAX; // 找不到映射，标记为无
-            }
-        }
-
-        fr.group_ids.clear();
-        fr.group_ids.push_back(own_new_idx);
-        if (rmax_new_idx != NO_RMAX) {
-            fr.group_ids.push_back(rmax_new_idx);
+        if (cell.rmax_id != SIZE_MAX &&
+            cell.rmax_id < Rmax_merged_ip_table.size() &&
+            Rmax_merged_ip_table[cell.rmax_id].rmax_id == cell.rmax_id)
+        {
+            // ★ 只记录 leader 的 orig_idx（负数编码）
+            fr.group_ids.push_back(-static_cast<int>(cell.rmax_id) - 1);
         }
 
         final_ip_table.push_back(std::move(fr));
-        
-        // 记录 cell 的范围，用于后续去重
-        std::string cell_key = std::to_string(cell.src_lo) + "-" + std::to_string(cell.src_hi) + "-" +
-                              std::to_string(cell.dst_lo) + "-" + std::to_string(cell.dst_hi) + "-" +
-                              std::to_string(cell.proto);
-        cell_ranges.insert(cell_key);
+        added_rules.insert(
+            make_key(cell.src_lo, cell.src_hi,
+                     cell.dst_lo, cell.dst_hi,
+                     cell.proto));
     }
 
-    // --- (B) append Rmax intersections ---
-    for (size_t i = 0; i < filtered_Rmax_intersections.size(); ++i) {
-        const auto &Rmax_cell = filtered_Rmax_intersections[i];
-        FinalIPRule fr;
-        fr.src_lo = Rmax_cell.src_lo;
-        fr.src_hi = Rmax_cell.src_hi;
-        fr.dst_lo = Rmax_cell.dst_lo;
-        fr.dst_hi = Rmax_cell.dst_hi;
-        fr.proto = Rmax_cell.proto;
+    /*------------------------------------------------------------
+     * (B) Rmax intersections
+     *------------------------------------------------------------*/
+    for (const auto& cell : filtered_Rmax_intersections) {
+        std::string key =
+            make_key(cell.src_lo, cell.src_hi,
+                     cell.dst_lo, cell.dst_hi,
+                     cell.proto);
+
+        if (added_rules.count(key))
+            continue;
+
+        if (cell.rmax_id == SIZE_MAX ||
+            cell.rmax_id >= Rmax_merged_ip_table.size() ||
+            Rmax_merged_ip_table[cell.rmax_id].rmax_id != cell.rmax_id)
+            continue; // 没 leader 的 B-cell 丢弃
+
+        FinalIPRule fr{};
+        fr.src_lo = cell.src_lo;
+        fr.src_hi = cell.src_hi;
+        fr.dst_lo = cell.dst_lo;
+        fr.dst_hi = cell.dst_hi;
+        fr.proto  = cell.proto;
         fr.priority = 1;
         fr.is_cell = true;
         fr.is_rmax = false;
-        fr.merged_R = Rmax_cell.rule_indices; // optional
-        fr.original_merged_index = Rmax_cell.Extraction.empty() ? SIZE_MAX : Rmax_cell.Extraction[0];
+        fr.merged_R = cell.rule_indices;
+        fr.original_merged_index =
+            cell.Extraction.empty() ? SIZE_MAX : cell.Extraction[0];
 
-        int own_new_idx = static_cast<int>(final_ip_table.size()); // 当前将被放置的位置
-        int rmax_new_idx = NO_RMAX;
-
-        if (Rmax_cell.rmax_id != SIZE_MAX && Rmax_cell.rmax_id < Rmax_merged_ip_table.size()) {
-            // 检查rmax_id是否为leader
-            const auto& rmax_rule = Rmax_merged_ip_table[Rmax_cell.rmax_id];
-            if (rmax_rule.rmax_id == Rmax_cell.rmax_id) {  // 确认是leader规则
-                auto it = leader_to_final_index.find(Rmax_cell.rmax_id);
-                if (it != leader_to_final_index.end()) rmax_new_idx = static_cast<int>(it->second);
-                else rmax_new_idx = NO_RMAX; // 找不到映射，标记为无
-            }
-        }
-
-        fr.group_ids.clear();
-        fr.group_ids.push_back(own_new_idx);
-        if (rmax_new_idx != NO_RMAX) {
-            fr.group_ids.push_back(rmax_new_idx);
-        }
+        int own_idx = static_cast<int>(final_ip_table.size());
+        fr.group_ids = {
+            own_idx,
+            -static_cast<int>(cell.rmax_id) - 1
+        };
 
         final_ip_table.push_back(std::move(fr));
-        
-        // 记录 cell 的范围，用于后续去重
-        std::string cell_key = std::to_string(Rmax_cell.src_lo) + "-" + std::to_string(Rmax_cell.src_hi) + "-" +
-                              std::to_string(Rmax_cell.dst_lo) + "-" + std::to_string(Rmax_cell.dst_hi) + "-" +
-                              std::to_string(Rmax_cell.proto);
-        cell_ranges.insert(cell_key);
+        added_rules.insert(key);
     }
 
-    // --- (C) append non-leader merged rules (保持原始顺序) ---
-    // 记录所有将要添加到final表中的规则索引，避免重复
-    std::unordered_set<std::string> added_rules = cell_ranges;
-    
-    size_t nonleader_base_index = intersections.size() + filtered_Rmax_intersections.size();
-    std::unordered_map<size_t, size_t> nonleader_to_final_index;
-    
-    for (size_t idx_index = 0; idx_index < nonleader_indices.size(); ++idx_index) {
-        size_t idx = nonleader_indices[idx_index];
-        const auto &r = Rmax_merged_ip_table[idx];
-        
-        // 检查该规则是否已经作为 cell 存在
-        std::string rule_key = std::to_string(r.src_ip_lo) + "-" + std::to_string(r.src_ip_hi) + "-" +
-                               std::to_string(r.dst_ip_lo) + "-" + std::to_string(r.dst_ip_hi) + "-" +
-                               std::to_string(r.proto);
-        if (added_rules.find(rule_key) != added_rules.end()) {
-            // 该规则已经作为 cell 存在，跳过以避免重复
+    /*------------------------------------------------------------
+     * (C) non-leaders
+     *------------------------------------------------------------*/
+    for (size_t idx : nonleader_indices) {
+        const auto& r = Rmax_merged_ip_table[idx];
+
+        std::string key =
+            make_key(r.src_ip_lo, r.src_ip_hi,
+                     r.dst_ip_lo, r.dst_ip_hi,
+                     r.proto);
+
+        if (added_rules.count(key))
             continue;
-        }
-        
-        FinalIPRule fr;
+
+        FinalIPRule fr{};
         fr.src_lo = r.src_ip_lo;
         fr.src_hi = r.src_ip_hi;
         fr.dst_lo = r.dst_ip_lo;
@@ -1180,46 +1141,40 @@ void merge_cells_and_ip_table(
         fr.merged_R = r.merged_R;
         fr.original_merged_index = idx;
 
-        int own_new_idx = static_cast<int>(final_ip_table.size());
-        nonleader_to_final_index[idx] = own_new_idx;
-        
-        int rmax_new_idx = NO_RMAX;
+        int own_idx = static_cast<int>(final_ip_table.size());
+        fr.group_ids = { own_idx };
 
-        if (r.rmax_id != SIZE_MAX && r.rmax_id < Rmax_merged_ip_table.size()) {
-            // 检查rmax_id是否为leader
-            const auto& rmax_rule = Rmax_merged_ip_table[r.rmax_id];
-            if (rmax_rule.rmax_id == r.rmax_id) {  // 确认是leader规则
-                auto it = leader_to_final_index.find(r.rmax_id);
-                if (it != leader_to_final_index.end()) rmax_new_idx = static_cast<int>(it->second);
-                else rmax_new_idx = NO_RMAX;
-            }
-        }
-
-        fr.group_ids.clear();
-        fr.group_ids.push_back(own_new_idx);
-        if (rmax_new_idx != NO_RMAX) {
-            fr.group_ids.push_back(rmax_new_idx);
+        if (r.rmax_id != SIZE_MAX &&
+            r.rmax_id < Rmax_merged_ip_table.size() &&
+            Rmax_merged_ip_table[r.rmax_id].rmax_id == r.rmax_id)
+        {
+            fr.group_ids.push_back(-static_cast<int>(r.rmax_id) - 1);
         }
 
         final_ip_table.push_back(std::move(fr));
-        added_rules.insert(rule_key);
+        added_rules.insert(key);
     }
 
-    // --- (D) append leaders (Rmax) themselves，按原表顺序 ---
-    for (size_t k = 0; k < leader_indices.size(); ++k) {
-        size_t orig_idx = leader_indices[k];
-        const auto &r = Rmax_merged_ip_table[orig_idx];
+    /*------------------------------------------------------------
+     * (D) leaders（记录真实 index）
+     *------------------------------------------------------------*/
+    std::unordered_map<size_t, int> leader_real_index;
 
-        // 检查该规则是否已经作为 cell 存在
-        std::string rule_key = std::to_string(r.src_ip_lo) + "-" + std::to_string(r.src_ip_hi) + "-" +
-                               std::to_string(r.dst_ip_lo) + "-" + std::to_string(r.dst_ip_hi) + "-" +
-                               std::to_string(r.proto);
-        if (added_rules.find(rule_key) != added_rules.end()) {
-            // 该规则已经作为 cell 存在，跳过以避免重复
+    for (size_t orig_idx : leader_indices) {
+        const auto& r = Rmax_merged_ip_table[orig_idx];
+
+        std::string key =
+            make_key(r.src_ip_lo, r.src_ip_hi,
+                     r.dst_ip_lo, r.dst_ip_hi,
+                     r.proto);
+
+        if (added_rules.count(key))
             continue;
-        }
 
-        FinalIPRule fr;
+        int real_idx = static_cast<int>(final_ip_table.size());
+        leader_real_index[orig_idx] = real_idx;
+
+        FinalIPRule fr{};
         fr.src_lo = r.src_ip_lo;
         fr.src_hi = r.src_ip_hi;
         fr.dst_lo = r.dst_ip_lo;
@@ -1230,17 +1185,37 @@ void merge_cells_and_ip_table(
         fr.is_rmax = true;
         fr.merged_R = r.merged_R;
         fr.original_merged_index = orig_idx;
-
-        int own_new_idx = static_cast<int>(final_ip_table.size()); // 应等于 leaders_base_index + k
-        // leader 只有自己作为 group id（单元素）
-        fr.group_ids.clear();
-        fr.group_ids.push_back(own_new_idx);
+        fr.group_ids = { real_idx };
 
         final_ip_table.push_back(std::move(fr));
-        added_rules.insert(rule_key);
+        added_rules.insert(key);
     }
 
+    /*------------------------------------------------------------
+     * ★ FINAL FIX：回填 leader index
+     *------------------------------------------------------------*/
+    for (auto& fr : final_ip_table) {
+        for (int& gid : fr.group_ids) {
+            if (gid < 0) {
+                size_t leader_orig = static_cast<size_t>(-gid - 1);
+                auto it = leader_real_index.find(leader_orig);
+                assert(it != leader_real_index.end());
+                gid = it->second;
+            }
+        }
+    }
+
+#ifndef NDEBUG
+    // 最终一致性校验
+    for (size_t i = 0; i < final_ip_table.size(); ++i) {
+        for (int gid : final_ip_table[i].group_ids) {
+            assert(gid >= 0 &&
+                   gid < static_cast<int>(final_ip_table.size()));
+        }
+    }
+#endif
 }
+
 
 vector<IPRule> split_rule_by_cell(const IPRule &rule, const IntersectionCell &cell) {
     vector<IPRule> output;

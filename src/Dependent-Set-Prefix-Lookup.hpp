@@ -89,11 +89,6 @@ void find_intersections_per_proto(
     std::vector<size_t>& rmax_rule_ids
 );
 
-std::vector<IntersectionCell> filter_duplicate_rmax_intersections(
-    const std::vector<IntersectionCell>& Rmax_intersections,
-    const std::vector<IntersectionCell>& intersections
-);
-
 void merge_cells_and_ip_table(
     const std::vector<Rmax_IPRule>& Rmax_merged_ip_table,
     const std::vector<IntersectionCell>& Rmax_intersections,

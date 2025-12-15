@@ -964,7 +964,7 @@ void Map_cell_to_origID(
 }
 
 
-void Sreach_Rmax_Intersection_per_proto(
+void Search_Rmax_Intersection_per_proto(
     vector<Rmax_IPRule>& Rmax_merged_ip_table,
     vector<IntersectionCell>& Rmax_intersections)
 {
@@ -974,14 +974,15 @@ void Sreach_Rmax_Intersection_per_proto(
         proto_to_rmax_indices[Rmax_merged_ip_table[i].proto].push_back(i);
     }
 
-    // 2. 对每个协议内的Rmax规则进行处理
+    size_t total_intersections = 0;
+    
+        // 2. 对每个协议内的Rmax规则进行处理
     for (const auto& [proto, rmax_indices] : proto_to_rmax_indices) {
         // 3. 如果只有一个Rmax，无需处理交集
         if (rmax_indices.size() < 2) {
             continue;
         }
-        
-        // 4. 多个Rmax时，检查它们之间的交集
+                // 4. 多个Rmax时，检查它们之间的交集
         for (size_t i = 0; i < rmax_indices.size(); ++i) {
             for (size_t j = i + 1; j < rmax_indices.size(); ++j) {
                 size_t rmax_idx1 = rmax_indices[i];
@@ -991,47 +992,26 @@ void Sreach_Rmax_Intersection_per_proto(
                 const auto& rmax2 = Rmax_merged_ip_table[rmax_idx2];
 
                 // 检查源IP和目的IP是否都有交集
+                // 检查源IP和目的IP是否都有交集
                 bool src_overlap = !(rmax1.src_ip_hi < rmax2.src_ip_lo || rmax2.src_ip_hi < rmax1.src_ip_lo);
                 bool dst_overlap = !(rmax1.dst_ip_hi < rmax2.dst_ip_lo || rmax2.dst_ip_hi < rmax1.dst_ip_lo);
 
-                // 只有当两个维度都有重叠且不完全相等时才创建交集单元
-                if (src_overlap && dst_overlap && 
-                    !(rmax1.src_ip_lo == rmax2.src_ip_lo && 
-                      rmax1.src_ip_hi == rmax2.src_ip_hi &&
-                      rmax1.dst_ip_lo == rmax2.dst_ip_lo && 
-                      rmax1.dst_ip_hi == rmax2.dst_ip_hi)) {
-                    // 计算交集区域
-                    uint32_t intersect_src_lo = std::max(rmax1.src_ip_lo, rmax2.src_ip_lo);
-                    uint32_t intersect_src_hi = std::min(rmax1.src_ip_hi, rmax2.src_ip_hi);
-                    uint32_t intersect_dst_lo = std::max(rmax1.dst_ip_lo, rmax2.dst_ip_lo);
-                    uint32_t intersect_dst_hi = std::min(rmax1.dst_ip_hi, rmax2.dst_ip_hi);
-                    
-                    // ★ 修复：检查交集区域是否与任何 Rmax 规则完全相等
-                    // 如果相等，应该作为规则添加，而不是 cell，避免重复
-                    bool is_duplicate_of_rmax = false;
-                    for (size_t k = 0; k < Rmax_merged_ip_table.size(); ++k) {
-                        const auto& r = Rmax_merged_ip_table[k];
-                        if (r.proto == proto &&
-                            r.src_ip_lo == intersect_src_lo &&
-                            r.src_ip_hi == intersect_src_hi &&
-                            r.dst_ip_lo == intersect_dst_lo &&
-                            r.dst_ip_hi == intersect_dst_hi) {
-                            is_duplicate_of_rmax = true;
-                            break;
-                        }
-                    }
-                    if (is_duplicate_of_rmax) {
-                        continue;  // 跳过，避免与规则重复
-                    }
-                    
+                if (src_overlap && dst_overlap) {
                     // 5. 创建交集单元
                     IntersectionCell cell;
                     cell.proto = proto;
-                    cell.src_lo = intersect_src_lo;
-                    cell.src_hi = intersect_src_hi;
-                    cell.dst_lo = intersect_dst_lo;
-                    cell.dst_hi = intersect_dst_hi;
-                                        
+                    
+                    // 计算交集区域
+                    cell.src_lo = std::max(rmax1.src_ip_lo, rmax2.src_ip_lo);
+                    cell.src_hi = std::min(rmax1.src_ip_hi, rmax2.src_ip_hi);
+                    cell.dst_lo = std::max(rmax1.dst_ip_lo, rmax2.dst_ip_lo);
+                    cell.dst_hi = std::min(rmax1.dst_ip_hi, rmax2.dst_ip_hi);
+                    
+                    // 选择范围更大的Rmax作为rmax_id
+                    size_t range1 = (uint64_t)(rmax1.src_ip_hi - rmax1.src_ip_lo) * (rmax1.dst_ip_hi - rmax1.dst_ip_lo);
+                    size_t range2 = (uint64_t)(rmax2.src_ip_hi - rmax2.src_ip_lo) * (rmax2.dst_ip_hi - rmax2.dst_ip_lo);
+                    cell.rmax_id = (range1 >= range2) ? rmax_idx1 : rmax_idx2;
+                    
                     // rule_indices只包含这两个相交的Rmax规则
                     cell.rule_indices = {rmax_idx1, rmax_idx2};
                     cell.minimal = {rmax_idx1, rmax_idx2};
@@ -1043,17 +1023,20 @@ void Sreach_Rmax_Intersection_per_proto(
                     cell.priority = 1;
                     
                     Rmax_intersections.push_back(cell);
+                    total_intersections++;
                 }
+                
             }    
         }        
-    }    
-
+    }
+    
+    cout << "[DEBUG] Generated " << total_intersections << " Rmax intersections" << endl;
 }
 
-void laod_and_create_IP_table(vector<IPRule>& ip_table,
+void load_and_create_IP_table(vector<IPRule>& ip_table,
     vector<PortRule>& port_table, 
     vector<IPRule>& merged_ip_table,
-    std::map<std::tuple<std::vector<int>, int, int, int, int>, MergedItem>& mateifno)
+    std::map<std::tuple<std::vector<int>, int, int, int, int>, MergedItem>& mateinfo)
 {
     //1) merge identical IP entries
     merge_same_ip_entry(ip_table, merged_ip_table);
@@ -1062,12 +1045,12 @@ void laod_and_create_IP_table(vector<IPRule>& ip_table,
 
     //2) find Rmax for merged_ip_table
     vector<Rmax_IPRule> Rmax_merged_ip_table;
-    vector<IntersectionCell> Rmax_intersections;
     vector<IntersectionCell> intersections;
+    vector<IntersectionCell> Rmax_intersections;
     find_Rmax_for_merged_ip_table(merged_ip_table, Rmax_merged_ip_table);
 
     //2.5) Create Rmax_intersection_cells
-    Sreach_Rmax_Intersection_per_proto(Rmax_merged_ip_table, Rmax_intersections);
+    Search_Rmax_Intersection_per_proto(Rmax_merged_ip_table, Rmax_intersections);
 
     //3) per-protocol elementary intervals (half-open endpoints)
     map<uint8_t, vector<uint32_t>> src_intervals_per_proto;
@@ -1079,18 +1062,18 @@ void laod_and_create_IP_table(vector<IPRule>& ip_table,
     vector<size_t> rmax_rule_ids;
     find_intersections_per_proto(merged_ip_table, src_intervals_per_proto, 
         dst_intervals_per_proto, intersections, rmax_rule_ids);
-        
+
     //5)Independent set partitioning
-    vector<IPRule> extra_rules; // pass now , filled later
+    vector<IPRule> extra_rules;         // pass now , filled later
     extract_and_split_cells(merged_ip_table, intersections, extra_rules);
     cout << "[INFO] Extra rules (range only, no CIDR): " << extra_rules.size() << endl;
 
     //6) merge intersection cells + merged IP table into final table
     vector<FinalIPRule> final_ip_table;
-    merge_cells_and_ip_table(Rmax_merged_ip_table, Rmax_intersections, intersections, final_ip_table);    
+    merge_cells_and_ip_table(Rmax_merged_ip_table, intersections, Rmax_intersections, final_ip_table);    
 
     //7) transfer rule into mask type
-    Create_Metainfo_for_port(port_table, merged_ip_table, intersections, final_ip_table, mateifno);
+    Create_Metainfo_for_port(port_table, merged_ip_table, intersections, final_ip_table, mateinfo);
     
     //8) write final ip table into file
     write_final_table_in_cidr(final_ip_table, "src/output/final_ip_table_cidr.txt");

@@ -73,13 +73,13 @@ int main(int argc, char **argv)
     // (laod_and_create_IP_table internally handles IP merge, intersection detection, and metainfo generation)
     cout << "[STEP 3] Creating IP Table and port metadata...\n";
     vector<IPRule> merged_ip_table;
-    std::map<std::tuple<std::vector<int>, int, int, int, int>, MergedItem> mateifno;
-    laod_and_create_IP_table(ip_table, port_table, merged_ip_table, mateifno);
+    std::map<std::tuple<std::vector<int>, int, int, int, int>, MergedItem> mateinfo;
+    load_and_create_IP_table(ip_table, port_table, merged_ip_table, mateinfo);
     cout << "[SUCCESS] IP Table and metadata processing completed (Merged to " << merged_ip_table.size() << " unique IP entries)\n\n";
 
     // Step 4: Generate TCAM/SRAM tables for both SRC and DST
     cout << "[STEP 4] Generating TCAM/SRAM tables for port lookups...\n";
-    create_Table_for_port(port_table, merged_ip_table, mateifno);
+    create_Table_for_port(port_table, merged_ip_table, mateinfo);
     cout << "[SUCCESS] Port lookup tables generated\n\n";
 
     cout << "===============================================================================\n";
