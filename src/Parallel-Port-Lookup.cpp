@@ -1077,14 +1077,28 @@ void load_and_create_IP_table(vector<IPRule>& ip_table,
 
     //2) find Rmax for merged_ip_table
     vector<Rmax_IPRule> Rmax_merged_ip_table;
+    vector<Rmax_IPRule> RO_merged_ip_table;
     vector<IntersectionCell> intersections;
     vector<IntersectionCell> Rmax_intersections;
-    vector<Rmax_IPRule> RO_merged_ip_table;
+
     find_Rmax_for_merged_ip_table(merged_ip_table, Rmax_merged_ip_table);
 
     //2.5) Create Rmax_intersection_cells
     Search_Rmax_Intersection_per_proto(Rmax_merged_ip_table, Rmax_intersections);
-    Reorder_merged_ip_table(Rmax_merged_ip_table, RO_merged_ip_table);
+    
+    //2.6) Reorder Rmax table and get index mapping
+    std::unordered_map<size_t, size_t> old_to_new_idx;
+    Reorder_merged_ip_table(Rmax_merged_ip_table, RO_merged_ip_table, old_to_new_idx);
+    
+    //2.7) Update rmax_id in Rmax_intersections to use new indices
+    for (auto& cell : Rmax_intersections) {
+        if (cell.rmax_id != SIZE_MAX) {
+            auto it = old_to_new_idx.find(cell.rmax_id);
+            if (it != old_to_new_idx.end()) {
+                cell.rmax_id = it->second;
+            }
+        }
+    }
 
     //3) per-protocol elementary intervals (half-open endpoints)
     map<uint8_t, vector<uint32_t>> src_intervals_per_proto;
@@ -1096,6 +1110,18 @@ void load_and_create_IP_table(vector<IPRule>& ip_table,
     vector<size_t> rmax_rule_ids;
     find_intersections_per_proto(merged_ip_table, src_intervals_per_proto, 
         dst_intervals_per_proto, intersections, rmax_rule_ids);
+    
+    //4.5) Update rmax_id in intersections to use new indices
+    // Note: intersections.rmax_id is merged_ip_table index, which equals Rmax_merged_ip_table index
+    // We need to map from Rmax_merged_ip_table index to RO_merged_ip_table index
+    for (auto& cell : intersections) {
+        if (cell.rmax_id != SIZE_MAX) {
+            auto it = old_to_new_idx.find(cell.rmax_id);
+            if (it != old_to_new_idx.end()) {
+                cell.rmax_id = it->second;
+            }
+        }
+    }
 
     //5)Independent set partitioning
     vector<IPRule> extra_rules;         // pass now , filled later
@@ -1104,10 +1130,10 @@ void load_and_create_IP_table(vector<IPRule>& ip_table,
 
     //6) merge intersection cells + merged IP table into final table
     vector<FinalIPRule> final_ip_table;
-    merge_cells_and_ip_table(Rmax_merged_ip_table, intersections, Rmax_intersections, final_ip_table);    
+    merge_cells_and_ip_table(RO_merged_ip_table, intersections, Rmax_intersections, final_ip_table);    
 
     //7) transfer rule into mask type
-    Create_Metainfo_for_port(port_table, merged_ip_table, intersections, Rmax_intersections, final_ip_table, mateinfo);
+    Create_Metainfo_for_port(port_table, merged_ip_table, intersections, Rmax_intersections, final_ip_table, RO_merged_ip_table, old_to_new_idx, mateinfo);
     
     //8) write final ip table into file
     write_final_table_in_cidr(final_ip_table, "src/output/final_ip_table_cidr.txt");

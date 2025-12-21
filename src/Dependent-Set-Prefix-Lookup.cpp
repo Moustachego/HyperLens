@@ -997,7 +997,7 @@ std::vector<IntersectionCell> filter_duplicate_rmax_intersections(
 }
 
 void merge_cells_and_ip_table(
-    const std::vector<Rmax_IPRule>& Rmax_merged_ip_table,
+    const std::vector<Rmax_IPRule>& OR_merged_ip_table,
     const std::vector<IntersectionCell>& intersections,
     const std::vector<IntersectionCell>& Rmax_intersections,
     std::vector<FinalIPRule>& final_ip_table)
@@ -1009,7 +1009,7 @@ void merge_cells_and_ip_table(
         filter_duplicate_rmax_intersections(Rmax_intersections, intersections);
 
     const int NO_RMAX = -1;
-    const size_t N = Rmax_merged_ip_table.size();
+    const size_t N = OR_merged_ip_table.size();
 
     /*------------------------------------------------------------
      * 1) leader / non-leader 划分
@@ -1018,7 +1018,7 @@ void merge_cells_and_ip_table(
     std::vector<size_t> nonleader_indices;
 
     for (size_t i = 0; i < N; ++i) {
-        if (Rmax_merged_ip_table[i].rmax_id == i)
+        if (OR_merged_ip_table[i].rmax_id == i)
             leader_indices.push_back(i);
         else
             nonleader_indices.push_back(i);
@@ -1061,11 +1061,15 @@ void merge_cells_and_ip_table(
         fr.group_ids = { own_idx };
 
         if (cell.rmax_id != SIZE_MAX &&
-            cell.rmax_id < Rmax_merged_ip_table.size() &&
-            Rmax_merged_ip_table[cell.rmax_id].rmax_id == cell.rmax_id)
+            cell.rmax_id < OR_merged_ip_table.size())
         {
-            // ★ 只记录 leader 的 orig_idx（负数编码）
-            fr.group_ids.push_back(-static_cast<int>(cell.rmax_id) - 1);
+            // 检查是否是 leader
+            size_t rmax_idx = cell.rmax_id;
+            size_t rmax_leader_id = OR_merged_ip_table[rmax_idx].rmax_id;
+            if (rmax_leader_id == rmax_idx) {
+                // ★ 只记录 leader 的 orig_idx（负数编码）
+                fr.group_ids.push_back(-static_cast<int>(rmax_idx) - 1);
+            }
         }
 
         final_ip_table.push_back(std::move(fr));
@@ -1088,8 +1092,8 @@ void merge_cells_and_ip_table(
             continue;
 
         if (cell.rmax_id == SIZE_MAX ||
-            cell.rmax_id >= Rmax_merged_ip_table.size() ||
-            Rmax_merged_ip_table[cell.rmax_id].rmax_id != cell.rmax_id)
+            cell.rmax_id >= OR_merged_ip_table.size() ||
+            OR_merged_ip_table[cell.rmax_id].rmax_id != cell.rmax_id)
             continue; // 没 leader 的 B-cell 丢弃
 
         FinalIPRule fr{};
@@ -1119,7 +1123,7 @@ void merge_cells_and_ip_table(
      * (C) non-leaders
      *------------------------------------------------------------*/
     for (size_t idx : nonleader_indices) {
-        const auto& r = Rmax_merged_ip_table[idx];
+        const auto& r = OR_merged_ip_table[idx];
 
         std::string key =
             make_key(r.src_ip_lo, r.src_ip_hi,
@@ -1145,10 +1149,12 @@ void merge_cells_and_ip_table(
         fr.group_ids = { own_idx };
 
         if (r.rmax_id != SIZE_MAX &&
-            r.rmax_id < Rmax_merged_ip_table.size() &&
-            Rmax_merged_ip_table[r.rmax_id].rmax_id == r.rmax_id)
+            r.rmax_id < OR_merged_ip_table.size())
         {
-            fr.group_ids.push_back(-static_cast<int>(r.rmax_id) - 1);
+            // 检查是否是 leader
+            if (OR_merged_ip_table[r.rmax_id].rmax_id == r.rmax_id) {
+                fr.group_ids.push_back(-static_cast<int>(r.rmax_id) - 1);
+            }
         }
 
         final_ip_table.push_back(std::move(fr));
@@ -1161,7 +1167,7 @@ void merge_cells_and_ip_table(
     std::unordered_map<size_t, int> leader_real_index;
 
     for (size_t orig_idx : leader_indices) {
-        const auto& r = Rmax_merged_ip_table[orig_idx];
+        const auto& r = OR_merged_ip_table[orig_idx];
 
         std::string key =
             make_key(r.src_ip_lo, r.src_ip_hi,
@@ -1205,6 +1211,7 @@ void merge_cells_and_ip_table(
         }
     }
 
+    
 #ifndef NDEBUG
     // 最终一致性校验
     for (size_t i = 0; i < final_ip_table.size(); ++i) {
@@ -1598,12 +1605,49 @@ void Generate_cell_GID_to_metainfo(
 }
 
 
-
 void Generate_MergedR_GID_to_metaifno(
     const vector<FinalIPRule>& final_ip_table,
     const vector<PortRule>& port_table,
+    const vector<Rmax_IPRule>& RO_merged_ip_table,
+    const std::unordered_map<size_t, size_t>& old_to_new_idx,
     vector<Metainfo_for_SRC_port>& meta_src)
 {
+    // 辅助函数：添加端口对到 meta_src
+    auto add_port_pair = [&](uint32_t gid, size_t orig_rid, 
+                             std::set<std::tuple<int, int, int, int>>& seen_in_gid) {
+        // 在 port_table 中查找对应的端口规则
+        auto it = std::find_if(port_table.begin(), port_table.end(),
+            [orig_rid](const PortRule &pr) { return pr.rid == orig_rid; });
+
+        if (it == port_table.end()) {
+            return;  // 未找到对应的端口规则，跳过
+        }
+
+        const PortRule &por = *it;
+
+        // 在相同 G-ID 内部去重（检查完整的四元组）
+        auto dedup_key = std::make_tuple(por.src_port_lo, por.src_port_hi, 
+                                         por.dst_port_lo, por.dst_port_hi);
+        
+        if (seen_in_gid.find(dedup_key) != seen_in_gid.end()) {
+            // 已存在相同的端口范围，跳过
+            return;
+        }
+        seen_in_gid.insert(dedup_key);
+
+        // 创建新的 metainfo entry
+        Metainfo_for_SRC_port new_entry;
+        new_entry.Inital_Number = { static_cast<uint32_t>(orig_rid) };
+        new_entry.Src_lo   = por.src_port_lo;
+        new_entry.Src_hi   = por.src_port_hi;
+        new_entry.Dst_lo   = por.dst_port_lo;
+        new_entry.Dst_hi   = por.dst_port_hi;
+        new_entry.action   = por.action;
+        new_entry.group_ids = { static_cast<int>(gid) };
+
+        meta_src.push_back(new_entry);
+    };
+
     // 遍历 final_ip_table 中的非 cell 规则
     for (const auto& fr : final_ip_table)
     {
@@ -1617,40 +1661,40 @@ void Generate_MergedR_GID_to_metaifno(
         // 用于在相同 G-ID 内部去重（检查 Src_lo, Src_hi, Dst_lo, Dst_hi 是否相同）
         std::set<std::tuple<int, int, int, int>> seen_in_gid;  // (Src_lo, Src_hi, Dst_lo, Dst_hi)
 
-        // 遍历该规则关联的所有原始规则 ID
+        // ========== 1. 处理规则自己的原始规则 ID ==========
         for (size_t orig_rid : fr.merged_R)
         {
-            // 在 port_table 中查找对应的端口规则
-            auto it = std::find_if(port_table.begin(), port_table.end(),
-                [orig_rid](const PortRule &pr) { return pr.rid == orig_rid; });
+            add_port_pair(gid, orig_rid, seen_in_gid);
+        }
 
-            if (it == port_table.end()) {
-                continue;  // 未找到对应的端口规则，跳过
-            }
-
-            const PortRule &por = *it;
-
-            // 在相同 G-ID 内部去重（检查完整的四元组）
-            auto dedup_key = std::make_tuple(por.src_port_lo, por.src_port_hi, 
-                                             por.dst_port_lo, por.dst_port_hi);
+        // ========== 2. 处理祖先规则的原始规则 ID ==========
+        // fr.original_merged_index 是 RO_merged_ip_table 中的新索引
+        if (fr.original_merged_index != SIZE_MAX && 
+            fr.original_merged_index < RO_merged_ip_table.size())
+        {
+            const auto& rmax_rule = RO_merged_ip_table[fr.original_merged_index];
             
-            if (seen_in_gid.find(dedup_key) != seen_in_gid.end()) {
-                // 已存在相同的端口范围，跳过
-                continue;
+            // 遍历祖先（ancestors 存储的是旧索引）
+            for (size_t old_ancestor_idx : rmax_rule.ancestors)
+            {
+                // 将旧索引映射到新索引
+                auto it = old_to_new_idx.find(old_ancestor_idx);
+                if (it == old_to_new_idx.end()) {
+                    continue;  // 找不到映射，跳过
+                }
+                
+                size_t new_ancestor_idx = it->second;
+                if (new_ancestor_idx >= RO_merged_ip_table.size()) {
+                    continue;  // 索引越界，跳过
+                }
+                
+                // 获取祖先规则的 merged_R
+                const auto& ancestor_rule = RO_merged_ip_table[new_ancestor_idx];
+                for (size_t ancestor_orig_rid : ancestor_rule.merged_R)
+                {
+                    add_port_pair(gid, ancestor_orig_rid, seen_in_gid);
+                }
             }
-            seen_in_gid.insert(dedup_key);
-
-            // 创建新的 metainfo entry
-            Metainfo_for_SRC_port new_entry;
-            new_entry.Inital_Number = { static_cast<uint32_t>(orig_rid) };
-            new_entry.Src_lo   = por.src_port_lo;
-            new_entry.Src_hi   = por.src_port_hi;
-            new_entry.Dst_lo   = por.dst_port_lo;
-            new_entry.Dst_hi   = por.dst_port_hi;
-            new_entry.action   = por.action;
-            new_entry.group_ids = { static_cast<int>(gid) };
-
-            meta_src.push_back(new_entry);
         }
     }
 }
@@ -1824,6 +1868,8 @@ void Create_Metainfo_for_port(
     const vector<IntersectionCell>& intersections,
     const vector<IntersectionCell>& rmax_intersections,
     const vector<FinalIPRule>& final_ip_table,
+    const vector<Rmax_IPRule>& RO_merged_ip_table,
+    const std::unordered_map<size_t, size_t>& old_to_new_idx,
     std::map<std::tuple<std::vector<int>, int, int, int, int>, MergedItem>& merged_output)
 {
     vector<Metainfo_for_SRC_port> meta;
@@ -1834,8 +1880,8 @@ void Create_Metainfo_for_port(
     // 为交叉单元生成 GID 映射（创建新的 meta entries）
     Generate_cell_GID_to_metainfo(intersections, rmax_intersections, merged_ip_table, port_table, final_ip_table, meta);
     
-    // 为合并规则生成 GID 映射（创建新的 meta entries）
-    Generate_MergedR_GID_to_metaifno(final_ip_table, port_table, meta);
+    // 为合并规则生成 GID 映射（创建新的 meta entries，包括祖先规则的端口对）
+    Generate_MergedR_GID_to_metaifno(final_ip_table, port_table, RO_merged_ip_table, old_to_new_idx, meta);
 
     // 合并与重排 Metainfo
     Merge_and_Reorder_Metainfo(meta, merged_output);
@@ -1906,10 +1952,12 @@ static void build_ancestors_for_subset(
 
 void Reorder_merged_ip_table(
     std::vector<Rmax_IPRule>& Rmax_merged_ip_table,
-    std::vector<Rmax_IPRule>& RO_merged_ip_table
+    std::vector<Rmax_IPRule>& RO_merged_ip_table,
+    std::unordered_map<size_t, size_t>& old_to_new_idx
 )
 {
     RO_merged_ip_table.clear();
+    old_to_new_idx.clear();
     const size_t N = Rmax_merged_ip_table.size();
 
     // Step 1: 按 proto 分组
@@ -1926,7 +1974,22 @@ void Reorder_merged_ip_table(
         if (rule_indices.size() <= 1) {
             // 单条规则直接写入
             for (size_t rid : rule_indices) {
+                size_t new_idx = RO_merged_ip_table.size();
+                old_to_new_idx[rid] = new_idx;
                 RO_merged_ip_table.push_back(Rmax_merged_ip_table[rid]);
+                // 更新 rmax_id：如果是 leader，更新为新索引；否则映射到 leader 的新索引
+                size_t old_rmax_id = RO_merged_ip_table[new_idx].rmax_id;
+                if (old_rmax_id == rid) {
+                    // 这是 leader，更新为新索引
+                    RO_merged_ip_table[new_idx].rmax_id = new_idx;
+                } else {
+                    // 不是 leader，需要找到 leader 的新索引
+                    auto it = old_to_new_idx.find(old_rmax_id);
+                    if (it != old_to_new_idx.end()) {
+                        RO_merged_ip_table[new_idx].rmax_id = it->second;
+                    }
+                    // 如果找不到，保持原值（理论上不应该发生）
+                }
             }
             continue;
         }
@@ -1948,26 +2011,63 @@ void Reorder_merged_ip_table(
         }
 
         // --------------------------------------------------
-        // Step 3: 重排（祖先少 → 祖先多）
+        // Step 3: 重排（祖先多 → 祖先少，即覆盖范围大的在后，优先级低）
         // --------------------------------------------------
         std::vector<size_t> ordered = rule_indices;
         std::sort(
             ordered.begin(),
             ordered.end(),
             [&](size_t a, size_t b) {
-                return Rmax_merged_ip_table[a].ancestors.size()
-                     > Rmax_merged_ip_table[b].ancestors.size();
+                size_t anc_a = Rmax_merged_ip_table[a].ancestors.size();
+                size_t anc_b = Rmax_merged_ip_table[b].ancestors.size();
+                if (anc_a != anc_b) {
+                    return anc_a > anc_b;  // ancestors 多的在前，ancestors 少的在后（大范围规则在后）
+                }
+                // 如果 ancestors 数量相同，保持原顺序
+                return a < b;
             }
         );
+        
 
         // --------------------------------------------------
-        // Step 4: 写入 RO_merged_ip_table
+        // Step 4: 先建立该 proto 组内的索引映射
+        // --------------------------------------------------
+        std::unordered_map<size_t, size_t> proto_old_to_new;
+        size_t base_idx = RO_merged_ip_table.size();
+        for (size_t pos = 0; pos < ordered.size(); ++pos) {
+            size_t rid = ordered[pos];
+            size_t new_idx = base_idx + pos;
+            proto_old_to_new[rid] = new_idx;
+            old_to_new_idx[rid] = new_idx;
+        }
+
+        // --------------------------------------------------
+        // Step 5: 写入 RO_merged_ip_table 并更新 rmax_id
         // --------------------------------------------------
         for (size_t rid : ordered) {
+            size_t new_idx = proto_old_to_new[rid];
+            
+            // 复制规则
             RO_merged_ip_table.push_back(Rmax_merged_ip_table[rid]);
+            
+            // ★ 更新 rmax_id：如果是 leader，设置为新索引；否则映射到 leader 的新索引
+            size_t old_rmax_id = RO_merged_ip_table[new_idx].rmax_id;
+            if (old_rmax_id == rid) {
+                // 这是 leader，更新为新索引
+                RO_merged_ip_table[new_idx].rmax_id = new_idx;
+            } else {
+                // 不是 leader，需要找到 leader 的新索引
+                auto it = proto_old_to_new.find(old_rmax_id);
+                if (it != proto_old_to_new.end()) {
+                    RO_merged_ip_table[new_idx].rmax_id = it->second;
+                } else {
+                    // leader 不在当前 proto 组（理论上不应该发生，但安全处理）
+                    // 保持原值
+                }
+            }
+            // ★ 注意：ancestors 保持为旧索引，不修改
         }
     }
-
 }
 
 

@@ -2,9 +2,7 @@
 #include <vector>
 #include <map>
 #include <tuple>
-#include <algorithm>
-#include <fstream>
-#include <iostream>
+#include <unordered_map>
 #include <cstddef>  // for size_t
 #include "Loader.hpp"
 
@@ -94,7 +92,7 @@ void find_intersections_per_proto(
 );
 
 void merge_cells_and_ip_table(
-    const std::vector<Rmax_IPRule>& Rmax_merged_ip_table,
+    const std::vector<Rmax_IPRule>& OR_merged_ip_table,
     const std::vector<IntersectionCell>& Rmax_intersections,
     const std::vector<IntersectionCell>& intersections,
     std::vector<FinalIPRule>& final_ip_table
@@ -131,10 +129,13 @@ void Create_Metainfo_for_port(
     const std::vector<IntersectionCell>& intersections,
     const std::vector<IntersectionCell>& rmax_intersections,
     const std::vector<FinalIPRule>& final_ip_table,
+    const std::vector<Rmax_IPRule>& RO_merged_ip_table,
+    const std::unordered_map<size_t, size_t>& old_to_new_idx,
     std::map<std::tuple<std::vector<int>, int, int, int, int>, MergedItem>& merged_output
 );
 
 void Reorder_merged_ip_table(
     vector<Rmax_IPRule>&  Rmax_merged_ip_table, 
-    vector<Rmax_IPRule>& RO_merged_ip_table
+    vector<Rmax_IPRule>& RO_merged_ip_table,
+    std::unordered_map<size_t, size_t>& old_to_new_idx
 );
