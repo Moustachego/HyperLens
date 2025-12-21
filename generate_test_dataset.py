@@ -24,9 +24,11 @@ class ACLRule:
     def __init__(self, line: str):
         # 解析规则格式: @src_ip/prefix dst_ip/prefix src_port:src_port dst_port:dst_port proto/mask action/mask
         # 先用制表符分割，因为实际规则文件使用制表符
-        parts = line.strip().split('\t')
-        # 过滤空字符串
-        parts = [p.strip() for p in parts if p.strip()]
+        # 去掉注释
+        line = line.split('//', 1)[0].strip()
+
+        # 按任意空白（TAB / 多空格）分割
+        parts = re.split(r'\s+', line)
         
         if len(parts) < 6:
             raise ValueError(f"规则字段数不足: {len(parts)}")
@@ -267,7 +269,7 @@ def main():
     )
     
     parser.add_argument('rules_file', 
-                        help='ACL规则文件路径（如: src/ACL_rules/acl1/acl1_50k_16_0.5.rules）')
+                        help='ACL规则文件路径（如: src/ACL_rules/test-rules/Region_test.rules）')
     parser.add_argument('-o', '--output', 
                         default=None,
                         help='输出测试集文件路径（默认: <规则文件名>_testset.txt）')

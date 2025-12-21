@@ -5,6 +5,8 @@
 #include <algorithm>
 #include <fstream>
 #include <iostream>
+#include <cstddef>  // for size_t
+#include "Loader.hpp"
 
 using namespace std;
 
@@ -19,6 +21,7 @@ struct IntersectionCell {
     std::vector<size_t> rule_indices; // 记录由哪些规则覆盖（索引为 merged_ip_table 索引）
     std::vector<size_t> Extraction;
     std::vector<size_t> minimal;      // ★ 真正相交的规则（经过proper intersection筛选）
+    // std::vector<size_t> ancestors;
     size_t   priority = 0;            // ★ 优先级：初始 minimal.size()，越大优先级越高
 };
 
@@ -44,6 +47,7 @@ struct Rmax_IPRule {
     int src_prefix_len;
     int dst_prefix_len;
     size_t   rmax_id;
+    std::vector<size_t> ancestors;
     std::vector<size_t> merged_R;  // 存储原始规则的编号
 };
 
@@ -122,9 +126,15 @@ void write_final_table_in_cidr(
 );
 
 void Create_Metainfo_for_port(
-    const vector<PortRule>& port_table,
-    const vector<IPRule>& merged_ip_table,
-    const vector<IntersectionCell>& IntersectionCell,
-    const vector<FinalIPRule>& final_ip_table,
+    const std::vector<PortRule>& port_table,
+    const std::vector<IPRule>& merged_ip_table,
+    const std::vector<IntersectionCell>& intersections,
+    const std::vector<IntersectionCell>& rmax_intersections,
+    const std::vector<FinalIPRule>& final_ip_table,
     std::map<std::tuple<std::vector<int>, int, int, int, int>, MergedItem>& merged_output
+);
+
+void Reorder_merged_ip_table(
+    vector<Rmax_IPRule>&  Rmax_merged_ip_table, 
+    vector<Rmax_IPRule>& RO_merged_ip_table
 );

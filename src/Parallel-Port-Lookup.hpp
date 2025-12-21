@@ -3,6 +3,8 @@
 #include <cstdint>
 #include <bitset>
 #include <string>
+#include "Loader.hpp"
+#include "Dependent-Set-Prefix-Lookup.hpp"
 
 using namespace std;
 
@@ -120,20 +122,27 @@ struct DST_TCAM_Table {
     std::string bin_prefix;
 };
 
+struct RmaxEntity {
+    uint32_t src_lo, src_hi;
+    uint32_t dst_lo, dst_hi;
+    uint8_t  proto;
+    size_t   rmax_id;
+};
+
+
 // ===== Function Declarations =====
 
 void load_and_create_IP_table(
-    std::vector<IPRule>& ip_table,
-    std::vector<PortRule>& port_table,
-    std::vector<IPRule>& merged_ip_table,
-    std::map<std::tuple<std::vector<int>, int, int, int, int>, MergedItem>& mateifno
+    vector<IPRule>& ip_table,
+    vector<PortRule>& port_table,
+    vector<IPRule>& merged_ip_table,
+    std::map<std::tuple<std::vector<int>, int, int, int, int>, MergedItem>& mateinfo
 );
 
 void create_Table_for_port(
     const std::vector<PortRule>& port_table,
     const std::vector<IPRule>& merged_ip_table,
-    std::map<std::tuple<std::vector<int>, int, int, int, int>, MergedItem>& mateifno
+    std::map<std::tuple<std::vector<int>, int, int, int, int>, MergedItem>& mateinfo
 );
-
 
 

@@ -1495,15 +1495,16 @@ void write_final_table_in_cidr(
 
 void Generate_cell_GID_to_metainfo(
     const vector<IntersectionCell>& intersection_cells,
+    const vector<IntersectionCell>& Rmax_intersections,
     const vector<IPRule>& merged_ip_table,
     const vector<PortRule>& port_table,
     const vector<FinalIPRule>& final_ip_table,
     vector<Metainfo_for_SRC_port>& meta_src
 )
-{
+{   
     bool enable_debug = false;
 
-    // 建立 IntersectionCell 快速查找表：用 key = src_lo-src_hi-dst_lo-dst_hi-proto
+    // ========== 1. 建立 cell 查找表 ==========
     std::unordered_map<std::string, size_t> cell_key_to_index;
     cell_key_to_index.reserve(intersection_cells.size());
     for (size_t ci = 0; ci < intersection_cells.size(); ++ci) {
@@ -1514,6 +1515,17 @@ void Generate_cell_GID_to_metainfo(
         cell_key_to_index.emplace(key, ci);
     }
 
+    // ========== 2. 建立 Rmax_cell 查找表 ==========
+    std::unordered_map<std::string, size_t> rmax_key_to_index;
+    rmax_key_to_index.reserve(Rmax_intersections.size());
+    for (size_t ci = 0; ci < Rmax_intersections.size(); ++ci) {
+        const auto &c = Rmax_intersections[ci];
+        std::string key = std::to_string(c.src_lo) + "-" + std::to_string(c.src_hi) + "-" +
+                          std::to_string(c.dst_lo) + "-" + std::to_string(c.dst_hi) + "-" +
+                          std::to_string((int)c.proto);
+        rmax_key_to_index.emplace(key, ci);
+    }
+
     // Helper: build key from final rule coords
     auto make_key_from_final = [](const FinalIPRule &fr)->std::string {
         return std::to_string(fr.src_lo) + "-" + std::to_string(fr.src_hi) + "-" +
@@ -1521,58 +1533,52 @@ void Generate_cell_GID_to_metainfo(
                std::to_string((int)fr.proto);
     };
 
-    // 步骤1-5：遍历 final_ip_table 中的所有 cell
+    // ========== 3. 遍历 final_ip_table ==========
     for (size_t fi = 0; fi < final_ip_table.size(); ++fi) {
         const FinalIPRule &fr = final_ip_table[fi];
         if (!fr.is_cell) continue;
-        if (fr.group_ids.empty()) {
-            if (enable_debug) std::cout << "[DBG] final cell idx=" << fi << " has no group_ids, skip\n";
-            continue;
-        }
+        if (fr.group_ids.empty()) continue;
 
-        // 步骤1：从 final_ip_table 中取 cell 的 G-ID
         int gid = fr.group_ids[0];
-
-        // 步骤2：定位 cell 并提取 Extraction
         std::string key = make_key_from_final(fr);
+
+        const IntersectionCell* ic = nullptr;
+        bool is_rmax_cell = false;
+
+        // 3.1 先查普通 cell
         auto itc = cell_key_to_index.find(key);
-        if (itc == cell_key_to_index.end()) {
-            if (enable_debug) std::cout << "[WARN] cannot find IntersectionCell for final cell fi="
-                                        << fi << " key=" << key << "\n";
+        if (itc != cell_key_to_index.end()) {
+            ic = &intersection_cells[itc->second];
+        } else {
+            // 3.2 再查 Rmax_cell
+            auto itr = rmax_key_to_index.find(key);
+            if (itr != rmax_key_to_index.end()) {
+                ic = &Rmax_intersections[itr->second];
+                is_rmax_cell = true;
+            }
+        }
+
+        if (!ic) {
+            if (enable_debug) {
+                std::cout << "[WARN] no cell or Rmax_cell found for key=" << key << "\n";
+            }
             continue;
         }
-        const IntersectionCell &ic = intersection_cells[itc->second];
 
-        // 步骤3：为每个 Extraction 中的 merged_ip_table 索引创建 entry
-        // 用于 G-ID 内部去重的临时容器
-        std::set<std::tuple<int, int, int, int>> seen_in_gid;  // (Src_lo, Src_hi, Dst_lo, Dst_hi)
+        // ========== 4. 展开 Extraction ==========
+        for (size_t orig_rid : ic->Extraction) {
+            auto it = std::find_if(
+                port_table.begin(),
+                port_table.end(),
+                [orig_rid](const PortRule &pr) {
+                    return pr.rid == orig_rid;
+                }
+            );
 
-        // ★ 修复：ic.Extraction 存储的是原始规则 ID（不是 merged_ip_table 索引）
-        // 直接在 port_table 中查找，不需要通过 merged_ip_table
-        for (size_t orig_rid : ic.Extraction) {
-            // 在 port_table 中查找对应的端口规则
-            auto it = std::find_if(port_table.begin(), port_table.end(),
-                [orig_rid](const PortRule &pr) { return pr.rid == orig_rid; });
-
-            if (it == port_table.end()) {
-                if (enable_debug) std::cout << "[DBG] orig rule id " << orig_rid
-                                            << " not found in port_table\n";
-                continue;
-            }
+            if (it == port_table.end()) continue;
 
             const PortRule &por = *it;
 
-            // 步骤4：在相同 G-ID 内部去重（检查 Src_lo, Src_hi, Dst_lo, Dst_hi 是否相同）
-            auto dedup_key = std::make_tuple(por.src_port_lo, por.src_port_hi, 
-                                             por.dst_port_lo, por.dst_port_hi);
-            
-            if (seen_in_gid.find(dedup_key) != seen_in_gid.end()) {
-                // 已存在相同的端口范围，跳过
-                continue;
-            }
-            seen_in_gid.insert(dedup_key);
-
-            // 步骤5：创建新的 metainfo entry
             Metainfo_for_SRC_port new_entry;
             new_entry.Inital_Number = { static_cast<uint32_t>(orig_rid) };
             new_entry.Src_lo   = por.src_port_lo;
@@ -1583,12 +1589,14 @@ void Generate_cell_GID_to_metainfo(
             new_entry.group_ids = { gid };
 
             meta_src.push_back(new_entry);
-        } // end for orig_rid in Extraction
+        }
+    }
 
-    } // end for final_ip_table
-
-    if (enable_debug) std::cout << "[INFO] Generate_cell_GID_to_metainfo done.\n";
+    if (enable_debug) {
+        std::cout << "[INFO] Generate_cell_GID_to_metainfo done. meta_src size="<< meta_src.size() << "\n";
+    }
 }
+
 
 
 void Generate_MergedR_GID_to_metaifno(
@@ -1813,7 +1821,8 @@ void Write_Metainfo_to_File(
 void Create_Metainfo_for_port(
     const vector<PortRule>& port_table,
     const vector<IPRule>& merged_ip_table,
-    const vector<IntersectionCell>& IntersectionCell,
+    const vector<IntersectionCell>& intersections,
+    const vector<IntersectionCell>& rmax_intersections,
     const vector<FinalIPRule>& final_ip_table,
     std::map<std::tuple<std::vector<int>, int, int, int, int>, MergedItem>& merged_output)
 {
@@ -1823,7 +1832,7 @@ void Create_Metainfo_for_port(
     meta.clear();
     
     // 为交叉单元生成 GID 映射（创建新的 meta entries）
-    Generate_cell_GID_to_metainfo(IntersectionCell, merged_ip_table, port_table, final_ip_table, meta);
+    Generate_cell_GID_to_metainfo(intersections, rmax_intersections, merged_ip_table, port_table, final_ip_table, meta);
     
     // 为合并规则生成 GID 映射（创建新的 meta entries）
     Generate_MergedR_GID_to_metaifno(final_ip_table, port_table, meta);
@@ -1834,6 +1843,135 @@ void Create_Metainfo_for_port(
     // 输出 Metainfo 到文件
     Write_Metainfo_to_File(merged_output);
 };
+
+
+static void build_ancestors_for_subset(
+    const std::vector<size_t>& rule_indices,
+    const std::vector<Rmax_IPRule>& table,
+    std::unordered_map<size_t, std::vector<size_t>>& ancestors
+)
+{
+    ancestors.clear();
+
+    // 初始化
+    for (size_t rid : rule_indices) {
+        ancestors[rid] = {};
+    }
+
+    // Step 1: 直接包含关系
+    for (size_t a : rule_indices) {
+        for (size_t b : rule_indices) {
+            if (a == b) continue;
+
+            const auto& A = table[a];
+            const auto& B = table[b];
+
+            // A 覆盖 B ⇒ A 是 B 的祖先
+            if (A.src_ip_lo <= B.src_ip_lo &&
+                A.src_ip_hi >= B.src_ip_hi &&
+                A.dst_ip_lo <= B.dst_ip_lo &&
+                A.dst_ip_hi >= B.dst_ip_hi)
+            {
+                ancestors[b].push_back(a);
+            }
+        }
+    }
+
+    // Step 2: 传递闭包（保证 R2 能拿到 R0）
+    bool changed = true;
+    while (changed) {
+        changed = false;
+        for (auto& kv : ancestors) {
+            size_t node = kv.first;
+            auto& vec = kv.second;
+
+            std::vector<size_t> to_add;
+            for (size_t p : vec) {
+                for (size_t gp : ancestors[p]) {
+                    if (gp == node) continue;
+                    if (std::find(vec.begin(), vec.end(), gp) == vec.end()) {
+                        to_add.push_back(gp);
+                    }
+                }
+            }
+
+            if (!to_add.empty()) {
+                vec.insert(vec.end(), to_add.begin(), to_add.end());
+                changed = true;
+            }
+        }
+    }
+}
+
+
+void Reorder_merged_ip_table(
+    std::vector<Rmax_IPRule>& Rmax_merged_ip_table,
+    std::vector<Rmax_IPRule>& RO_merged_ip_table
+)
+{
+    RO_merged_ip_table.clear();
+    const size_t N = Rmax_merged_ip_table.size();
+
+    // Step 1: 按 proto 分组
+    std::map<uint8_t, std::vector<size_t>> proto_to_rule_indices;
+    for (size_t i = 0; i < N; ++i) {
+        proto_to_rule_indices[Rmax_merged_ip_table[i].proto].push_back(i);
+    }
+
+    // Step 2: 每个 proto 独立：算 ancestors + 排序
+    for (auto& kv : proto_to_rule_indices) {
+        uint8_t proto = kv.first;
+        std::vector<size_t>& rule_indices = kv.second;
+
+        if (rule_indices.size() <= 1) {
+            // 单条规则直接写入
+            for (size_t rid : rule_indices) {
+                RO_merged_ip_table.push_back(Rmax_merged_ip_table[rid]);
+            }
+            continue;
+        }
+
+        // --------------------------------------------------
+        // ★ 核心步骤：在 proto 子集中构建 ancestors
+        // --------------------------------------------------
+        std::unordered_map<size_t, std::vector<size_t>> ancestors_map;
+        build_ancestors_for_subset(
+            rule_indices,
+            Rmax_merged_ip_table,
+            ancestors_map
+        );
+
+        // 写回到 Rmax_merged_ip_table
+        for (auto& kv2 : ancestors_map) {
+            size_t rid = kv2.first;
+            Rmax_merged_ip_table[rid].ancestors = kv2.second;
+        }
+
+        // --------------------------------------------------
+        // Step 3: 重排（祖先少 → 祖先多）
+        // --------------------------------------------------
+        std::vector<size_t> ordered = rule_indices;
+        std::sort(
+            ordered.begin(),
+            ordered.end(),
+            [&](size_t a, size_t b) {
+                return Rmax_merged_ip_table[a].ancestors.size()
+                     > Rmax_merged_ip_table[b].ancestors.size();
+            }
+        );
+
+        // --------------------------------------------------
+        // Step 4: 写入 RO_merged_ip_table
+        // --------------------------------------------------
+        for (size_t rid : ordered) {
+            RO_merged_ip_table.push_back(Rmax_merged_ip_table[rid]);
+        }
+    }
+
+}
+
+
+
 
 
 #ifdef DEMO_LOADER_MAIN
