@@ -1674,6 +1674,9 @@ void Generate_MergedR_GID_to_metaifno(
         {
             const auto& rmax_rule = RO_merged_ip_table[fr.original_merged_index];
             
+            // rmax_rule.rmax_id 是当前规则的 Rmax 在新索引中的位置
+            size_t rmax_idx = rmax_rule.rmax_id;
+            
             // 遍历祖先（ancestors 存储的是旧索引）
             for (size_t old_ancestor_idx : rmax_rule.ancestors)
             {
@@ -1686,6 +1689,12 @@ void Generate_MergedR_GID_to_metaifno(
                 size_t new_ancestor_idx = it->second;
                 if (new_ancestor_idx >= RO_merged_ip_table.size()) {
                     continue;  // 索引越界，跳过
+                }
+                
+                // ★ 跳过 Rmax：如果这个祖先正好是当前规则的 Rmax，则跳过
+                // 因为 G-ID 已经包含了规则自己和 Rmax 的语义，不需要重复添加 Rmax 的端口对
+                if (rmax_idx != SIZE_MAX && new_ancestor_idx == rmax_idx) {
+                    continue;  // 跳过 Rmax 祖先
                 }
                 
                 // 获取祖先规则的 merged_R
@@ -1738,7 +1747,7 @@ void Merge_and_Reorder_Metainfo(
         }
     );
 
-    // Step 3: 合并相同 (GroupIDs, Src_lo, Src_hi, Dst_lo, Dst_hi) 的条目
+    // Step 3: 合并相同 (GroupIDs, Src_lo, Src_hi, Dst_lo, Dst_hi) 的条目，这里还需要加一个action可能
     std::map<std::tuple<std::vector<int>, int, int, int, int>, MergedItem> merged_map;
 
     for (size_t i = 0; i < filtered_meta.size(); ++i) {
@@ -1761,6 +1770,7 @@ void Merge_and_Reorder_Metainfo(
 
         // 累积 Idx（重排后的行号）和 InitNum
         merged_map[key].idx_list.push_back(i + 1);
+        
         
         // 将 Inital_Number vector 的所有元素追加到 initnum_list（去重）
         for (uint32_t num : m.Inital_Number) {
@@ -1785,13 +1795,34 @@ void Merge_and_Reorder_Metainfo(
         }
     );
 
-    // Step 4: 重新分配连续的 ID
+    // Step 4: 重新分配 G-ID2，根据三种情况分类处理
+    // 情况1: G-ID1相同，Srcport和DstPort都不同 → 按顺序分配不同的G-ID2
+    // 情况2: G-ID1相同，Srcport相同，DstPort不同 → 相同的Srcport分配相同的G-ID2
+    // 情况3: G-ID1相同，Srcport不同，DstPort相同 → 按顺序分配不同的G-ID2
+    
     int newID = 0;
+    std::map<std::tuple<int, int, int>, int> srcport_to_gid2;  // (G-ID1, Src_lo, Src_hi) -> G-ID2
+    
     for (auto &kv : merged_vec) {
         auto &item = kv.second;
-        item.idx_list.clear();
-        item.idx_list.push_back(newID);
-        newID++;
+        int gid1 = item.group_ids.empty() ? -1 : item.group_ids[0];
+        
+        // 构建 Srcport 键
+        auto srcport_key = std::make_tuple(gid1, item.src_lo, item.src_hi);
+        
+        // 检查情况2：G-ID1相同且Srcport相同的情况
+        auto it = srcport_to_gid2.find(srcport_key);
+        if (it != srcport_to_gid2.end()) {
+            // 情况2：Srcport相同，使用已分配的G-ID2
+            item.idx_list.clear();
+            item.idx_list.push_back(it->second);
+        } else {
+            // 情况1或3：Srcport不同，分配新的G-ID2
+            item.idx_list.clear();
+            item.idx_list.push_back(newID);
+            srcport_to_gid2[srcport_key] = newID;
+            newID++;
+        }
     }
 
     // Step 5: 重新构建 merged_output（保持按 GID1 排序的顺序）
