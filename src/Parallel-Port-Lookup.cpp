@@ -1579,7 +1579,7 @@ void load_and_create_IP_table(vector<IPRule>& ip_table,
             }
         }
     }
-
+    
     //3) per-protocol elementary intervals (half-open endpoints)
     map<uint8_t, vector<uint32_t>> src_intervals_per_proto;
     map<uint8_t, vector<uint32_t>> dst_intervals_per_proto;
