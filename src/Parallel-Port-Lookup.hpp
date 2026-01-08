@@ -81,6 +81,8 @@ struct SRC_Port_Item{
     std::vector<int> group_ids2;      // 分配后的 GID2（顺序分配）
 };
 
+
+
 // 对称的 DST 项结构
 struct DST_Port_Item{
     std::vector<int> group_ids1;      // 原始 GID 列表

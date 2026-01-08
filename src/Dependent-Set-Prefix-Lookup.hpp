@@ -139,3 +139,8 @@ void Reorder_merged_ip_table(
     vector<Rmax_IPRule>& RO_merged_ip_table,
     std::unordered_map<size_t, size_t>& old_to_new_idx
 );
+
+
+void Write_Metainfo_to_File(
+    const std::map<std::tuple<std::vector<int>, int, int, int, int>, MergedItem>& merged_output,
+    const std::string& filename = "src/output/meta_merged.txt");

@@ -547,26 +547,45 @@ def build_action_table_from_rules(rules_file):
     return action_table
 
 def resolve_action(pkt, action_table):
-    """
-    STEP (5): Resolve ActionID to original action
-    """
     action_id = pkt.get('final_action')
     if action_id is None:
         pkt['fail_stage'] = FailStage.ACTION
-        pkt['fail_reason'] = "Missing ActionID (final_action is None)"
+        pkt['fail_reason'] = "Missing ActionID"
         return False
 
-    # In hardware pipeline, ActionID is 1-based (R0 -> 1, R1 -> 2, ...)
-    # but our action_table is 0-based (rule_idx).
-    lookup_id = action_id - 1
-
-    if lookup_id not in action_table:
+    # ★ 修复：DST 表中的 Action 值是 action 值的十进制表示（如 16 = 0x0010）
+    # 而不是 rule index。需要通过 action 值来查找对应的规则
+    # 将 action_id（十进制）转换为十六进制字符串格式进行比较
+    target_action_hex = f"0x{action_id:04X}"
+    
+    # 遍历 action_table，查找匹配的 action 值
+    resolved_str = None
+    for rule_idx, action_str in action_table.items():
+        # 解析 action 字符串，提取 value 部分
+        try:
+            action_value, action_mask = parse_action(action_str)
+            # 将 value 转换为十六进制字符串进行比较
+            action_value_hex = f"0x{action_value:04X}"
+            if action_value_hex == target_action_hex:
+                resolved_str = action_str
+                break
+        except (ValueError, KeyError):
+            continue
+    
+    if resolved_str is None:
         pkt['fail_stage'] = FailStage.ACTION
-        pkt['fail_reason'] = f"ActionID {action_id} (lookup index {lookup_id}) not in action_table"
+        pkt['fail_reason'] = f"ActionID {action_id} (hex: {target_action_hex}) not found in action table"
         return False
 
-    pkt['resolved_action'] = action_table[lookup_id]
+    # 原始字符串
+    pkt['resolved_action'] = resolved_str
+
+    # 解析 value/mask
+    pkt['resolved_action_value'], pkt['resolved_action_mask'] = \
+        parse_action(resolved_str)
+
     return True
+
 
 
 def add_debug(pkt, stage, info: dict):
@@ -574,6 +593,57 @@ def add_debug(pkt, stage, info: dict):
         'stage': stage,
         'info': info
     })
+
+
+def parse_action(action_str):
+    """
+    Parse action like '0x0010/0xFFFF'
+    Return (value:int, mask:int)
+    """
+    if '/' not in action_str:
+        raise ValueError(f"Invalid action format: {action_str}")
+
+    v, m = action_str.split('/')
+    return int(v, 16), int(m, 16)
+
+
+def dump_failed_packets(packets, log_file):
+    log_file.write("\n" + "=" * 80 + "\n")
+    log_file.write("FAILED PACKETS DETAIL TRACE\n")
+    log_file.write("=" * 80 + "\n")
+
+    fail_cnt = 0
+
+    for i, pkt in enumerate(packets):
+        if pkt.get('fail_stage') is None:
+            continue
+
+        fail_cnt += 1
+        log_file.write(f"\n[FAIL #{fail_cnt}] Packet Index: {i}\n")
+        log_file.write("-" * 60 + "\n")
+
+        log_file.write(
+            f"5-Tuple: "
+            f"SRC={pkt['src_ip']}:{pkt['src_port']}  "
+            f"DST={pkt['dst_ip']}:{pkt['dst_port']}  "
+            f"PROTO={pkt['protocol']}\n"
+        )
+
+        log_file.write(f"Expected Action : {pkt.get('expected_action')}\n")
+        log_file.write(f"Resolved Action : {pkt.get('resolved_action')}\n")
+        log_file.write(f"Fail Stage      : {pkt.get('fail_stage')}\n")
+        log_file.write(f"Fail Reason     : {pkt.get('fail_reason')}\n")
+
+        # ★ 打印 debug trace（关键）
+        if 'debug' in pkt:
+            log_file.write("Debug Trace:\n")
+            for stage, info in pkt['debug'].items():
+                log_file.write(f"  [{stage}]\n")
+                for k, v in info.items():
+                    log_file.write(f"    {k}: {v}\n")
+
+    if fail_cnt == 0:
+        log_file.write("\nNo failed packets 🎉\n")
 
 
 # ============================================================
@@ -625,9 +695,9 @@ def main():
             pkt['fail_reason'] = "No IP/Protocol match in final IP table"
             ip_fail += 1
             add_debug(pkt, FailStage.IP, {
-            'src_ip': pkt['src_ip'],
-            'dst_ip': pkt['dst_ip'],
-            'protocol': pkt['protocol'],
+                'src_ip': pkt['src_ip'],
+                'dst_ip': pkt['dst_ip'],
+                'protocol': pkt['protocol'],
             })
         else:
             pkt['matched_gids'] = gids
@@ -635,8 +705,8 @@ def main():
     log_file.write(f"Loaded {len(final_ip_table)} final IP rules\n")
     log_file.write("\nSTEP (2) summary:\n")
     log_file.write(f"Packets failed at IP stage: {ip_fail}\n")
-    
-    # Detailed failure info for STEP (2)
+
+    # ========================= 原有失败打印：完全保留 =========================
     if ip_fail > 0:
         log_file.write("\nSTEP (2) Failed packets details:\n")
         for pkt in packets:
@@ -646,16 +716,6 @@ def main():
                     f"SRC={pkt['src_ip']} DST={pkt['dst_ip']} PROTO={pkt['protocol']} "
                     f"G-ID1=None (no match)\n"
                 )
-    else:
-        log_file.write("\nSTEP (2) Success: All packets matched.\n")
-        log_file.write("Sample G-ID1 values (first 10 packets):\n")
-        for pkt in packets[:10]:
-            if pkt.get('matched_gids'):
-                log_file.write(
-                    f"  Pkt#{pkt['packet_index']} "
-                    f"SRC={pkt['src_ip']} DST={pkt['dst_ip']} "
-                    f"G-ID1={pkt['matched_gids']}\n"
-                )
 
     # =========================================================
     # STEP (3) + (3.5): SRC TCAM + SRC SRAM
@@ -663,33 +723,25 @@ def main():
     src_tcam_table = load_src_tcam_table(src_tcam_file)
     src_sram_table = load_src_sram_table(src_sram_file)
 
-    log_file.write(f"Loaded {len(src_tcam_table)} SRC TCAM rules\n")
-    log_file.write(f"Loaded {len(src_sram_table)} SRC SRAM rules\n")
-
     src_fail = 0
-
     for pkt in packets:
         if pkt['fail_stage'] is not None:
             continue
 
-        # STEP (3): SRC TCAM
         if src_tcam_lookup(pkt, src_tcam_table):
             continue
 
-        # STEP (3.5): SRC SRAM
         if not src_sram_lookup(pkt, src_sram_table):
             src_fail += 1
 
-
     log_file.write("\nSTEP (3+3.5) summary:\n")
     log_file.write(f"Packets failed at SRC stage: {src_fail}\n")
-    
-    # Detailed failure info for STEP (3+3.5)
+
+    # ========================= 原有失败打印：完全保留 =========================
     if src_fail > 0:
         log_file.write("\nSTEP (3+3.5) Failed packets details:\n")
         for pkt in packets:
-            if pkt['fail_stage'] == FailStage.SRC_TCAM or pkt['fail_stage'] == FailStage.SRC_SRAM:
-                src_port_bin = port_to_bin(pkt['src_port'])
+            if pkt['fail_stage'] in (FailStage.SRC_TCAM, FailStage.SRC_SRAM):
                 quotient = pkt['src_port'] // 32
                 remainder = pkt['src_port'] % 32
                 log_file.write(
@@ -698,48 +750,10 @@ def main():
                     f"G-ID1={pkt.get('matched_gids', [])} "
                     f"G-ID2=None "
                     f"Stage={pkt['fail_stage']} "
-                    f"Reason={pkt.get('fail_reason', 'Unknown')}\n"
+                    f"Reason={pkt.get('fail_reason')}\n"
                 )
                 log_file.write(
-                    f"    Details: SRC_PORT_BIN={src_port_bin} "
-                    f"SRAM_Quotient={quotient} SRAM_BitIndex={remainder}\n"
-                )
-                # Show attempted TCAM patterns
-                attempted_patterns = []
-                for gid1 in pkt.get('matched_gids', []):
-                    for rule in src_tcam_table:
-                        if rule['group_id1'] == gid1:
-                            attempted_patterns.append(f"GID1={gid1}:{rule['pattern']}")
-                if attempted_patterns:
-                    log_file.write(f"    Attempted TCAM patterns: {', '.join(attempted_patterns[:5])}\n")
-                # Show attempted SRAM entries
-                attempted_sram = []
-                for gid1 in pkt.get('matched_gids', []):
-                    for entry in src_sram_table:
-                        if entry['group_id1'] == gid1 and entry['quotient'] == quotient:
-                            attempted_sram.append(f"GID1={gid1}:Quotient={quotient}:Bitmap={entry['bitmap']}")
-                if attempted_sram:
-                    log_file.write(f"    Attempted SRAM entries: {', '.join(attempted_sram[:3])}\n")
-    else:
-        log_file.write("\nSTEP (3+3.5) Success: All packets matched.\n")
-        log_file.write("Sample G-ID2 values (first 10 packets):\n")
-        for pkt in packets[:10]:
-            if pkt.get('src_group_id') is not None:
-                # Find which G-ID1 was used and how it matched
-                matched_via = "Unknown"
-                for trace in pkt.get('debug_trace', []):
-                    if trace['stage'] == FailStage.SRC_TCAM and trace['info'].get('hit'):
-                        matched_via = f"TCAM (pattern={trace['info'].get('pattern', 'N/A')})"
-                        break
-                    elif trace['stage'] == FailStage.SRC_SRAM:
-                        matched_via = f"SRAM (bitmap check)"
-                        break
-                log_file.write(
-                    f"  Pkt#{pkt['packet_index']} "
-                    f"SRC_PORT={pkt['src_port']} "
-                    f"G-ID1={pkt.get('matched_gids', [])} "
-                    f"G-ID2={pkt['src_group_id']} "
-                    f"MatchedVia={matched_via}\n"
+                    f"    SRAM_Quotient={quotient} SRAM_BitIndex={remainder}\n"
                 )
 
     # =========================================================
@@ -748,87 +762,19 @@ def main():
     dst_tcam_table = load_dst_tcam_table(dst_tcam_file)
     dst_sram_table = load_dst_sram_table(dst_sram_file)
 
-    log_file.write(f"Loaded {len(dst_tcam_table)} DST TCAM rules\n")
-    log_file.write(f"Loaded {len(dst_sram_table)} DST SRAM rules\n")
-
     dst_fail = 0
-
     for pkt in packets:
         if pkt['fail_stage'] is not None:
             continue
 
-        # STEP (4.1): DST TCAM
         if dst_tcam_lookup(pkt, dst_tcam_table):
             continue
 
-        # STEP (4.2): DST SRAM
-        if dst_sram_lookup(pkt, dst_sram_table):
-            continue
-
-        dst_fail += 1
+        if not dst_sram_lookup(pkt, dst_sram_table):
+            dst_fail += 1
 
     log_file.write("\nSTEP (4) summary:\n")
     log_file.write(f"Packets failed at DST stage: {dst_fail}\n")
-    
-    # Detailed failure info for STEP (4)
-    if dst_fail > 0:
-        log_file.write("\nSTEP (4) Failed packets details:\n")
-        for pkt in packets:
-            if pkt['fail_stage'] == FailStage.DST_TCAM or pkt['fail_stage'] == FailStage.DST_SRAM:
-                dst_port_bin = port_to_bin(pkt['dst_port'])
-                quotient = pkt['dst_port'] // 32
-                remainder = pkt['dst_port'] % 32
-                gid2 = pkt.get('src_group_id')
-                log_file.write(
-                    f"  Pkt#{pkt['packet_index']} "
-                    f"DST={pkt['dst_ip']}:{pkt['dst_port']} "
-                    f"G-ID1={pkt.get('matched_gids', [])} "
-                    f"G-ID2={gid2} "
-                    f"FinalAction=None "
-                    f"Stage={pkt['fail_stage']} "
-                    f"Reason={pkt.get('fail_reason', 'Unknown')}\n"
-                )
-                log_file.write(
-                    f"    Details: DST_PORT_BIN={dst_port_bin} "
-                    f"SRAM_Quotient={quotient} SRAM_BitIndex={remainder}\n"
-                )
-                if gid2 is not None:
-                    # Show attempted TCAM patterns
-                    attempted_patterns = []
-                    for rule in dst_tcam_table:
-                        if rule['group_id2'] == gid2:
-                            attempted_patterns.append(rule['pattern'])
-                    if attempted_patterns:
-                        log_file.write(f"    Attempted TCAM patterns (GID2={gid2}): {', '.join(attempted_patterns[:5])}\n")
-                    # Show attempted SRAM entries
-                    attempted_sram = []
-                    for rule in dst_sram_table:
-                        if rule['group_id2'] == gid2 and rule['quotient'] == quotient:
-                            attempted_sram.append(f"Quotient={quotient}:Bitmap={rule['bitmap']}")
-                    if attempted_sram:
-                        log_file.write(f"    Attempted SRAM entries (GID2={gid2}): {', '.join(attempted_sram[:3])}\n")
-    else:
-        log_file.write("\nSTEP (4) Success: All packets matched.\n")
-        log_file.write("Sample FinalAction values (first 10 packets):\n")
-        for pkt in packets[:10]:
-            if pkt.get('final_action') is not None:
-                # Find how it matched
-                matched_via = "Unknown"
-                for trace in pkt.get('debug_trace', []):
-                    if trace['stage'] == FailStage.DST_TCAM and trace['info'].get('hit'):
-                        matched_via = f"TCAM (pattern={trace['info'].get('pattern', 'N/A')})"
-                        break
-                    elif trace['stage'] == FailStage.DST_SRAM:
-                        matched_via = f"SRAM (bitmap check)"
-                        break
-                log_file.write(
-                    f"  Pkt#{pkt['packet_index']} "
-                    f"DST_PORT={pkt['dst_port']} "
-                    f"G-ID1={pkt.get('matched_gids', [])} "
-                    f"G-ID2={pkt.get('src_group_id', 'None')} "
-                    f"FinalAction={pkt['final_action']} "
-                    f"MatchedVia={matched_via}\n"
-                )
 
     # =========================================================
     # STEP (5): Action resolution & verification
@@ -843,6 +789,7 @@ def main():
             continue
 
         if not resolve_action(pkt, action_table):
+            pkt['fail_stage'] = FailStage.ACTION
             pkt['fail_reason'] = "ActionID invalid or missing"
             action_fail += 1
             continue
@@ -853,100 +800,53 @@ def main():
             action_mismatch += 1
 
     log_file.write("\nSTEP (5) summary:\n")
-    log_file.write(f"Built action table with {len(action_table)} entries\n")
     log_file.write(f"Packets failed at ACTION stage: {action_fail}\n")
     log_file.write(f"Packets with action mismatch: {action_mismatch}\n")
-    
-    # Detailed failure info for STEP (5)
-    if action_fail > 0 or action_mismatch > 0:
-        log_file.write("\nSTEP (5) Failed packets details:\n")
-        for pkt in packets:
-            if pkt['fail_stage'] == FailStage.ACTION:
-                log_file.write(
-                    f"  Pkt#{pkt['packet_index']} "
-                    f"G-ID1={pkt.get('matched_gids', [])} "
-                    f"G-ID2={pkt.get('src_group_id', 'None')} "
-                    f"FinalActionID={pkt.get('final_action', 'None')} "
-                    f"Expected={pkt.get('expected_action', 'None')} "
-                    f"Resolved={pkt.get('resolved_action', 'None')} "
-                    f"Reason={pkt.get('fail_reason', 'Unknown')}\n"
-                )
 
     # =========================================================
-    # Global failure breakdown
-    # =========================================================
-    fail_counter = Counter()
-    for pkt in packets:
-        if pkt['fail_stage'] is not None:
-            fail_counter[pkt['fail_stage']] += 1
-
-    log_file.write("\nFail stage breakdown:\n")
-    for stage, cnt in fail_counter.items():
-        log_file.write(f"  {stage}: {cnt}\n")
-
-    # =========================================================
-    # Sample packets
-    # =========================================================
-    log_file.write("\nSample packets after STEP (5):\n")
-    for pkt in packets:
-        log_file.write(
-            f"Pkt#{pkt['packet_index']} "
-            f"Expected={pkt.get('expected_action')} "
-            f"Resolved={pkt.get('resolved_action')} "
-            f"FinalActionID={pkt.get('final_action')} "
-            f"FailStage={pkt.get('fail_stage')}\n"
-        )
-
-    # =========================================================
-    # Detailed failed packet dump with all G-IDs
+    # Complete failed packet dump (FULL TRACE)
     # =========================================================
     log_file.write("\n" + "=" * 80 + "\n")
-    log_file.write("Complete Failed Packets Summary (with all G-IDs):\n")
+    log_file.write("Complete Failed Packets Summary (FULL PIPELINE TRACE)\n")
     log_file.write("=" * 80 + "\n")
+
     for pkt in packets:
-        if pkt['fail_stage'] is not None:
-            log_file.write(f"\nPkt#{pkt['packet_index']} - FAILED at {pkt['fail_stage']}\n")
-            log_file.write(f"  Packet Info: SRC={pkt['src_ip']}:{pkt['src_port']} "
-                          f"DST={pkt['dst_ip']}:{pkt['dst_port']} PROTO={pkt['protocol']}\n")
-            log_file.write(f"  G-ID1 (matched_gids): {pkt.get('matched_gids', [])}\n")
-            log_file.write(f"  G-ID2 (src_group_id): {pkt.get('src_group_id', 'None')}\n")
-            log_file.write(f"  FinalActionID: {pkt.get('final_action', 'None')}\n")
-            log_file.write(f"  Expected Action: {pkt.get('expected_action', 'None')}\n")
-            log_file.write(f"  Resolved Action: {pkt.get('resolved_action', 'None')}\n")
-            log_file.write(f"  Fail Reason: {pkt.get('fail_reason', 'Unknown')}\n")
-            
-            # Add debug trace info if available
-            if pkt.get('debug_trace'):
-                log_file.write(f"  Debug Trace:\n")
-                for trace in pkt['debug_trace']:
-                    log_file.write(f"    [{trace['stage']}]: {trace['info']}\n")
+        if pkt['fail_stage'] is None:
+            continue
+
+        log_file.write(f"\nPkt#{pkt['packet_index']} FAILED at {pkt['fail_stage']}\n")
+        log_file.write(
+            f"  SRC={pkt['src_ip']}:{pkt['src_port']} "
+            f"DST={pkt['dst_ip']}:{pkt['dst_port']} "
+            f"PROTO={pkt['protocol']}\n"
+        )
+        log_file.write(f"  G-ID1: {pkt.get('matched_gids')}\n")
+        log_file.write(f"  G-ID2: {pkt.get('src_group_id')}\n")
+        log_file.write(f"  FinalActionID: {pkt.get('final_action')}\n")
+        log_file.write(f"  Expected: {pkt.get('expected_action')}\n")
+        log_file.write(f"  Resolved: {pkt.get('resolved_action')}\n")
+        log_file.write(f"  Reason: {pkt.get('fail_reason')}\n")
+
+        for trace in pkt.get('debug_trace', []):
+            log_file.write(f"    [{trace['stage']}]: {trace['info']}\n")
+
+    # =========================================================
+    # FINAL SUMMARY  ⭐（这是你新加的需求）
+    # =========================================================
+    total_packets = len(packets)
+    success_packets = sum(1 for pkt in packets if pkt.get('fail_stage') is None)
+    recognition_rate = (success_packets / total_packets * 100.0) if total_packets else 0.0
+
+    log_file.write("\nFINAL SUMMARY:\n")
+    log_file.write(f"Total packets processed : {total_packets}\n")
+    log_file.write(f"Successfully recognized : {success_packets}\n")
+    log_file.write(f"Recognition rate        : {recognition_rate:.2f}%\n")
 
     log_file.close()
     print(f"Log written to {log_file_path}")
-
-    failed_detail_path = os.path.join(base_path, 'failed_packets_detail.log')
-    with open(failed_detail_path, 'w') as f:
-        for pkt in packets:
-            if pkt['fail_stage'] is None:
-                continue
-
-            f.write("=" * 80 + "\n")
-            f.write(f"Packet #{pkt['packet_index']}\n")
-            f.write(
-                f"SRC={pkt['src_ip']}:{pkt['src_port']} "
-                f"DST={pkt['dst_ip']}:{pkt['dst_port']} "
-                f"PROTO={pkt['protocol']}\n"
-            )
-            f.write(f"FailStage={pkt['fail_stage']}\n")
-            f.write(f"Reason={pkt.get('fail_reason')}\n\n")
-
-            for trace in pkt.get('debug_trace', []):
-                f.write(f"[{trace['stage']}]\n")
-                for k, v in trace['info'].items():
-                    f.write(f"  {k}: {v}\n")
-                f.write("\n")
-
     return 0
+
+
 
 
 

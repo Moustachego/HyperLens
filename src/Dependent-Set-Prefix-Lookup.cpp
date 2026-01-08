@@ -723,8 +723,10 @@ static void rebuild_continuous_cells(
             small.dst_hi = max(small.dst_hi, big.dst_hi);
             
             // 更新 big 的 minimal 和 Extraction（注意：priority 不变）
+            // ★ Extraction 应存储 merged_ip_table 索引，不在这里映射为原始规则ID
+            // 统一在 Generate_cell_GID_to_metainfo 中映射
             big.minimal = best_common;
-            Map_cell_to_origID(merged_ip_table, best_common, big.Extraction);
+            big.Extraction = best_common;  // 直接使用 merged_ip_table 索引
         }
     }
 
@@ -810,7 +812,9 @@ static void collect_elementary_cells(
             cell.rule_indices = covered;
             cell.minimal = minimal;
             cell.priority = minimal.size();  // ★ 优先级 = 初始 minimal 数量
-            Map_cell_to_origID(ctx.merged_ip_table, minimal, cell.Extraction);
+            // ★ Extraction 存储 merged_ip_table 索引，不在这里映射为原始规则ID
+            // 统一在 Generate_cell_GID_to_metainfo 中映射
+            cell.Extraction = minimal;
             
             temp_cells.push_back(cell);
             
@@ -856,8 +860,9 @@ static void collect_pairwise_intersections(const ProtoProcessContext& ctx)
 
             string key = make_cell_key(ctx.proto, src_lo, src_hi, dst_lo, dst_hi);
             if (ctx.seen_keys.insert(key).second) {
-                vector<size_t> Extraction;
-                Map_cell_to_origID(ctx.merged_ip_table, {ctx.S[i], ctx.S[j]}, Extraction);
+                // ★ Extraction 存储 merged_ip_table 索引，不在这里映射为原始规则ID
+                // 统一在 Generate_cell_GID_to_metainfo 中映射
+                vector<size_t> Extraction = {ctx.S[i], ctx.S[j]};
                 ctx.local_cells.push_back({src_lo, src_hi, dst_lo, dst_hi, ctx.proto, 
                                           ctx.best_rid, {ctx.S[i], ctx.S[j]}, Extraction});
             }
@@ -1022,7 +1027,7 @@ void merge_cells_and_ip_table(
             leader_indices.push_back(i);
         else
             nonleader_indices.push_back(i);
-    }
+        }
 
     final_ip_table.reserve(
         intersections.size() +
@@ -1506,9 +1511,11 @@ void Generate_cell_GID_to_metainfo(
     const vector<IPRule>& merged_ip_table,
     const vector<PortRule>& port_table,
     const vector<FinalIPRule>& final_ip_table,
+    const vector<Rmax_IPRule>& RO_merged_ip_table,
+    const std::unordered_map<size_t, size_t>& old_to_new_idx,
     vector<Metainfo_for_SRC_port>& meta_src
 )
-{   
+{
     bool enable_debug = false;
 
     // ========== 1. 建立 cell 查找表 ==========
@@ -1573,7 +1580,95 @@ void Generate_cell_GID_to_metainfo(
         }
 
         // ========== 4. 展开 Extraction ==========
-        for (size_t orig_rid : ic->Extraction) {
+        // ★ 统一将 Extraction 中的索引映射为原始规则ID
+        // Extraction 存储的是 merged_ip_table 或 Rmax_merged_ip_table 的索引
+        vector<size_t> orig_ids;
+
+        // 用于收集所有 Extraction 规则对应的 RO_merged_ip_table 索引（重排后）
+        std::vector<size_t> extraction_new_indices;
+        
+        if (is_rmax_cell) {
+            // 对于 Rmax_intersections，Extraction 存储的是 Rmax_merged_ip_table 的索引（重排前）
+            // 需要通过 old_to_new_idx 映射到重排后的索引
+            for (size_t old_idx : ic->Extraction) {
+                auto it_map = old_to_new_idx.find(old_idx);
+                if (it_map == old_to_new_idx.end()) {
+                    if (enable_debug) {
+                        std::cout << "[WARN] Rmax_intersection Extraction index " << old_idx 
+                                  << " not found in old_to_new_idx mapping, skipping.\n";
+                    }
+                continue;
+            }
+                size_t new_idx = it_map->second;
+                if (new_idx < RO_merged_ip_table.size()) {
+                    extraction_new_indices.push_back(new_idx);
+                    const auto& rmax_rule = RO_merged_ip_table[new_idx];
+                    for (size_t orig : rmax_rule.merged_R) {
+                        orig_ids.push_back(orig);
+                    }
+                }
+            }
+        } else {
+            // 对于普通 intersections，Extraction 存储的是 merged_ip_table 的索引
+            // merged_ip_table 和 Rmax_merged_ip_table 是一一对应的
+            // 需要通过 old_to_new_idx 映射到重排后的索引
+            for (size_t merged_idx : ic->Extraction) {
+                // merged_ip_table[merged_idx] 对应 Rmax_merged_ip_table[merged_idx]（重排前）
+                auto it_map = old_to_new_idx.find(merged_idx);
+                if (it_map == old_to_new_idx.end()) {
+                    if (enable_debug) {
+                        std::cout << "[WARN] Intersection Extraction index " << merged_idx 
+                                  << " not found in old_to_new_idx mapping, skipping.\n";
+                    }
+                    continue;
+                }
+                size_t new_idx = it_map->second;
+                if (new_idx < RO_merged_ip_table.size()) {
+                    extraction_new_indices.push_back(new_idx);
+                    const auto& rmax_rule = RO_merged_ip_table[new_idx];
+                    for (size_t orig : rmax_rule.merged_R) {
+                        orig_ids.push_back(orig);
+                    }
+                }
+            }
+        }
+        
+        // ========== 5. 收集所有 Extraction 规则的 ancestors 并取并集 ==========
+        std::unordered_set<size_t> all_ancestors_set;  // 用于去重
+        
+        for (size_t new_idx : extraction_new_indices) {
+            if (new_idx >= RO_merged_ip_table.size()) continue;
+            
+            const auto& rmax_rule = RO_merged_ip_table[new_idx];
+            
+            // 遍历该规则的 ancestors（存储的是旧索引）
+            for (size_t old_ancestor_idx : rmax_rule.ancestors) {
+                // 将旧索引映射到新索引
+                auto it_map = old_to_new_idx.find(old_ancestor_idx);
+                if (it_map == old_to_new_idx.end()) {
+                    continue;  // 找不到映射，跳过
+                }
+                
+                size_t new_ancestor_idx = it_map->second;
+                if (new_ancestor_idx < RO_merged_ip_table.size()) {
+                    all_ancestors_set.insert(new_ancestor_idx);
+            }
+            }
+        }
+        
+        // ========== 6. 将 ancestors 并集映射至 orig_id ==========
+        for (size_t new_ancestor_idx : all_ancestors_set) {
+            const auto& ancestor_rule = RO_merged_ip_table[new_ancestor_idx];
+            for (size_t orig : ancestor_rule.merged_R) {
+                orig_ids.push_back(orig);
+            }
+        }
+        
+        // 去重
+        std::unordered_set<size_t> uniq_orig_ids(orig_ids.begin(), orig_ids.end());
+
+        // ========== 7. 为每个原始规则ID创建 meta entry（包括 Extraction 和 ancestors）==========
+        for (size_t orig_rid : uniq_orig_ids) {
             auto it = std::find_if(
                 port_table.begin(),
                 port_table.end(),
@@ -1615,42 +1710,43 @@ void Generate_MergedR_GID_to_metaifno(
     // 辅助函数：添加端口对到 meta_src
     auto add_port_pair = [&](uint32_t gid, size_t orig_rid, 
                              std::set<std::tuple<int, int, int, int>>& seen_in_gid) {
-        // 在 port_table 中查找对应的端口规则
-        auto it = std::find_if(port_table.begin(), port_table.end(),
-            [orig_rid](const PortRule &pr) { return pr.rid == orig_rid; });
+            // 在 port_table 中查找对应的端口规则
+            auto it = std::find_if(port_table.begin(), port_table.end(),
+                [orig_rid](const PortRule &pr) { return pr.rid == orig_rid; });
 
-        if (it == port_table.end()) {
+            if (it == port_table.end()) {
             return;  // 未找到对应的端口规则，跳过
-        }
+            }
 
-        const PortRule &por = *it;
+            const PortRule &por = *it;
 
-        // 在相同 G-ID 内部去重（检查完整的四元组）
-        auto dedup_key = std::make_tuple(por.src_port_lo, por.src_port_hi, 
-                                         por.dst_port_lo, por.dst_port_hi);
-        
-        if (seen_in_gid.find(dedup_key) != seen_in_gid.end()) {
-            // 已存在相同的端口范围，跳过
+            // 在相同 G-ID 内部去重（检查完整的四元组）
+            auto dedup_key = std::make_tuple(por.src_port_lo, por.src_port_hi, 
+                                             por.dst_port_lo, por.dst_port_hi);
+            
+            if (seen_in_gid.find(dedup_key) != seen_in_gid.end()) {
+                // 已存在相同的端口范围，跳过
             return;
-        }
-        seen_in_gid.insert(dedup_key);
+            }
+            seen_in_gid.insert(dedup_key);
 
-        // 创建新的 metainfo entry
-        Metainfo_for_SRC_port new_entry;
-        new_entry.Inital_Number = { static_cast<uint32_t>(orig_rid) };
-        new_entry.Src_lo   = por.src_port_lo;
-        new_entry.Src_hi   = por.src_port_hi;
-        new_entry.Dst_lo   = por.dst_port_lo;
-        new_entry.Dst_hi   = por.dst_port_hi;
-        new_entry.action   = por.action;
-        new_entry.group_ids = { static_cast<int>(gid) };
+            // 创建新的 metainfo entry
+            Metainfo_for_SRC_port new_entry;
+            new_entry.Inital_Number = { static_cast<uint32_t>(orig_rid) };
+            new_entry.Src_lo   = por.src_port_lo;
+            new_entry.Src_hi   = por.src_port_hi;
+            new_entry.Dst_lo   = por.dst_port_lo;
+            new_entry.Dst_hi   = por.dst_port_hi;
+            new_entry.action   = por.action;
+            new_entry.group_ids = { static_cast<int>(gid) };
 
-        meta_src.push_back(new_entry);
+            meta_src.push_back(new_entry);
     };
 
     // 遍历 final_ip_table 中的非 cell 规则
-    for (const auto& fr : final_ip_table)
+    for (size_t fi = 0; fi < final_ip_table.size(); ++fi)
     {
+        const auto& fr = final_ip_table[fi];
         // 🚫 跳过 cell
         if (fr.is_cell) continue;
 
@@ -1818,10 +1914,10 @@ void Merge_and_Reorder_Metainfo(
             item.idx_list.push_back(it->second);
         } else {
             // 情况1或3：Srcport不同，分配新的G-ID2
-            item.idx_list.clear();
-            item.idx_list.push_back(newID);
+        item.idx_list.clear();
+        item.idx_list.push_back(newID);
             srcport_to_gid2[srcport_key] = newID;
-            newID++;
+        newID++;
         }
     }
 
@@ -1836,7 +1932,7 @@ void Merge_and_Reorder_Metainfo(
 // 功能：将合并后的 metainfo 输出到 meta_merged.txt 文件
 void Write_Metainfo_to_File(
     const std::map<std::tuple<std::vector<int>, int, int, int, int>, MergedItem>& merged_output,
-    const std::string& filename = "src/output/meta_merged.txt")
+    const std::string& filename)
 {
     std::ofstream fout(filename);
     if (!fout) {
@@ -1909,7 +2005,7 @@ void Create_Metainfo_for_port(
     meta.clear();
     
     // 为交叉单元生成 GID 映射（创建新的 meta entries）
-    Generate_cell_GID_to_metainfo(intersections, rmax_intersections, merged_ip_table, port_table, final_ip_table, meta);
+    Generate_cell_GID_to_metainfo(intersections, rmax_intersections, merged_ip_table, port_table, final_ip_table, RO_merged_ip_table, old_to_new_idx, meta);
     
     // 为合并规则生成 GID 映射（创建新的 meta entries，包括祖先规则的端口对）
     Generate_MergedR_GID_to_metaifno(final_ip_table, port_table, RO_merged_ip_table, old_to_new_idx, meta);
@@ -1917,8 +2013,6 @@ void Create_Metainfo_for_port(
     // 合并与重排 Metainfo
     Merge_and_Reorder_Metainfo(meta, merged_output);
     
-    // 输出 Metainfo 到文件
-    Write_Metainfo_to_File(merged_output);
 };
 
 

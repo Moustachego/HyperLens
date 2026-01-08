@@ -23,15 +23,24 @@ class ACLRule:
     """ACL规则数据结构"""
     def __init__(self, line: str):
         # 解析规则格式: @src_ip/prefix dst_ip/prefix src_port:src_port dst_port:dst_port proto/mask action/mask
-        # 先用制表符分割，因为实际规则文件使用制表符
+        # 规则文件使用制表符分隔主要字段，但端口字段内部可能有空格（如 "162 : 162"）
         # 去掉注释
         line = line.split('//', 1)[0].strip()
 
-        # 按任意空白（TAB / 多空格）分割
+        # 先按制表符分割主要字段（因为规则文件使用制表符分隔）
+        # 如果制表符分割后字段数不够，再尝试按任意空格分割
+        if '\t' in line:
+            parts = line.split('\t')
+            # 过滤空字符串
+            parts = [p.strip() for p in parts if p.strip()]
+        else:
+            # 如果没有制表符，按任意空格分割（因为字段之间可能只有单个空格）
         parts = re.split(r'\s+', line)
+            # 过滤空字符串
+            parts = [p for p in parts if p]
         
         if len(parts) < 6:
-            raise ValueError(f"规则字段数不足: {len(parts)}")
+            raise ValueError(f"规则字段数不足: {len(parts)}, 原始行: {line[:100]}")
         
         # 源IP和掩码 (去除开头的@)
         src_ip_full = parts[0].lstrip('@')
@@ -49,19 +58,19 @@ class ACLRule:
         self.dst_ip = dst_ip_parts[0]
         self.dst_prefix = int(dst_ip_parts[1])
         
-        # 源端口范围 (格式: "0 : 65535")
-        src_port_str = parts[2].replace(' ', '')
+        # 源端口范围 (格式: "162 : 162" 或 "162:162")
+        src_port_str = parts[2].replace(' ', '')  # 移除所有空格
         src_port_parts = src_port_str.split(':')
         if len(src_port_parts) != 2:
-            raise ValueError(f"源端口格式错误: {parts[2]}")
+            raise ValueError(f"源端口格式错误: {parts[2]} (处理后: {src_port_str})")
         self.src_port_lo = int(src_port_parts[0])
         self.src_port_hi = int(src_port_parts[1])
         
         # 目的端口范围
-        dst_port_str = parts[3].replace(' ', '')
+        dst_port_str = parts[3].replace(' ', '')  # 移除所有空格
         dst_port_parts = dst_port_str.split(':')
         if len(dst_port_parts) != 2:
-            raise ValueError(f"目的端口格式错误: {parts[3]}")
+            raise ValueError(f"目的端口格式错误: {parts[3]} (处理后: {dst_port_str})")
         self.dst_port_lo = int(dst_port_parts[0])
         self.dst_port_hi = int(dst_port_parts[1])
         
