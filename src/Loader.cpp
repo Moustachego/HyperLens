@@ -57,6 +57,7 @@ void load_rules_from_file(const string &file, vector<Rule5D> &rules_out) {
     unsigned sport1, sport2, dport1, dport2;
     unsigned protocol, protocol_mask;
     unsigned action_flags, action_mask;
+    char action_str[64];  // 用于存储完整的 action 字符串
 
     u32 rule_count = 0;
     u32 line_count = 0;
@@ -67,24 +68,39 @@ void load_rules_from_file(const string &file, vector<Rule5D> &rules_out) {
         line_count++;
         
         // Try multiple format patterns (spaces or tabs)
-        int ret = sscanf(buf, "@%u.%u.%u.%u/%u %u.%u.%u.%u/%u %u : %u %u : %u %x/%x %x/%x",
+        // 先尝试读取 action 为字符串格式
+        int ret = sscanf(buf, "@%u.%u.%u.%u/%u %u.%u.%u.%u/%u %u : %u %u : %u %x/%x %s",
                          &sip1,&sip2,&sip3,&sip4,&smask,
                          &dip1,&dip2,&dip3,&dip4,&dmask,
                          &sport1,&sport2,&dport1,&dport2,
                          &protocol,&protocol_mask,
-                         &action_flags,&action_mask);
+                         action_str);
         
-        if (ret < 17) {
+        if (ret < 16) {
             // Try tab-separated format
-            ret = sscanf(buf, "@%u.%u.%u.%u/%u\t%u.%u.%u.%u/%u\t%u : %u\t%u : %u\t%x/%x\t%x/%x",
+            ret = sscanf(buf, "@%u.%u.%u.%u/%u\t%u.%u.%u.%u/%u\t%u : %u\t%u : %u\t%x/%x\t%s",
                          &sip1,&sip2,&sip3,&sip4,&smask,
                          &dip1,&dip2,&dip3,&dip4,&dmask,
                          &sport1,&sport2,&dport1,&dport2,
                          &protocol,&protocol_mask,
-                         &action_flags,&action_mask);
+                         action_str);
         }
         
-        if (ret < 17) {
+        // 如果字符串格式失败，尝试旧的格式（兼容性）
+        if (ret < 16) {
+            ret = sscanf(buf, "@%u.%u.%u.%u/%u %u.%u.%u.%u/%u %u : %u %u : %u %x/%x %x/%x",
+                         &sip1,&sip2,&sip3,&sip4,&smask,
+                         &dip1,&dip2,&dip3,&dip4,&dmask,
+                         &sport1,&sport2,&dport1,&dport2,
+                         &protocol,&protocol_mask,
+                         &action_flags,&action_mask);
+            if (ret >= 17) {
+                // 从旧的格式构造 action 字符串
+                snprintf(action_str, sizeof(action_str), "0x%04X/0x%04X", action_flags, action_mask);
+            }
+        }
+        
+        if (ret < 16) {
             // skip invalid line
             fprintf(stderr, "[WARN] Line %u: invalid format, skipping\n", line_count);
             continue;
@@ -146,7 +162,7 @@ void load_rules_from_file(const string &file, vector<Rule5D> &rules_out) {
 
         ++rule_count;
         r.priority = rule_count;
-        r.action = static_cast<uint16_t>(action_flags);  //action
+        r.action = std::string(action_str);  // 保存完整的 action 字符串格式
 
         rules_out.emplace_back(r);
     }
@@ -185,7 +201,7 @@ void split_rules(
         pr.dst_port_lo = static_cast<uint16_t>(r.range[3][0]);
         pr.dst_port_hi = static_cast<uint16_t>(r.range[3][1]);
         pr.priority    = r.priority;
-        pr.action      = r.action;  //  action
+        pr.action      = r.action;  // 保存完整的 action 字符串格式
         port_table.push_back(pr);
 
         i++; 

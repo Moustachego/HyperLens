@@ -28,6 +28,16 @@
 
 using namespace std;
 
+// 判断是否是长范围区间（用于降低优先级）
+// 如果 DST 范围长度 > 1000，认为是长范围
+inline bool is_long_range_dst(int dst_lo, int dst_hi) {
+    // 排除完全通配符 0-65535
+    if (dst_lo == 0 && dst_hi == 65535) {
+        return false;
+    }
+    // 如果范围长度 > 10000，认为是长范围
+    return (dst_hi - dst_lo + 1) > 10000;
+}
 
 void merge_same_ip_entry(
     const std::vector<IPRule>& ip_table,
@@ -1943,8 +1953,58 @@ void Write_Metainfo_to_File(
     // 写入表头
     fout << "GroupIDs\tSrc_lo\tSrc_hi\tDst_lo\tDst_hi\tIdx_list\tInitNum_list\tAction\n";
 
-    // 按顺序输出每一行
+    // 将 map 转换为 vector 并排序，确保 DST=0-65535 的条目在相同 G-ID 内排在最后
+    std::vector<std::pair<std::tuple<std::vector<int>, int, int, int, int>, MergedItem>> sorted_items;
     for (const auto& kv : merged_output) {
+        sorted_items.push_back(kv);
+    }
+    
+    // 自定义排序：在相同 G-ID 内，优先级顺序：正常范围 > 长范围 DST（如 1025-65535）> 完全通配符 DST（0-65535）
+    std::sort(sorted_items.begin(), sorted_items.end(),
+        [](const auto& a, const auto& b) {
+            const auto& item_a = a.second;
+            const auto& item_b = b.second;
+            
+            // 先按 group_ids 排序
+            if (item_a.group_ids != item_b.group_ids) {
+                return item_a.group_ids < item_b.group_ids;
+            }
+            
+            // 优先级顺序：正常范围 > 长范围 DST > 完全通配符 DST（0-65535）
+            bool a_is_full_dst = (item_a.dst_lo == 0 && item_a.dst_hi == 65535);
+            bool b_is_full_dst = (item_b.dst_lo == 0 && item_b.dst_hi == 65535);
+            bool a_is_long_range = is_long_range_dst(item_a.dst_lo, item_a.dst_hi);
+            bool b_is_long_range = is_long_range_dst(item_b.dst_lo, item_b.dst_hi);
+            
+            // 如果一个是完全通配符，另一个不是，完全通配符排在后面
+            if (a_is_full_dst != b_is_full_dst) {
+                return !a_is_full_dst;  // DST=0-65535 的排在后面
+            }
+            
+            // 如果都不是完全通配符，但一个是长范围，另一个不是，长范围排在后面
+            if (!a_is_full_dst && !b_is_full_dst) {
+                if (a_is_long_range != b_is_long_range) {
+                    return !a_is_long_range;  // 长范围排在后面
+                }
+                // 如果都是长范围，按照范围长度从小到大排序（范围更短的排在前面）
+                if (a_is_long_range && b_is_long_range) {
+                    int a_range_len = item_a.dst_hi - item_a.dst_lo + 1;
+                    int b_range_len = item_b.dst_hi - item_b.dst_lo + 1;
+                    if (a_range_len != b_range_len) {
+                        return a_range_len < b_range_len;  // 范围更短的排在前面
+                    }
+                }
+            }
+            
+            // 如果都是或都不是长范围/完全通配符，按原来的顺序（src_lo, src_hi, dst_lo, dst_hi）
+            if (item_a.src_lo != item_b.src_lo) return item_a.src_lo < item_b.src_lo;
+            if (item_a.src_hi != item_b.src_hi) return item_a.src_hi < item_b.src_hi;
+            if (item_a.dst_lo != item_b.dst_lo) return item_a.dst_lo < item_b.dst_lo;
+            return item_a.dst_hi < item_b.dst_hi;
+        });
+
+    // 按排序后的顺序输出每一行
+    for (const auto& kv : sorted_items) {
         const auto& item = kv.second;
 
         // 格式化 GroupIDs
@@ -1980,7 +2040,7 @@ void Write_Metainfo_to_File(
             << std::setw(8)  << item.dst_hi
             << std::setw(18) << idx_str
             << std::setw(20) << initnum_str
-            << std::setw(8)  << item.action
+            << std::setw(20) << item.action  // 增加宽度以容纳完整的 action 格式
             << "\n";
     }
 

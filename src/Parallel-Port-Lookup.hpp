@@ -38,6 +38,7 @@ struct BlockMeta_DST {
     uint32_t group_id;
     uint32_t group_id2;
     std::vector<int> Action;
+    std::string action;            // 原始的 action 字符串格式，如 "0x0000/0x0200"
     uint16_t block_idx;
     uint32_t SP;
     uint32_t start;       // 新增：block 实际起始端口
@@ -70,7 +71,7 @@ struct Mate_DST_LIST {
     uint32_t dst_hi;
     std::vector<int> idx_list;       // 合并后的多个 Idx（重排后 i+1）
     std::vector<int> initnum_list;   // 合并后的多个 InitNum
-    uint16_t action;                 // 来自规则的 action 字段
+    std::string action;               // 来自规则的 action 字段，保存完整格式如 "0x0000/0x0200"
 };
 
 // 用于给 SRC 表分配第二个 GID 的临时结构
@@ -90,6 +91,7 @@ struct DST_Port_Item{
     uint32_t dst_lo;
     uint32_t dst_hi;
     std::vector<int> Action;      // 分配后的 GID2（顺序分配或 action id）
+    std::string action;            // 原始的 action 字符串格式，如 "0x0000/0x0200"
 };
 
 // 占位输出结构
@@ -113,14 +115,14 @@ struct DST_SRAM_Table {
     uint16_t GroupID2;
     uint16_t SP_Quotient;
     vector<size_t> bitmap; // 对应哪些 merged_ip_table 条目
-    uint16_t Action;
+    std::string Action;    // 原始的 action 字符串格式，如 "0x0000/0x0200"
 };
 
 struct DST_TCAM_Table {
     uint16_t GroupID2;
     uint16_t dst_port_value;   // 基准端口值
     uint16_t dst_port_mask;   // 16-bit mask: 1=固定，0=通配
-    uint16_t Action;
+    std::string Action;        // 原始的 action 字符串格式，如 "0x0000/0x0200"
     std::string bin_prefix;
 };
 

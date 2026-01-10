@@ -654,8 +654,8 @@ def main():
     base_path = os.path.join('src', 'output')
     ACL_path  = os.path.join('src', 'ACL_rules')
 
-    testset_file = os.path.join(base_path, 'test_testset.txt')
-    rules_file   = os.path.join(ACL_path, 'test.rules')
+    testset_file = os.path.join(base_path, 'acl1_50k_16_0.5_c_testset.txt')
+    rules_file   = os.path.join(ACL_path, 'acl1_50k_16_0.5_c.rules')
 
     final_ip_table_file = os.path.join(base_path, 'final_ip_table_cidr.txt')
     src_tcam_file = os.path.join(base_path, 'SRC_TCAM_Table.txt')

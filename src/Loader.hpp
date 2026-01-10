@@ -12,7 +12,7 @@ struct Rule5D {
     std::array<std::array<uint32_t,2>, 5> range; 
     std::array<int,5> prefix_length;  // store prefix-like info (as in original)
     uint32_t priority;
-    uint16_t action;  //  action（ 0x0000）
+    std::string action;  // 保存完整的 action 格式，如 "0x0000/0x0200" 或 "0x1000/0x1000"
 };
 
 struct IPRule {
@@ -31,7 +31,7 @@ struct PortRule {
     uint16_t src_port_lo, src_port_hi;
     uint16_t dst_port_lo, dst_port_hi;
     uint32_t priority;
-    uint16_t action;
+    std::string action;  // 保存完整的 action 格式，如 "0x0000/0x0200" 或 "0x1000/0x1000"
 };
 
 // ---------------Function Declarations---------------------

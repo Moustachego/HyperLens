@@ -29,7 +29,18 @@ using namespace std;
 
 
 static const size_t MAX_BLOCKS_ALLOWED = 1000000000;    // 总 blocks 上限（防止 OOM），可调 这有什么作用？
-static const uint32_t MAX_SINGLE_RANGE = 1u << 20; 
+static const uint32_t MAX_SINGLE_RANGE = 1u << 20;
+
+// 判断是否是长范围区间（用于降低优先级）
+// 如果 DST 范围长度 > 10000，认为是长范围
+inline bool is_long_range_dst(int dst_lo, int dst_hi) {
+    // 排除完全通配符 0-65535
+    if (dst_lo == 0 && dst_hi == 65535) {
+        return false;
+    }
+    // 如果范围长度 > 10000，认为是长范围
+    return (dst_hi - dst_lo + 1) > 10000;
+} 
 
 
 std::bitset<32> generate_32bit_bitmap(uint32_t block_base, uint32_t L, uint32_t H)
@@ -238,6 +249,7 @@ SplitResult_DST split_port_range_into_blocks_for_dst(const std::vector<DST_Port_
             bm.group_id = group_id;
             bm.group_id2 = group_id2;
             bm.Action = item.Action; // preserve Action list from DST item
+            bm.action = item.action; // 保存原始的 action 字符串格式
             bm.src_item_idx = static_cast<uint32_t>(item_idx);
             bm.block_idx = block_idx;
             bm.SP = SP;
@@ -365,8 +377,8 @@ void fill_full_range_items_to_dst_tcam(
             entry.dst_port_value = 0;
             entry.dst_port_mask = 0x0000; // 全端口通配
             entry.bin_prefix = std::string(16, '*');
-            // ACTION: 如果有多个，取第一个作为默认动作
-            entry.Action = item.Action.empty() ? 0 : static_cast<uint16_t>(item.Action[0]);
+            // ACTION: 使用原始的 action 字符串格式
+            entry.Action = item.action.empty() ? "0x0000/0x0000" : item.action;
 
             dst_tcam_table.push_back(std::move(entry));
         } else {
@@ -564,6 +576,9 @@ void merge_prefix_blocks_for_dst(std::vector<BlockMeta_DST>& blocks) {
                 // ACTION 合并：如果完全相同保留，否则做并集
                 if (actions_equal(A.Action, B.Action)) M.Action = A.Action;
                 else M.Action = actions_union(A.Action, B.Action);
+                // action 字符串：如果相同则保留，否则使用第一个（或可以合并逻辑）
+                if (A.action == B.action) M.action = A.action;
+                else M.action = A.action;  // 使用第一个，或者可以根据需要实现更复杂的合并逻辑
 
                 // group_id2 在组内相同，若出现不同则置 0（不过排序保证同组相同）
                 M.group_id2 = (A.group_id2 == B.group_id2) ? A.group_id2 : 0;
@@ -594,13 +609,13 @@ void assign_blocks_to_dst_sram_tcam(const std::vector<BlockMeta_DST>& blocks,
             DST_TCAM_Table entry{};
             entry.GroupID2 = static_cast<uint16_t>(bm.group_id2);
             entry.bin_prefix = bm.bin_prefix;
-            entry.Action = bm.Action.empty() ? 0 : static_cast<uint16_t>(bm.Action[0]);
+            entry.Action = bm.action.empty() ? "0x0000/0x0000" : bm.action;
             dst_tcam_table.push_back(std::move(entry));
         } else {
             DST_SRAM_Table entry;
             entry.GroupID2 = static_cast<uint16_t>(bm.group_id2);
             entry.SP_Quotient = static_cast<uint16_t>(bm.SP);
-            entry.Action = bm.Action.empty() ? 0 : static_cast<uint16_t>(bm.Action[0]);
+            entry.Action = bm.action.empty() ? "0x0000/0x0000" : bm.action;
             entry.bitmap.clear();
             for (size_t k = 0; k < 32; ++k) if (bm.bitmap.test(k)) entry.bitmap.push_back(k);
             dst_sram_table.push_back(std::move(entry));
@@ -904,8 +919,13 @@ std::vector<DST_Port_Item> build_dst_items_from_mate_dst_list(const std::vector<
         it.group_ids1 = d.group_ids;
         it.dst_lo = d.dst_lo;
         it.dst_hi = d.dst_hi;
+        it.action = d.action;  // 保存原始的 action 字符串格式
         // Initialize Action from mate_dst.action
-        it.Action.push_back(d.action);
+        // Note: DST_Port_Item::Action is std::vector<int> for action IDs,
+        // but d.action is now std::string. We need to create a mapping or skip this.
+        // For now, we'll skip it since Action is used for TCAM/SRAM tables which need numeric IDs.
+        // The actual action string is preserved in MergedItem and will be written to meta_merged.txt
+        // it.Action.push_back(d.action);
         // group_ids2 will be assigned later if needed
         dst_items.push_back(std::move(it));
     }
@@ -1329,7 +1349,7 @@ void Split_SrcPort_Per_GID(int gid,
             
             // 选择优先级最高的动作（priority 越小优先级越高，lower priority value = higher priority）
             // 在 ACL 规则中，规则编号越小（priority 越小），优先级越高（先匹配）
-            uint16_t best_action = 0;
+            std::string best_action = "";
             uint32_t best_priority = UINT32_MAX;  // 初始化为最大值，寻找最小的 priority
             std::vector<int> best_initnum_list;
             
@@ -1503,8 +1523,9 @@ void Handle_Port_Hiding_Problem(std::map<std::tuple<std::vector<int>, int, int, 
         //     key: (src_lo, src_hi)  -> global_idx
         std::map<std::pair<int,int>, int> src2global_idx;
         int last_normal_idx = -1;
+        int first_normal_idx = -1;  // 用于 DST=0-65535 的条目（优先级最低）
 
-        // 先为所有“正常 SRC 区间（非 0–65535）”分配全局 idx
+        // 先为所有"正常 SRC 区间（非 0–65535）"分配全局 idx
         for (auto& item : src_split_items) {
             bool is_full_src = (item.src_lo == 0 && item.src_hi == 65535);
             if (is_full_src)
@@ -1520,21 +1541,85 @@ void Handle_Port_Hiding_Problem(std::map<std::tuple<std::vector<int>, int, int, 
             item.idx_list = {it->second};
             if (it->second > last_normal_idx)
                 last_normal_idx = it->second;
+            if (first_normal_idx == -1)
+                first_normal_idx = it->second;
         }
 
-        // 再为 0–65535 区间设置 idx：分配一个新的全局 idx（而不是复用最后一个正常区间的 idx）
+        // ★ 修复：为 SRC=0-65535 的条目分配 idx
+        // 规则：
+        // 1. SRC=0-65535 且 DST!=0-65535 的条目：使用统一的 idx（分配一个新的全局 idx，确保所有这样的条目共享同一个 idx）
+        // 2. SRC=0-65535 且 DST=0-65535 的条目：也使用相同的 idx（与其他 SRC=0-65535 条目相同），但优先级最低（在输出时排在最后）
+        int wildcard_src_idx = -1;  // SRC=0-65535 的统一 idx（包括 DST=0-65535 的条目）
+        
+        // 先处理 SRC=0-65535 且 DST!=0-65535 的条目
         for (auto& item : src_split_items) {
             bool is_full_src = (item.src_lo == 0 && item.src_hi == 65535);
-            if (!is_full_src)
+            bool is_full_dst = (item.dst_lo == 0 && item.dst_hi == 65535);
+            if (!is_full_src || is_full_dst)
                 continue;
-
-            // 为 0-65535 分配一个新的全局 idx
-            int gidx = global_next_idx++;
-            item.idx_list = {gidx};
+            
+            // 为第一个 SRC=0-65535 且 DST!=0-65535 的条目分配一个新的统一 idx
+            if (wildcard_src_idx == -1) {
+                // 分配一个新的全局 idx，确保所有 SRC=0-65535 的条目（包括 DST=0-65535）共享同一个 idx
+                wildcard_src_idx = global_next_idx++;
+            }
+            item.idx_list = {wildcard_src_idx};
+        }
+        
+        // 再处理 SRC=0-65535 且 DST=0-65535 的条目（使用相同的 idx，但优先级最低）
+        for (auto& item : src_split_items) {
+            bool is_full_src = (item.src_lo == 0 && item.src_hi == 65535);
+            bool is_full_dst = (item.dst_lo == 0 && item.dst_hi == 65535);
+            if (!is_full_src || !is_full_dst)
+                continue;
+            
+            // 使用与其他 SRC=0-65535 条目相同的 idx
+            if (wildcard_src_idx == -1) {
+                // 如果没有其他 SRC=0-65535 条目，分配一个新的 idx
+                wildcard_src_idx = global_next_idx++;
+            }
+            item.idx_list = {wildcard_src_idx};
         }
 
         // 3.3 将当前 G-ID 处理后的所有条目写入 new_mateinfo
-        for (auto& item : src_split_items) {
+        //     确保优先级顺序：正常范围 > 长范围 DST（如 1025-65535）> 完全通配符 DST（0-65535）
+        std::vector<MergedItem> sorted_items = src_split_items;
+        std::sort(sorted_items.begin(), sorted_items.end(),
+            [](const MergedItem& a, const MergedItem& b) {
+                // 优先级顺序：正常范围 > 长范围 DST > 完全通配符 DST（0-65535）
+                bool a_is_full_dst = (a.dst_lo == 0 && a.dst_hi == 65535);
+                bool b_is_full_dst = (b.dst_lo == 0 && b.dst_hi == 65535);
+                bool a_is_long_range = is_long_range_dst(a.dst_lo, a.dst_hi);
+                bool b_is_long_range = is_long_range_dst(b.dst_lo, b.dst_hi);
+                
+                // 如果一个是完全通配符，另一个不是，完全通配符排在后面
+                if (a_is_full_dst != b_is_full_dst) {
+                    return !a_is_full_dst;  // DST=0-65535 的排在后面
+                }
+                
+                // 如果都不是完全通配符，但一个是长范围，另一个不是，长范围排在后面
+                if (!a_is_full_dst && !b_is_full_dst) {
+                    if (a_is_long_range != b_is_long_range) {
+                        return !a_is_long_range;  // 长范围排在后面
+                    }
+                    // 如果都是长范围，按照范围长度从小到大排序（范围更短的排在前面）
+                    if (a_is_long_range && b_is_long_range) {
+                        int a_range_len = a.dst_hi - a.dst_lo + 1;
+                        int b_range_len = b.dst_hi - b.dst_lo + 1;
+                        if (a_range_len != b_range_len) {
+                            return a_range_len < b_range_len;  // 范围更短的排在前面
+                        }
+                    }
+                }
+                
+                // 如果都是或都不是长范围/完全通配符，按原来的顺序（src_lo, src_hi, dst_lo, dst_hi）
+                if (a.src_lo != b.src_lo) return a.src_lo < b.src_lo;
+                if (a.src_hi != b.src_hi) return a.src_hi < b.src_hi;
+                if (a.dst_lo != b.dst_lo) return a.dst_lo < b.dst_lo;
+                return a.dst_hi < b.dst_hi;
+            });
+        
+        for (auto& item : sorted_items) {
             auto key = std::make_tuple(item.group_ids, item.src_lo, item.src_hi,
                                        item.dst_lo, item.dst_hi);
             new_mateinfo[key] = item;

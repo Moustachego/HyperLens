@@ -55,7 +55,7 @@ struct Metainfo_for_SRC_port{
     uint16_t Src_hi;
     uint16_t Dst_lo;
     uint16_t Dst_hi;
-    uint16_t action;  // 从 port_table 获得的 action 值
+    std::string action;  // 从 port_table 获得的 action 值，保存完整格式如 "0x0000/0x0200"
     vector<int> group_ids; 
 };
 
@@ -67,7 +67,7 @@ struct MergedItem{
     uint32_t dst_hi;
     std::vector<int> idx_list;       // 合并后的多个 Idx（重排后 i+1）
     std::vector<int> initnum_list;   // 合并后的多个 InitNum
-    uint16_t action;                 // 来自原始规则的 action 字段
+    std::string action;               // 来自原始规则的 action 字段，保存完整格式如 "0x0000/0x0200"
 };
 
 
