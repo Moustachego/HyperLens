@@ -19,7 +19,7 @@ struct IntersectionCell {
     std::vector<size_t> rule_indices; // 记录由哪些规则覆盖（索引为 merged_ip_table 索引）
     std::vector<size_t> Extraction;
     std::vector<size_t> minimal;      // ★ 真正相交的规则（经过proper intersection筛选）
-    // std::vector<size_t> ancestors;
+    std::vector<size_t> cover_set;       // ★ 覆盖集：cell覆盖了Merged R中的哪些规则
     size_t   priority = 0;            // ★ 优先级：初始 minimal.size()，越大优先级越高
 };
 

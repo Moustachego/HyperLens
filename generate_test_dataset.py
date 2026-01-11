@@ -35,12 +35,9 @@ class ACLRule:
             parts = [p.strip() for p in parts if p.strip()]
         else:
             # 如果没有制表符，按任意空格分割（因为字段之间可能只有单个空格）
-        parts = re.split(r'\s+', line)
+            parts = re.split(r'\s+', line)
             # 过滤空字符串
             parts = [p for p in parts if p]
-        
-        if len(parts) < 6:
-            raise ValueError(f"规则字段数不足: {len(parts)}, 原始行: {line[:100]}")
         
         # 源IP和掩码 (去除开头的@)
         src_ip_full = parts[0].lstrip('@')
@@ -58,30 +55,73 @@ class ACLRule:
         self.dst_ip = dst_ip_parts[0]
         self.dst_prefix = int(dst_ip_parts[1])
         
-        # 源端口范围 (格式: "162 : 162" 或 "162:162")
-        src_port_str = parts[2].replace(' ', '')  # 移除所有空格
+        # 源端口范围处理：端口范围可能被制表符分隔（如 "0	:	65535"）
+        # 需要找到完整的端口范围：开始数字、冒号、结束数字
+        src_port_start_idx = 2
+        src_port_end_idx = src_port_start_idx
+        
+        # 查找源端口范围的结束位置：需要找到冒号和结束数字
+        found_colon = False
+        for i in range(src_port_start_idx, len(parts)):
+            if ':' in parts[i]:
+                found_colon = True
+            elif found_colon and parts[i].isdigit():
+                # 找到了冒号后的数字，这就是结束位置
+                src_port_end_idx = i
+                break
+        else:
+            # 如果没找到完整的范围，尝试合并接下来的几个字段
+            if src_port_start_idx + 2 < len(parts):
+                src_port_end_idx = src_port_start_idx + 2
+        
+        # 合并源端口范围字段
+        src_port_str = ''.join(parts[src_port_start_idx:src_port_end_idx+1]).replace(' ', '')
         src_port_parts = src_port_str.split(':')
-        if len(src_port_parts) != 2:
-            raise ValueError(f"源端口格式错误: {parts[2]} (处理后: {src_port_str})")
+        if len(src_port_parts) != 2 or not src_port_parts[0] or not src_port_parts[1]:
+            raise ValueError(f"源端口格式错误: {parts[src_port_start_idx:src_port_end_idx+1]} (处理后: {src_port_str})")
         self.src_port_lo = int(src_port_parts[0])
         self.src_port_hi = int(src_port_parts[1])
         
-        # 目的端口范围
-        dst_port_str = parts[3].replace(' ', '')  # 移除所有空格
+        # 目的端口范围处理：类似源端口
+        dst_port_start_idx = src_port_end_idx + 1
+        dst_port_end_idx = dst_port_start_idx
+        
+        found_colon = False
+        for i in range(dst_port_start_idx, len(parts)):
+            if ':' in parts[i]:
+                found_colon = True
+            elif found_colon and parts[i].isdigit():
+                dst_port_end_idx = i
+                break
+        else:
+            if dst_port_start_idx + 2 < len(parts):
+                dst_port_end_idx = dst_port_start_idx + 2
+        
+        # 合并目的端口范围字段
+        dst_port_str = ''.join(parts[dst_port_start_idx:dst_port_end_idx+1]).replace(' ', '')
         dst_port_parts = dst_port_str.split(':')
-        if len(dst_port_parts) != 2:
-            raise ValueError(f"目的端口格式错误: {parts[3]} (处理后: {dst_port_str})")
+        if len(dst_port_parts) != 2 or not dst_port_parts[0] or not dst_port_parts[1]:
+            raise ValueError(f"目的端口格式错误: {parts[dst_port_start_idx:dst_port_end_idx+1]} (处理后: {dst_port_str})")
         self.dst_port_lo = int(dst_port_parts[0])
         self.dst_port_hi = int(dst_port_parts[1])
         
+        # 协议和Action字段：从目的端口范围之后开始
+        proto_idx = dst_port_end_idx + 1
+        action_idx = proto_idx + 1
+        
+        if proto_idx >= len(parts):
+            raise ValueError(f"规则字段数不足: 缺少协议字段")
+        if action_idx >= len(parts):
+            raise ValueError(f"规则字段数不足: 缺少Action字段")
+        
         # 协议 (格式: "0x06/0xFF")
-        proto_parts = parts[4].split('/')
+        proto_parts = parts[proto_idx].split('/')
         if len(proto_parts) < 1:
-            raise ValueError(f"协议格式错误: {parts[4]}")
+            raise ValueError(f"协议格式错误: {parts[proto_idx]}")
         self.proto = int(proto_parts[0], 16)  # 十六进制转换
         
         # Action (格式: "0x1000/0x1000")
-        action_parts = parts[5].split('/')
+        action_parts = parts[action_idx].split('/')
         self.action = action_parts[0]
 
 

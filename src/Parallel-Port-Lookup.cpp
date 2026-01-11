@@ -1630,6 +1630,39 @@ void Handle_Port_Hiding_Problem(std::map<std::tuple<std::vector<int>, int, int, 
     mateinfo = std::move(new_mateinfo);
 }
 
+void bulid_coverset_for_cell(vector<IntersectionCell>& intersections,
+        vector<IntersectionCell>& Rmax_intersections,
+        vector<IPRule>& merged_ip_table)
+{
+    auto build_for_cells = [&](vector<IntersectionCell>& cells){
+        for (auto& cell : cells){
+            cell.cover_set.clear();
+
+            for (size_t i = 0; i < merged_ip_table.size(); ++i) {
+                const auto& rule = merged_ip_table[i];
+                // 1) proto 必须一致
+                if (rule.proto != cell.proto)
+                    continue;
+                
+                // 2) 检查规则是否被 cell 覆盖（即规则的 IP 范围在 cell 的 IP 范围内）
+                // cell 覆盖 rule：cell.src_lo <= rule.src_ip_lo && rule.src_ip_hi <= cell.src_hi
+                // cell 覆盖 rule：cell.dst_lo <= rule.dst_ip_lo && rule.dst_ip_hi <= cell.dst_hi
+                if (cell.src_lo > rule.src_ip_lo || rule.src_ip_hi > cell.src_hi)
+                    continue;
+
+                // 3) dst 被 cell 覆盖
+                if (cell.dst_lo > rule.dst_ip_lo || rule.dst_ip_hi > cell.dst_hi)
+                    continue;
+                
+                cell.cover_set.push_back(i);
+            }       
+        }
+    };
+
+    build_for_cells(intersections);
+    build_for_cells(Rmax_intersections);
+}
+
 void load_and_create_IP_table(vector<IPRule>& ip_table,
     vector<PortRule>& port_table, 
     vector<IPRule>& merged_ip_table,
@@ -1692,6 +1725,7 @@ void load_and_create_IP_table(vector<IPRule>& ip_table,
     vector<FinalIPRule> final_ip_table;
     merge_cells_and_ip_table(RO_merged_ip_table, intersections, Rmax_intersections, final_ip_table);    
 
+    bulid_coverset_for_cell(intersections, Rmax_intersections, merged_ip_table);
     //7) transfer rule into mask type
     Create_Metainfo_for_port(port_table, merged_ip_table, intersections, Rmax_intersections, final_ip_table, RO_merged_ip_table, old_to_new_idx, mateinfo);
     

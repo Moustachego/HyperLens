@@ -1418,14 +1418,33 @@ vector<string> range_to_cidrs(uint32_t start, uint32_t end) {
     while (start <= end) {
 
         uint32_t max_block = start & -start; // 最大对齐块
-        int prefix = 32 - __builtin_ctz(max_block);
+        int prefix;
+        
+        // 特殊处理：当 start=0 时，max_block=0，__builtin_ctz(0) 是未定义行为
+        if (max_block == 0) {
+            // 当 start=0 时，从 prefix=0 开始，然后根据 end 调整
+            prefix = 0;
+        } else {
+            prefix = 32 - __builtin_ctz(max_block);
+        }
 
         // 尝试扩大 CIDR，直到超范围
-        while (prefix > 0) {  // **这里防止 prefix=0 再移位 32**
-            uint64_t block_size = 1ULL << (32 - prefix);
+        // 注意：当 prefix=0 时，也需要检查是否超出 end
+        while (true) {
+            uint64_t block_size;
+            if (prefix == 0) {
+                block_size = 1ULL << 32;  // 整个地址空间
+            } else {
+                block_size = 1ULL << (32 - prefix);
+            }
             uint64_t block_end = (uint64_t)start + block_size - 1;
 
             if (block_end > end) {
+                if (prefix >= 32) {
+                    // 已经是最小的块了，只能输出单个IP
+                    prefix = 32;
+                    break;
+                }
                 prefix++;
             } else {
                 break;
@@ -1526,7 +1545,7 @@ void Generate_cell_GID_to_metainfo(
     vector<Metainfo_for_SRC_port>& meta_src
 )
 {
-    bool enable_debug = false;
+    bool enable_debug = false;  // 设置为 true 以启用调试输出
 
     // ========== 1. 建立 cell 查找表 ==========
     std::unordered_map<std::string, size_t> cell_key_to_index;
@@ -1677,7 +1696,50 @@ void Generate_cell_GID_to_metainfo(
         // 去重
         std::unordered_set<size_t> uniq_orig_ids(orig_ids.begin(), orig_ids.end());
 
-        // ========== 7. 为每个原始规则ID创建 meta entry（包括 Extraction 和 ancestors）==========
+        // ========== 6.5. 用 coverset 扩充 uniq_orig_ids（只补充缺失的）==========
+        // cover_set 存储的是 merged_ip_table 的索引（重排前）
+        // 需要通过 old_to_new_idx 映射到 RO_merged_ip_table 的新索引（重排后）
+        if (enable_debug && !ic->cover_set.empty()) {
+            std::cout << "[DEBUG] G-ID=" << gid << " cover_set size=" << ic->cover_set.size() << "\n";
+        }
+        for (size_t old_cover_idx : ic->cover_set) {
+            auto it_map = old_to_new_idx.find(old_cover_idx);
+            if (it_map == old_to_new_idx.end()) {
+                if (enable_debug) {
+                    std::cout << "[WARN] G-ID=" << gid << " cover_set index " << old_cover_idx 
+                              << " not found in old_to_new_idx mapping, skipping.\n";
+                }
+                continue;
+            }
+            
+            size_t new_cover_idx = it_map->second;
+            if (new_cover_idx >= RO_merged_ip_table.size()) {
+                if (enable_debug) {
+                    std::cout << "[WARN] G-ID=" << gid << " cover_set new_idx " << new_cover_idx 
+                              << " >= RO_merged_ip_table.size()=" << RO_merged_ip_table.size() << ", skipping.\n";
+                }
+                continue;  // 索引越界，跳过
+            }
+            
+            // 从 RO_merged_ip_table 中获取 merged_R（原始规则ID）
+            const auto& cover_rule = RO_merged_ip_table[new_cover_idx];
+            if (enable_debug) {
+                std::cout << "[DEBUG] G-ID=" << gid << " cover_set rule merged_R size=" << cover_rule.merged_R.size() << "\n";
+            }
+            for (size_t orig : cover_rule.merged_R) {
+                // 只添加缺失的（去重）
+                if (uniq_orig_ids.find(orig) == uniq_orig_ids.end()) {
+                    uniq_orig_ids.insert(orig);
+                    orig_ids.push_back(orig);
+                    if (enable_debug) {
+                        std::cout << "[DEBUG] G-ID=" << gid << " added cover_set orig_rid=" << orig << "\n";
+                    }
+                }
+            }
+        }
+
+        // ========== 7. 为每个原始规则ID创建 meta entry（包括 Extraction、ancestors 和 coverset）==========
+        // ★ 为 fr.group_ids 中的每个 G-ID 都创建 metainfo 条目
         for (size_t orig_rid : uniq_orig_ids) {
             auto it = std::find_if(
                 port_table.begin(),
@@ -1691,16 +1753,19 @@ void Generate_cell_GID_to_metainfo(
 
             const PortRule &por = *it;
 
-            Metainfo_for_SRC_port new_entry;
-            new_entry.Inital_Number = { static_cast<uint32_t>(orig_rid) };
-            new_entry.Src_lo   = por.src_port_lo;
-            new_entry.Src_hi   = por.src_port_hi;
-            new_entry.Dst_lo   = por.dst_port_lo;
-            new_entry.Dst_hi   = por.dst_port_hi;
-            new_entry.action   = por.action;
-            new_entry.group_ids = { gid };
+            // 为每个 group_id 创建 metainfo 条目
+            for (int gid_in_list : fr.group_ids) {
+                Metainfo_for_SRC_port new_entry;
+                new_entry.Inital_Number = { static_cast<uint32_t>(orig_rid) };
+                new_entry.Src_lo   = por.src_port_lo;
+                new_entry.Src_hi   = por.src_port_hi;
+                new_entry.Dst_lo   = por.dst_port_lo;
+                new_entry.Dst_hi   = por.dst_port_hi;
+                new_entry.action   = por.action;
+                new_entry.group_ids = { gid_in_list };
 
-            meta_src.push_back(new_entry);
+                meta_src.push_back(new_entry);
+            }
         }
     }
 

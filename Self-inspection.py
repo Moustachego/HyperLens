@@ -408,7 +408,7 @@ def load_dst_sram_table(filename):
     Parse DST_SRAM_Table.txt
 
     Expected columns:
-    GroupID2 | DP_Quotient | Bitmap32 | Action
+    GroupID2 | SP_Quotient | Bitmap32 | Action
     """
     table = []
 
@@ -452,16 +452,20 @@ def dst_tcam_lookup(pkt, dst_tcam_table):
             continue
 
         if tcam_match(dst_port_bin, rule['pattern']):
+            # 直接使用从表中读取的 action 字符串，不需要转换
+            pkt['resolved_action'] = rule['action']
+            # 解析 value/mask 以便后续验证
             try:
-                pkt['final_action'] = int(rule['action'])
-            except (ValueError, TypeError):
+                pkt['resolved_action_value'], pkt['resolved_action_mask'] = \
+                    parse_action(rule['action'])
+            except (ValueError, KeyError) as e:
                 pkt['fail_stage'] = FailStage.ACTION
-                pkt['fail_reason'] = f"Invalid action value: {rule['action']}"
+                pkt['fail_reason'] = f"Invalid action format: {rule['action']}, error: {e}"
                 return False
             add_debug(pkt, FailStage.DST_TCAM, {
                 'hit': True,
                 'pattern': rule['pattern'],
-                'action_id': rule['action']
+                'action': rule['action']
             })
             return True
 
@@ -508,11 +512,15 @@ def dst_sram_lookup(pkt, dst_sram_table):
         })
 
         if val == '1':
+            # 直接使用从表中读取的 action 字符串，不需要转换
+            pkt['resolved_action'] = rule['action']
+            # 解析 value/mask 以便后续验证
             try:
-                pkt['final_action'] = int(rule['action'])
-            except (ValueError, TypeError):
+                pkt['resolved_action_value'], pkt['resolved_action_mask'] = \
+                    parse_action(rule['action'])
+            except (ValueError, KeyError) as e:
                 pkt['fail_stage'] = FailStage.ACTION
-                pkt['fail_reason'] = f"Invalid action value: {rule['action']}"
+                pkt['fail_reason'] = f"Invalid action format: {rule['action']}, error: {e}"
                 return False
             return True
 
@@ -547,43 +555,18 @@ def build_action_table_from_rules(rules_file):
     return action_table
 
 def resolve_action(pkt, action_table):
-    action_id = pkt.get('final_action')
-    if action_id is None:
+    """
+    验证 action 是否已从 DST 表中解析
+    现在 action 直接从 DST TCAM/SRAM 表中获取，不需要通过 action_table 查找
+    """
+    # action 应该已经在 dst_tcam_lookup 或 dst_sram_lookup 中设置
+    if 'resolved_action' not in pkt:
         pkt['fail_stage'] = FailStage.ACTION
-        pkt['fail_reason'] = "Missing ActionID"
+        pkt['fail_reason'] = "Missing resolved_action (should be set by DST lookup)"
         return False
-
-    # ★ 修复：DST 表中的 Action 值是 action 值的十进制表示（如 16 = 0x0010）
-    # 而不是 rule index。需要通过 action 值来查找对应的规则
-    # 将 action_id（十进制）转换为十六进制字符串格式进行比较
-    target_action_hex = f"0x{action_id:04X}"
     
-    # 遍历 action_table，查找匹配的 action 值
-    resolved_str = None
-    for rule_idx, action_str in action_table.items():
-        # 解析 action 字符串，提取 value 部分
-        try:
-            action_value, action_mask = parse_action(action_str)
-            # 将 value 转换为十六进制字符串进行比较
-            action_value_hex = f"0x{action_value:04X}"
-            if action_value_hex == target_action_hex:
-                resolved_str = action_str
-                break
-        except (ValueError, KeyError):
-            continue
-    
-    if resolved_str is None:
-        pkt['fail_stage'] = FailStage.ACTION
-        pkt['fail_reason'] = f"ActionID {action_id} (hex: {target_action_hex}) not found in action table"
-        return False
-
-    # 原始字符串
-    pkt['resolved_action'] = resolved_str
-
-    # 解析 value/mask
-    pkt['resolved_action_value'], pkt['resolved_action_mask'] = \
-        parse_action(resolved_str)
-
+    # action 已经解析，直接返回成功
+    # resolved_action_value 和 resolved_action_mask 也应该已经设置
     return True
 
 
@@ -655,7 +638,7 @@ def main():
     ACL_path  = os.path.join('src', 'ACL_rules')
 
     testset_file = os.path.join(base_path, 'acl1_50k_16_0.5_c_testset.txt')
-    rules_file   = os.path.join(ACL_path, 'acl1_50k_16_0.5_c.rules')
+    rules_file   = os.path.join(ACL_path, 'acl1/acl1_50k_16_0.5_c.rules')
 
     final_ip_table_file = os.path.join(base_path, 'final_ip_table_cidr.txt')
     src_tcam_file = os.path.join(base_path, 'SRC_TCAM_Table.txt')
@@ -779,7 +762,8 @@ def main():
     # =========================================================
     # STEP (5): Action resolution & verification
     # =========================================================
-    action_table = build_action_table_from_rules(rules_file)
+    # 注意：现在不再需要 action_table，因为 action 直接从 DST 表中获取
+    # action_table = build_action_table_from_rules(rules_file)  # 不再需要
 
     action_fail = 0
     action_mismatch = 0
@@ -788,15 +772,18 @@ def main():
         if pkt['fail_stage'] is not None and pkt['fail_stage'] != FailStage.ACTION:
             continue
 
-        if not resolve_action(pkt, action_table):
+        # action 应该已经在 DST lookup 阶段设置
+        # 这里只需要验证 action 是否存在
+        if 'resolved_action' not in pkt:
             pkt['fail_stage'] = FailStage.ACTION
-            pkt['fail_reason'] = "ActionID invalid or missing"
+            pkt['fail_reason'] = "Action not resolved from DST lookup"
             action_fail += 1
             continue
 
+        # 验证 action 是否匹配期望值
         if pkt.get('expected_action') != pkt.get('resolved_action'):
             pkt['fail_stage'] = FailStage.ACTION
-            pkt['fail_reason'] = "Resolved action mismatch"
+            pkt['fail_reason'] = f"Resolved action mismatch: expected {pkt.get('expected_action')}, got {pkt.get('resolved_action')}"
             action_mismatch += 1
 
     log_file.write("\nSTEP (5) summary:\n")
@@ -822,7 +809,6 @@ def main():
         )
         log_file.write(f"  G-ID1: {pkt.get('matched_gids')}\n")
         log_file.write(f"  G-ID2: {pkt.get('src_group_id')}\n")
-        log_file.write(f"  FinalActionID: {pkt.get('final_action')}\n")
         log_file.write(f"  Expected: {pkt.get('expected_action')}\n")
         log_file.write(f"  Resolved: {pkt.get('resolved_action')}\n")
         log_file.write(f"  Reason: {pkt.get('fail_reason')}\n")
