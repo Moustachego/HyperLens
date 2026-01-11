@@ -623,21 +623,48 @@ void assign_blocks_to_dst_sram_tcam(const std::vector<BlockMeta_DST>& blocks,
     }
 
     // 输出到文件
-    // 排序逻辑：首先按 GroupID2 排序，在同一 GroupID2 内，全范围端口（****************）放在最后
+    // 排序逻辑：首先按 GroupID2 排序，在同一 GroupID2 内：
+    // 1. 单点（无*）优先
+    // 2. 范围内部：普通范围按起始顺序，超长范围（全*或前缀<=3）放在最后
     std::sort(dst_tcam_table.begin(), dst_tcam_table.end(), [](const DST_TCAM_Table &a, const DST_TCAM_Table &b){
         if (a.GroupID2 != b.GroupID2) {
-        return a.GroupID2 < b.GroupID2;
+            return a.GroupID2 < b.GroupID2;
         }
-        // 同一 GroupID2 内，检查是否为全范围端口（16个星号）
-        bool a_is_full_range = (a.bin_prefix == std::string(16, '*'));
-        bool b_is_full_range = (b.bin_prefix == std::string(16, '*'));
+        // 同一 GroupID2 内，判断是否为单点（无*）还是范围（有*）
+        bool a_is_single_point = (a.bin_prefix.find('*') == std::string::npos);
+        bool b_is_single_point = (b.bin_prefix.find('*') == std::string::npos);
         
-        // 如果一个是全范围，另一个不是，全范围的放在后面
-        if (a_is_full_range != b_is_full_range) {
-            return !a_is_full_range;  // a不是全范围时返回true（a排在前面）
+        // 单点排在前面（优先级更高）
+        if (a_is_single_point != b_is_single_point) {
+            return a_is_single_point;  // a是单点时返回true（a排在前面）
         }
         
-        // 如果都是全范围或都不是全范围，保持原有顺序（或按bin_prefix字典序）
+        // 如果都是单点，按bin_prefix字典序排序
+        if (a_is_single_point && b_is_single_point) {
+            return a.bin_prefix < b.bin_prefix;
+        }
+        
+        // 如果都是范围，判断是否为超长范围（全*或前缀<=3个固定位）
+        bool a_is_full_wildcard = (a.bin_prefix == std::string(16, '*'));
+        bool b_is_full_wildcard = (b.bin_prefix == std::string(16, '*'));
+        int a_fixed_len = prefix_fixed_len(a.bin_prefix);
+        int b_fixed_len = prefix_fixed_len(b.bin_prefix);
+        bool a_is_long_range = a_is_full_wildcard || (a_fixed_len <= 3);
+        bool b_is_long_range = b_is_full_wildcard || (b_fixed_len <= 3);
+        
+        // 超长范围放在最后
+        if (a_is_long_range != b_is_long_range) {
+            return !a_is_long_range;  // a不是超长范围时返回true（a排在前面）
+        }
+        
+        // 如果都是超长范围，全*放在最后
+        if (a_is_long_range && b_is_long_range) {
+            if (a_is_full_wildcard != b_is_full_wildcard) {
+                return !a_is_full_wildcard;  // a不是全*时返回true（a排在前面）
+            }
+        }
+        
+        // 普通范围或都是超长范围（但都是全*或都不是全*），按bin_prefix字典序排序
         return a.bin_prefix < b.bin_prefix;
     });
     std::ofstream dtcam("src/output/DST_TCAM_Table.txt");
@@ -682,21 +709,51 @@ void output_sram_tcam_tables(
     };
 
     // -------- TCAM 输出 --------
-    // 排序逻辑：首先按 GroupID1 排序，在同一 GroupID1 内，0-65535（bin_prefix 为全 '*'）放在最后
+    // 排序逻辑：首先按 GroupID1 排序，在同一 GroupID1 内：
+    // 1. 单点（无*）优先
+    // 2. 范围内部：普通范围按起始顺序，超长范围（全*或前缀<=3）放在最后
     std::sort(src_tcam_table.begin(), src_tcam_table.end(),
         [](const SRC_TCAM_Table &a, const SRC_TCAM_Table &b) {
             if (a.GroupID1 != b.GroupID1) return a.GroupID1 < b.GroupID1;
-            // 同一 G-ID1 内，判断是否为全范围（0-65535）
-            bool a_is_full_range = (a.bin_prefix.size() == 16 && 
-                                   a.bin_prefix.find_first_not_of('*') == std::string::npos);
-            bool b_is_full_range = (b.bin_prefix.size() == 16 && 
-                                   b.bin_prefix.find_first_not_of('*') == std::string::npos);
-            // 全范围排在最后（优先级最低）
-            if (a_is_full_range != b_is_full_range) {
-                return !a_is_full_range; // a 不是全范围时返回 true（排在前面）
+            // 同一 G-ID1 内，判断是否为单点（无*）还是范围（有*）
+            bool a_is_single_point = (a.bin_prefix.find('*') == std::string::npos);
+            bool b_is_single_point = (b.bin_prefix.find('*') == std::string::npos);
+            // 单点排在前面（优先级更高）
+            if (a_is_single_point != b_is_single_point) {
+                return a_is_single_point; // a 是单点时返回 true（排在前面）
             }
-            // 如果都是全范围或都不是全范围，按 GroupID2 排序
-            return a.GroupID2 < b.GroupID2;
+            
+            // 如果都是单点，按GroupID2排序，然后按bin_prefix排序
+            if (a_is_single_point && b_is_single_point) {
+                if (a.GroupID2 != b.GroupID2) return a.GroupID2 < b.GroupID2;
+                return a.bin_prefix < b.bin_prefix;
+            }
+            
+            // 如果都是范围，判断是否为超长范围（全*或前缀<=3个固定位）
+            bool a_is_full_wildcard = (a.bin_prefix.size() == 16 && 
+                                       a.bin_prefix.find_first_not_of('*') == std::string::npos);
+            bool b_is_full_wildcard = (b.bin_prefix.size() == 16 && 
+                                       b.bin_prefix.find_first_not_of('*') == std::string::npos);
+            int a_fixed_len = prefix_fixed_len(a.bin_prefix);
+            int b_fixed_len = prefix_fixed_len(b.bin_prefix);
+            bool a_is_long_range = a_is_full_wildcard || (a_fixed_len <= 3);
+            bool b_is_long_range = b_is_full_wildcard || (b_fixed_len <= 3);
+            
+            // 超长范围放在最后
+            if (a_is_long_range != b_is_long_range) {
+                return !a_is_long_range;  // a不是超长范围时返回true（a排在前面）
+            }
+            
+            // 如果都是超长范围，全*放在最后
+            if (a_is_long_range && b_is_long_range) {
+                if (a_is_full_wildcard != b_is_full_wildcard) {
+                    return !a_is_full_wildcard;  // a不是全*时返回true（a排在前面）
+                }
+            }
+            
+            // 普通范围或都是超长范围（但都是全*或都不是全*），先按GroupID2排序，再按bin_prefix排序
+            if (a.GroupID2 != b.GroupID2) return a.GroupID2 < b.GroupID2;
+            return a.bin_prefix < b.bin_prefix;
         }
     );
 

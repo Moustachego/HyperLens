@@ -462,6 +462,10 @@ def dst_tcam_lookup(pkt, dst_tcam_table):
                 pkt['fail_stage'] = FailStage.ACTION
                 pkt['fail_reason'] = f"Invalid action format: {rule['action']}, error: {e}"
                 return False
+            # TCAM查找成功，清除之前可能设置的fail_stage（比如SRAM失败时设置的）
+            if pkt.get('fail_stage') in (FailStage.DST_SRAM, FailStage.DST_TCAM):
+                pkt['fail_stage'] = None
+                pkt['fail_reason'] = None
             add_debug(pkt, FailStage.DST_TCAM, {
                 'hit': True,
                 'pattern': rule['pattern'],
@@ -522,10 +526,14 @@ def dst_sram_lookup(pkt, dst_sram_table):
                 pkt['fail_stage'] = FailStage.ACTION
                 pkt['fail_reason'] = f"Invalid action format: {rule['action']}, error: {e}"
                 return False
+            # SRAM查找成功，清除之前可能设置的fail_stage
+            if pkt.get('fail_stage') in (FailStage.DST_SRAM, FailStage.DST_TCAM):
+                pkt['fail_stage'] = None
+                pkt['fail_reason'] = None
             return True
 
     pkt['fail_stage'] = FailStage.DST_SRAM
-    pkt['fail_reason'] = "DST TCAM + SRAM miss"
+    pkt['fail_reason'] = "DST SRAM + TCAM miss"
     return False
 
 # ============================================================
@@ -740,7 +748,7 @@ def main():
                 )
 
     # =========================================================
-    # STEP (4): DST TCAM + DST SRAM
+    # STEP (4): DST SRAM + DST TCAM (先SRAM，后TCAM)
     # =========================================================
     dst_tcam_table = load_dst_tcam_table(dst_tcam_file)
     dst_sram_table = load_dst_sram_table(dst_sram_file)
@@ -750,11 +758,23 @@ def main():
         if pkt['fail_stage'] is not None:
             continue
 
-        if dst_tcam_lookup(pkt, dst_tcam_table):
+        # 先尝试SRAM查找
+        if dst_sram_lookup(pkt, dst_sram_table):
             continue
 
-        if not dst_sram_lookup(pkt, dst_sram_table):
-            dst_fail += 1
+        # SRAM未命中，尝试TCAM查找
+        # 注意：dst_sram_lookup失败时可能已经设置了fail_stage，但TCAM成功时会清除它
+        if dst_tcam_lookup(pkt, dst_tcam_table):
+            # TCAM成功，fail_stage已经在dst_tcam_lookup中被清除
+            continue
+        
+        # SRAM和TCAM都失败
+        # 如果fail_stage还没有被设置（不应该发生，但为了安全），设置它
+        if pkt.get('fail_stage') is None:
+            pkt['fail_stage'] = FailStage.DST_TCAM
+            pkt['fail_reason'] = "DST SRAM + TCAM miss"
+        # 如果fail_stage已经被设置（通常是DST_SRAM），保持它
+        dst_fail += 1
 
     log_file.write("\nSTEP (4) summary:\n")
     log_file.write(f"Packets failed at DST stage: {dst_fail}\n")
