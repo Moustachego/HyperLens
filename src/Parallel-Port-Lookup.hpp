@@ -8,6 +8,13 @@
 
 using namespace std;
 
+// 端口类型枚举（需要在结构体之前定义）
+enum class DST_Port_Type {
+    POINT = 0,      // 点（单个点值）
+    SHORT_RANGE = 1, // 短区间
+    LONG_RANGE = 2,  // 长区间（1025-65535、5001-65535）
+    WILDCARD = 3     // 全通配符（0-65535）
+};
 
 struct PortRangeEntry {
     uint32_t group_id;               // GroupIDs
@@ -49,6 +56,7 @@ struct BlockMeta_DST {
     std::bitset<32> bitmap; 
     bool assigned = false;        // 是否已经被分配给 TCAM（被合并成 superblock）
     bool single_value = false;    // 新增：是否为单个端口值
+    DST_Port_Type port_type = DST_Port_Type::SHORT_RANGE; // 端口类型标记（从 DST_Port_Item 继承）
 };
 
 // 为兼容现有代码，默认的 BlockMeta 映射到 SRC 版本。
@@ -92,6 +100,7 @@ struct DST_Port_Item{
     uint32_t dst_hi;
     std::vector<int> Action;      // 分配后的 GID2（顺序分配或 action id）
     std::string action;            // 原始的 action 字符串格式，如 "0x0000/0x0200"
+    DST_Port_Type port_type = DST_Port_Type::SHORT_RANGE; // 端口类型标记
 };
 
 // 占位输出结构
@@ -124,6 +133,7 @@ struct DST_TCAM_Table {
     uint16_t dst_port_mask;   // 16-bit mask: 1=固定，0=通配
     std::string Action;        // 原始的 action 字符串格式，如 "0x0000/0x0200"
     std::string bin_prefix;
+    DST_Port_Type port_type = DST_Port_Type::SHORT_RANGE; // 端口类型标记
 };
 
 struct RmaxEntity {

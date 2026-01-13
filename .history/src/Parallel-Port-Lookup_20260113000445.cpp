@@ -224,7 +224,13 @@ SplitResult_DST split_port_range_into_blocks_for_dst(const std::vector<DST_Port_
 
         uint32_t group_id = item.group_ids1[0];
         uint32_t group_id2 = item.group_ids2.empty() ? 0 : static_cast<uint32_t>(item.group_ids2[0]);
-
+        
+        // DEBUG：记录LONG_RANGE项目的拆分
+        int ptype = static_cast<int>(item.port_type);
+        if (ptype == 2) {
+            std::cerr << "[DEBUG-SPLIT] GID=" << group_id << " Range=[" << L << "," << H << "] "
+                      << "PortType=" << ptype << " (LONG_RANGE)\n";
+        }
 
         // 全端口特殊处理
         if (L == 0 && H == 65535) {
@@ -261,7 +267,10 @@ SplitResult_DST split_port_range_into_blocks_for_dst(const std::vector<DST_Port_
             bm.single_value = (block_start == block_end);
             bm.port_type = item.port_type; // 继承端口类型
             
-
+            // DEBUG：对于LONG_RANGE块进行计数
+            if (ptype == 2) {
+                long_range_blocks++;
+            }
 
             uint32_t block_len = block_end - block_start + 1;
             bool can_use_prefix = is_power_of_two(block_len) && (block_start % block_len == 0);
@@ -287,6 +296,9 @@ SplitResult_DST split_port_range_into_blocks_for_dst(const std::vector<DST_Port_
         }
     }
 
+    // DEBUG输出
+    std::cerr << "[DEBUG-SPLIT] Total DST blocks created: " << result.blocks.size() 
+              << " (LONG_RANGE blocks: " << long_range_blocks << ")\n";
 
     return result;
 }
@@ -651,13 +663,7 @@ void assign_blocks_to_dst_sram_tcam(const std::vector<BlockMeta_DST>& blocks,
         return a.bin_prefix < b.bin_prefix;
     });
     std::ofstream dtcam("src/output/DST_TCAM_Table.txt");
-    dtcam << "GroupID2    DstPort             Action\n";
-    for (const auto &e : dst_tcam_table) {
-        char buf[256];
-        snprintf(buf, sizeof(buf), "%-12u %-20s %-12s\n", 
-                 e.GroupID2, e.bin_prefix.c_str(), e.Action.c_str());
-        dtcam << buf;
-    }
+    dtcam << "GroupID2    DstPort             Action \n";
     dtcam.close();
 
     std::sort(dst_sram_table.begin(), dst_sram_table.end(), [](const DST_SRAM_Table &a, const DST_SRAM_Table &b){

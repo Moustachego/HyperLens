@@ -209,7 +209,6 @@ SplitResult_DST split_port_range_into_blocks_for_dst(const std::vector<DST_Port_
 {
     SplitResult_DST result;
     size_t total_blocks = 0;
-    int long_range_blocks = 0;  // DEBUG计数
 
     for (size_t item_idx = 0; item_idx < meta_dst.size(); ++item_idx) {
         const auto &item = meta_dst[item_idx];
@@ -224,7 +223,6 @@ SplitResult_DST split_port_range_into_blocks_for_dst(const std::vector<DST_Port_
 
         uint32_t group_id = item.group_ids1[0];
         uint32_t group_id2 = item.group_ids2.empty() ? 0 : static_cast<uint32_t>(item.group_ids2[0]);
-
 
         // 全端口特殊处理
         if (L == 0 && H == 65535) {
@@ -260,8 +258,6 @@ SplitResult_DST split_port_range_into_blocks_for_dst(const std::vector<DST_Port_
             bm.assigned = false;
             bm.single_value = (block_start == block_end);
             bm.port_type = item.port_type; // 继承端口类型
-            
-
 
             uint32_t block_len = block_end - block_start + 1;
             bool can_use_prefix = is_power_of_two(block_len) && (block_start % block_len == 0);
@@ -287,6 +283,7 @@ SplitResult_DST split_port_range_into_blocks_for_dst(const std::vector<DST_Port_
         }
     }
 
+    // debug prints removed
 
     return result;
 }
@@ -587,9 +584,6 @@ void merge_prefix_blocks_for_dst(std::vector<BlockMeta_DST>& blocks) {
 
                 // group_id2 在组内相同，若出现不同则置 0（不过排序保证同组相同）
                 M.group_id2 = (A.group_id2 == B.group_id2) ? A.group_id2 : 0;
-                
-                // 继承port_type：两个块应该有相同的port_type，取A的
-                M.port_type = A.port_type;
 
                 // pop two and push merged
                 stack.pop_back();
@@ -633,13 +627,22 @@ void assign_blocks_to_dst_sram_tcam(const std::vector<BlockMeta_DST>& blocks,
 
     // 输出到文件
     // 排序逻辑：首先按 GroupID2 排序，在同一 GroupID2 内：
-    // 按端口类型排序：点(POINT=0) -> 短区间(SHORT_RANGE=1) -> 长区间(LONG_RANGE=2) -> 全通配符(WILDCARD=3)
+    // 1. 按前缀长度从长到短排列（固定位数多的排在前面）
+    // 2. 前缀长度相同时，按端口类型排序：点(0) -> 短区间(1) -> 长区间(2) -> 全通配符(3)
     std::stable_sort(dst_tcam_table.begin(), dst_tcam_table.end(), [](const DST_TCAM_Table &a, const DST_TCAM_Table &b){
         if (a.GroupID2 != b.GroupID2) {
             return a.GroupID2 < b.GroupID2;
         }
         
-        // 同一 GroupID2 内，按端口类型排序（枚举值直接反映优先级）
+        // 同一 GroupID2 内，首先按前缀长度从长到短排序（前缀长度多表示更具体的规则）
+        int a_fixed_len = prefix_fixed_len(a.bin_prefix);
+        int b_fixed_len = prefix_fixed_len(b.bin_prefix);
+        
+        if (a_fixed_len != b_fixed_len) {
+            return a_fixed_len > b_fixed_len;  // 前缀长度越长，优先级越高
+        }
+        
+        // 前缀长度相同时，按端口类型排序：点(0) -> 短区间(1) -> 长区间(2) -> 全通配符(3)
         int a_type_order = static_cast<int>(a.port_type);
         int b_type_order = static_cast<int>(b.port_type);
         
@@ -651,12 +654,9 @@ void assign_blocks_to_dst_sram_tcam(const std::vector<BlockMeta_DST>& blocks,
         return a.bin_prefix < b.bin_prefix;
     });
     std::ofstream dtcam("src/output/DST_TCAM_Table.txt");
-    dtcam << "GroupID2    DstPort             Action\n";
+    dtcam << std::left << std::setw(12) << "GroupID2" << std::setw(20) << "DstPort" << std::setw(10) << "Action" << "\n";
     for (const auto &e : dst_tcam_table) {
-        char buf[256];
-        snprintf(buf, sizeof(buf), "%-12u %-20s %-12s\n", 
-                 e.GroupID2, e.bin_prefix.c_str(), e.Action.c_str());
-        dtcam << buf;
+        dtcam << std::left << std::setw(12) << e.GroupID2 << std::setw(20) << e.bin_prefix << std::setw(10) << e.Action << "\n";
     }
     dtcam.close();
 
