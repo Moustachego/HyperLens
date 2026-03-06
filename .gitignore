@@ -44,6 +44,9 @@ Makefile
 *.bak
 .DS_Store
 
+# VS Code Local History (auto-generated, not version controlled)
+.history/
+
 # Log files
 *.log
 logs/

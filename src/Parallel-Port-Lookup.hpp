@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <bitset>
 #include <string>
+#include <unordered_set>
 #include "Loader.hpp"
 #include "Dependent-Set-Prefix-Lookup.hpp"
 
@@ -143,14 +144,50 @@ struct RmaxEntity {
     size_t   rmax_id;
 };
 
+struct ClassifyEntry {
+    uint32_t src_ip_lo, src_ip_hi;
+    uint32_t dst_ip_lo, dst_ip_hi;
+    uint8_t  proto;
+    uint16_t src_port_lo, src_port_hi;
+    uint16_t dst_port_lo, dst_port_hi;
+    std::string Action;
+};
 
 // ===== Function Declarations =====
+
+// 实验分析：打印 3 种指标 (cell_count / port_count / range_port_count) 对比表
+void classify_rules_Experiment(
+    const std::vector<IntersectionCell>& intersections,
+    const std::vector<IntersectionCell>& Rmax_intersections,
+    const std::vector<IPRule>& merged_ip_table,
+    const std::vector<PortRule>& port_table,
+    int explosion_threshold,
+    std::vector<ClassifyEntry>& First_table,
+    std::unordered_set<size_t>& classified_merged_ids
+);
+
+// 选择性分流：按 cell_count 排序选 top-K%，不足时贪心补充
+void classify_rules_Selective(
+    const std::vector<IntersectionCell>& intersections,
+    const std::vector<IntersectionCell>& Rmax_intersections,
+    const std::vector<IPRule>& merged_ip_table,
+    const std::vector<PortRule>& port_table,
+    int select_percentage,
+    std::vector<ClassifyEntry>& First_table,
+    std::unordered_set<size_t>& classified_merged_ids
+);
+
+void write_five_tuple_table(
+    const std::vector<ClassifyEntry>& First_table,
+    const std::string& filename
+);
 
 void load_and_create_IP_table(
     vector<IPRule>& ip_table,
     vector<PortRule>& port_table,
     vector<IPRule>& merged_ip_table,
-    std::map<std::tuple<std::vector<int>, int, int, int, int>, MergedItem>& mateinfo
+    std::map<std::tuple<std::vector<int>, int, int, int, int>, MergedItem>& mateinfo,
+    int select_percentage = 10
 );
 
 void create_Table_for_port(

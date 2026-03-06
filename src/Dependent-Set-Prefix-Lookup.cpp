@@ -1738,7 +1738,36 @@ void Generate_cell_GID_to_metainfo(
             }
         }
 
-        // ========== 7. 为每个原始规则ID创建 meta entry（包括 Extraction、ancestors 和 coverset）==========
+        // ========== 7. 检查该 cell 是否被高优先级规则完全覆盖（IP + 端口相同）==========
+        bool skip_this_cell = false;
+        for (size_t check_fi = 0; check_fi < fi && !skip_this_cell; ++check_fi) {
+            const FinalIPRule& higher = final_ip_table[check_fi];
+            
+            // 检查 IP 范围完全覆盖
+            if (higher.src_lo <= fr.src_lo && fr.src_hi <= higher.src_hi &&
+                higher.dst_lo <= fr.dst_lo && fr.dst_hi <= higher.dst_hi &&
+                higher.proto == fr.proto)
+            {
+                // 比较原始规则 ID 集合：如果 higher 的 ID 集合包含或等于当前 cell 的 ID 集合
+                std::set<size_t> higher_ids(higher.merged_R.begin(), higher.merged_R.end());
+                std::set<size_t> current_ids(uniq_orig_ids.begin(), uniq_orig_ids.end());
+                
+                // 使用 includes 检查 current_ids 是否为 higher_ids 的子集
+                if (std::includes(higher_ids.begin(), higher_ids.end(),
+                                 current_ids.begin(), current_ids.end()))
+                {
+                    skip_this_cell = true;
+                    if (enable_debug) {
+                        std::cout << "[DEBUG] Cell (GID=" << gid << ") skipped: covered by higher-priority rule at index " 
+                                  << check_fi << " with same ports\n";
+                    }
+                }
+            }
+        }
+
+        if (skip_this_cell) continue;  // 跳过该 cell 的 meta 生成
+
+        // ========== 8. 为每个原始规则ID创建 meta entry（包括 Extraction、ancestors 和 coverset）==========
         // ★ 为 fr.group_ids 中的每个 G-ID 都创建 metainfo 条目
         for (size_t orig_rid : uniq_orig_ids) {
             auto it = std::find_if(
@@ -1775,7 +1804,7 @@ void Generate_cell_GID_to_metainfo(
 }
 
 
-void Generate_MergedR_GID_to_metaifno(
+void Generate_MergedR_GID_to_metainfo(
     const vector<FinalIPRule>& final_ip_table,
     const vector<PortRule>& port_table,
     const vector<Rmax_IPRule>& RO_merged_ip_table,
@@ -1826,6 +1855,31 @@ void Generate_MergedR_GID_to_metaifno(
         if (fr.is_cell) continue;
 
         if (fr.group_ids.empty()) continue;
+
+        // ========== 0. 检查该规则是否被高优先级规则完全覆盖（IP + 端口相同）==========
+        bool skip_this_rule = false;
+        for (size_t check_fi = 0; check_fi < fi && !skip_this_rule; ++check_fi) {
+            const FinalIPRule& higher = final_ip_table[check_fi];
+            
+            // 检查 IP 范围完全覆盖
+            if (higher.src_lo <= fr.src_lo && fr.src_hi <= higher.src_hi &&
+                higher.dst_lo <= fr.dst_lo && fr.dst_hi <= higher.dst_hi &&
+                higher.proto == fr.proto)
+            {
+                // 比较原始规则 ID 集合：如果 higher 的 ID 集合包含或等于当前规则的 ID 集合
+                std::set<size_t> higher_ids(higher.merged_R.begin(), higher.merged_R.end());
+                std::set<size_t> current_ids(fr.merged_R.begin(), fr.merged_R.end());
+                
+                // 使用 includes 检查 current_ids 是否为 higher_ids 的子集
+                if (std::includes(higher_ids.begin(), higher_ids.end(),
+                                 current_ids.begin(), current_ids.end()))
+                {
+                    skip_this_rule = true;
+                }
+            }
+        }
+
+        if (skip_this_rule) continue;  // 跳过该规则的 meta 生成
 
         uint32_t gid = fr.group_ids[0];  // 取该规则的 G-ID
 
@@ -2113,7 +2167,6 @@ void Write_Metainfo_to_File(
     std::cout << "[INFO] " << filename << " saved.\n";
 }
 
-
 void Create_Metainfo_for_port(
     const vector<PortRule>& port_table,
     const vector<IPRule>& merged_ip_table,
@@ -2133,10 +2186,11 @@ void Create_Metainfo_for_port(
     Generate_cell_GID_to_metainfo(intersections, rmax_intersections, merged_ip_table, port_table, final_ip_table, RO_merged_ip_table, old_to_new_idx, meta);
     
     // 为合并规则生成 GID 映射（创建新的 meta entries，包括祖先规则的端口对）
-    Generate_MergedR_GID_to_metaifno(final_ip_table, port_table, RO_merged_ip_table, old_to_new_idx, meta);
-
+    Generate_MergedR_GID_to_metainfo(final_ip_table, port_table, RO_merged_ip_table, old_to_new_idx, meta);
+    
     // 合并与重排 Metainfo
     Merge_and_Reorder_Metainfo(meta, merged_output);
+    
     
 };
 
@@ -2278,7 +2332,6 @@ void Reorder_merged_ip_table(
             }
         );
         
-
         // --------------------------------------------------
         // Step 4: 先建立该 proto 组内的索引映射
         // --------------------------------------------------
@@ -2319,9 +2372,6 @@ void Reorder_merged_ip_table(
         }
     }
 }
-
-
-
 
 
 #ifdef DEMO_LOADER_MAIN

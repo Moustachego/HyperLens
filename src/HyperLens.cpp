@@ -13,9 +13,13 @@
 #include <string>
 #include <map>
 #include <tuple>
+#include <fstream>
+#include <cstdio>
+#include <algorithm>
 #include "Loader.hpp"
 #include "Dependent-Set-Prefix-Lookup.hpp"
 #include "Parallel-Port-Lookup.hpp"
+#include "GID2_Optimizer.hpp"
 
 using std::cout;
 using std::cerr;
@@ -40,7 +44,7 @@ using std::endl;
 int main(int argc, char **argv)
 {
     // Parse command-line arguments
-    string rules_path = "src/ACL_rules/acl1/acl1_50k_16_0.5_c.rules";
+    string rules_path = "src/ACL_rules/fw1/fw1_50k_16_0.5.rules";
     if (argc >= 2) {
         rules_path = string(argv[1]);
     }
@@ -82,14 +86,20 @@ int main(int argc, char **argv)
     create_Table_for_port(port_table, merged_ip_table, mateinfo);
     cout << "[SUCCESS] Port lookup tables generated\n\n";
 
-    cout << "===============================================================================\n";
+    // Step 5: GID2 encoding optimization for DST TCAM
+    run_gid2_optimizer("src/output/DST_TCAM_Table.txt",
+                       "src/output/DST_TCAM_Table_Optimized.txt");
+    cout << "[SUCCESS] GID2 optimization completed\n\n";
+
+    cout << "\n===============================================================================\n";
     cout << "HyperLens processing completed successfully!\n";
     cout << "Output files generated in src/output/:\n";
+    cout << "  - final_ip_table_cidr.txt\n";
     cout << "  - SRC_TCAM_Table.txt\n";
     cout << "  - SRC_SRAM_Table.txt\n";
     cout << "  - DST_TCAM_Table.txt\n";
+    cout << "  - DST_TCAM_Table_Optimized.txt\n";
     cout << "  - DST_SRAM_Table.txt\n";
-    cout << "  - final_ip_table_cidr.txt\n";
     cout << "  - meta_merged.txt\n";
     cout << "===============================================================================\n";
 

@@ -20,11 +20,12 @@ echo ""
 
 # 2. 编译
 echo "[2/5] 编译 (g++-11 -std=c++17)..."
-/usr/bin/g++-11 -std=c++17 -fdiagnostics-color=always -g \
+/usr/bin/g++-11 -std=c++17 -fdiagnostics-color=always -g -DHYPERLENS_MAIN \
     src/HyperLens.cpp \
     src/Parallel-Port-Lookup.cpp \
     src/Loader.cpp \
     src/Dependent-Set-Prefix-Lookup.cpp \
+    src/GID2_Optimizer.cpp \
     -o src/HyperLens 2>&1
 echo "✓ 编译成功"
 echo ""
@@ -65,6 +66,9 @@ if [ -f src/output/SRC_SRAM_Table.txt ]; then
 fi
 if [ -f src/output/DST_TCAM_Table.txt ]; then
     echo "✓ DST_TCAM_Table.txt ($(wc -l < src/output/DST_TCAM_Table.txt) 行)"
+fi
+if [ -f src/output/DST_TCAM_Table_Optimized.txt ]; then
+    echo "✓ DST_TCAM_Table_Optimized.txt ($(wc -l < src/output/DST_TCAM_Table_Optimized.txt) 行)"
 fi
 if [ -f src/output/DST_SRAM_Table.txt ]; then
     echo "✓ DST_SRAM_Table.txt ($(wc -l < src/output/DST_SRAM_Table.txt) 行)"
