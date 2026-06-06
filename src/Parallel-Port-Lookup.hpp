@@ -145,12 +145,14 @@ struct RmaxEntity {
 };
 
 struct ClassifyEntry {
+    size_t original_rule_id = 0;
     uint32_t src_ip_lo, src_ip_hi;
     uint32_t dst_ip_lo, dst_ip_hi;
     uint8_t  proto;
     uint16_t src_port_lo, src_port_hi;
     uint16_t dst_port_lo, dst_port_hi;
     std::string Action;
+    std::string original_rule_text;
 };
 
 // ===== Function Declarations =====
@@ -174,12 +176,15 @@ void classify_rules_Selective(
     const std::vector<PortRule>& port_table,
     int select_percentage,
     std::vector<ClassifyEntry>& First_table,
-    std::unordered_set<size_t>& classified_merged_ids
+    std::unordered_set<size_t>& classified_merged_ids,
+    const std::string& ruleset_path = ""
 );
 
 void write_five_tuple_table(
     const std::vector<ClassifyEntry>& First_table,
-    const std::string& filename
+    const std::string& filename,
+    size_t original_rule_count = 0,
+    const std::string& ruleset_path = ""
 );
 
 void load_and_create_IP_table(
@@ -187,7 +192,8 @@ void load_and_create_IP_table(
     vector<PortRule>& port_table,
     vector<IPRule>& merged_ip_table,
     std::map<std::tuple<std::vector<int>, int, int, int, int>, MergedItem>& mateinfo,
-    int select_percentage = 10
+    int select_percentage = 30,
+    const std::string& ruleset_path = ""
 );
 
 void create_Table_for_port(
@@ -195,5 +201,3 @@ void create_Table_for_port(
     const std::vector<IPRule>& merged_ip_table,
     std::map<std::tuple<std::vector<int>, int, int, int, int>, MergedItem>& mateinfo
 );
-
-

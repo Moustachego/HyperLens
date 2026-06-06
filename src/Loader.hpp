@@ -13,6 +13,7 @@ struct Rule5D {
     std::array<int,5> prefix_length;  // store prefix-like info (as in original)
     uint32_t priority;
     std::string action;  // 保存完整的 action 格式，如 "0x0000/0x0200" 或 "0x1000/0x1000"
+    std::string raw_line;
 };
 
 struct IPRule {
@@ -32,6 +33,7 @@ struct PortRule {
     uint16_t dst_port_lo, dst_port_hi;
     uint32_t priority;
     std::string action;  // 保存完整的 action 格式，如 "0x0000/0x0200" 或 "0x1000/0x1000"
+    std::string raw_line;
 };
 
 // ---------------Function Declarations---------------------

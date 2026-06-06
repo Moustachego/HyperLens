@@ -61,48 +61,41 @@ void load_rules_from_file(const string &file, vector<Rule5D> &rules_out) {
 
     u32 rule_count = 0;
     u32 line_count = 0;
+    u32 original_rule_count = 0;
+    u32 skipped_count = 0;
     char buf[1024];
     
     // read lines until EOF using single buffered path
     while (fgets(buf, sizeof(buf), fp)) {
         line_count++;
-        
-        // Try multiple format patterns (spaces or tabs)
-        // 先尝试读取 action 为字符串格式
-        int ret = sscanf(buf, "@%u.%u.%u.%u/%u %u.%u.%u.%u/%u %u : %u %u : %u %x/%x %s",
-                         &sip1,&sip2,&sip3,&sip4,&smask,
-                         &dip1,&dip2,&dip3,&dip4,&dmask,
-                         &sport1,&sport2,&dport1,&dport2,
-                         &protocol,&protocol_mask,
-                         action_str);
-        
-        if (ret < 16) {
-            // Try tab-separated format
-            ret = sscanf(buf, "@%u.%u.%u.%u/%u\t%u.%u.%u.%u/%u\t%u : %u\t%u : %u\t%x/%x\t%s",
-                         &sip1,&sip2,&sip3,&sip4,&smask,
-                         &dip1,&dip2,&dip3,&dip4,&dmask,
-                         &sport1,&sport2,&dport1,&dport2,
-                         &protocol,&protocol_mask,
-                         action_str);
+        bool has_non_ws = false;
+        for (char* p = buf; *p; ++p) {
+            if (!std::isspace(static_cast<unsigned char>(*p))) {
+                has_non_ws = true;
+                break;
+            }
         }
+        if (!has_non_ws) {
+            continue;
+        }
+        original_rule_count++;
         
-        // 如果字符串格式失败，尝试旧的格式（兼容性）
-        if (ret < 16) {
-            ret = sscanf(buf, "@%u.%u.%u.%u/%u %u.%u.%u.%u/%u %u : %u %u : %u %x/%x %x/%x",
+        // Whitespace in scanf formats matches any run of spaces/tabs/newlines.
+        // Parse: src_ip dst_ip src_port_range dst_port_range proto/mask action/mask.
+        int ret = sscanf(buf, "@%u.%u.%u.%u/%u %u.%u.%u.%u/%u %u : %u %u : %u %x/%x %x/%x",
                          &sip1,&sip2,&sip3,&sip4,&smask,
                          &dip1,&dip2,&dip3,&dip4,&dmask,
                          &sport1,&sport2,&dport1,&dport2,
                          &protocol,&protocol_mask,
                          &action_flags,&action_mask);
-            if (ret >= 17) {
-                // 从旧的格式构造 action 字符串
-                snprintf(action_str, sizeof(action_str), "0x%04X/0x%04X", action_flags, action_mask);
-            }
+        if (ret == 18) {
+            snprintf(action_str, sizeof(action_str), "0x%04X/0x%04X", action_flags, action_mask);
         }
         
-        if (ret < 16) {
+        if (ret != 18) {
             // skip invalid line
             fprintf(stderr, "[WARN] Line %u: invalid format, skipping\n", line_count);
+            skipped_count++;
             continue;
         }
         
@@ -110,18 +103,21 @@ void load_rules_from_file(const string &file, vector<Rule5D> &rules_out) {
         if (sip1 > 255 || sip2 > 255 || sip3 > 255 || sip4 > 255 ||
             dip1 > 255 || dip2 > 255 || dip3 > 255 || dip4 > 255) {
             fprintf(stderr, "[WARN] Line %u: invalid IP octet (must be 0-255), skipping\n", line_count);
+            skipped_count++;
             continue;
         }
         
         // Validate port ranges (must be 0-65535)
         if (sport1 > 65535 || sport2 > 65535 || dport1 > 65535 || dport2 > 65535) {
             fprintf(stderr, "[WARN] Line %u: port out of range (must be 0-65535), skipping\n", line_count);
+            skipped_count++;
             continue;
         }
         
         // Validate port ordering (lo should be <= hi)
         if (sport1 > sport2 || dport1 > dport2) {
             fprintf(stderr, "[WARN] Line %u: invalid port range (lo > hi), skipping\n", line_count);
+            skipped_count++;
             continue;
         }
 
@@ -163,11 +159,16 @@ void load_rules_from_file(const string &file, vector<Rule5D> &rules_out) {
         ++rule_count;
         r.priority = rule_count;
         r.action = std::string(action_str);  // 保存完整的 action 字符串格式
+        r.raw_line = std::string(buf);
 
         rules_out.emplace_back(r);
     }
 
     fclose(fp);
+    std::cout << "[load_rules] original_rule_count=" << original_rule_count
+              << ", parsed_rule_count=" << rule_count
+              << ", skipped_rule_count=" << skipped_count
+              << ", physical_line_count=" << line_count << std::endl;
 }
 
 void split_rules(
@@ -202,13 +203,15 @@ void split_rules(
         pr.dst_port_hi = static_cast<uint16_t>(r.range[3][1]);
         pr.priority    = r.priority;
         pr.action      = r.action;  // 保存完整的 action 字符串格式
+        pr.raw_line    = r.raw_line;
         port_table.push_back(pr);
 
         i++; 
     }
 
     std::cout << "[split_rules] IP table size = " << ip_table.size()
-              << ", Port table size = " << port_table.size() << std::endl;
+              << ", Port table size = " << port_table.size()
+              << ", converted_rule_count=" << all_rules.size() << std::endl;
 }
 
 static string ip_to_string(uint32_t ip) {

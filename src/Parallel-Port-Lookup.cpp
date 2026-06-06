@@ -20,7 +20,7 @@
 #include <cstdint>
 #include <memory>
 #include <cmath>
-#include <iomanip> 
+#include <iomanip>
 #include <bitset>
 #include "Loader.hpp"
 #include "Dependent-Set-Prefix-Lookup.hpp"
@@ -41,7 +41,7 @@ inline bool is_long_range_dst(int dst_lo, int dst_hi) {
     }
     // 如果范围长度 > 10000，认为是长范围
     return (dst_hi - dst_lo + 1) > 10000;
-} 
+}
 
 
 std::bitset<32> generate_32bit_bitmap(uint32_t block_base, uint32_t L, uint32_t H)
@@ -150,7 +150,7 @@ SplitResult split_port_range_into_blocks_for_src(const vector<SRC_Port_Item> &me
             uint32_t SP = start / 32;
             uint32_t block_start = start;          // 第一个 block 用 start
             uint32_t block_end;
-            
+
             if (start != L) {                       // 后续 block 可以对齐到 32 的倍数
                 block_start = SP * 32;
             }
@@ -261,7 +261,7 @@ SplitResult_DST split_port_range_into_blocks_for_dst(const std::vector<DST_Port_
             bm.assigned = false;
             bm.single_value = (block_start == block_end);
             bm.port_type = item.port_type; // 继承端口类型
-            
+
 
 
             uint32_t block_len = block_end - block_start + 1;
@@ -588,7 +588,7 @@ void merge_prefix_blocks_for_dst(std::vector<BlockMeta_DST>& blocks) {
 
                 // group_id2 在组内相同，若出现不同则置 0（不过排序保证同组相同）
                 M.group_id2 = (A.group_id2 == B.group_id2) ? A.group_id2 : 0;
-                
+
                 // 继承port_type：两个块应该有相同的port_type，取A的
                 M.port_type = A.port_type;
 
@@ -639,15 +639,15 @@ void assign_blocks_to_dst_sram_tcam(const std::vector<BlockMeta_DST>& blocks,
         if (a.GroupID2 != b.GroupID2) {
             return a.GroupID2 < b.GroupID2;
         }
-        
+
         // 同一 GroupID2 内，按端口类型排序（枚举值直接反映优先级）
         int a_type_order = static_cast<int>(a.port_type);
         int b_type_order = static_cast<int>(b.port_type);
-        
+
         if (a_type_order != b_type_order) {
             return a_type_order < b_type_order;
         }
-        
+
         // 相同类型内，按bin_prefix字典序排序
         return a.bin_prefix < b.bin_prefix;
     });
@@ -655,12 +655,49 @@ void assign_blocks_to_dst_sram_tcam(const std::vector<BlockMeta_DST>& blocks,
     dtcam << "GroupID2    DstPort             Action\n";
     for (const auto &e : dst_tcam_table) {
         char buf[256];
-        snprintf(buf, sizeof(buf), "%-12u %-20s %-12s\n", 
+        snprintf(buf, sizeof(buf), "%-12u %-20s %-12s\n",
                  e.GroupID2, e.bin_prefix.c_str(), e.Action.c_str());
         dtcam << buf;
     }
     dtcam.close();
 
+    // ★ 新增：二级聚合 - 消除重复的 (GroupID2, SP_Quotient) key
+    // 对于相同 key 的多个条目，合并其 bitmap（OR 操作）
+    std::map<std::pair<uint16_t, uint16_t>, DST_SRAM_Table> merged_sram_map;
+
+    for (auto& entry : dst_sram_table) {
+        auto key = std::make_pair(entry.GroupID2, entry.SP_Quotient);
+
+        if (merged_sram_map.count(key)) {
+            // 找到重复 key，合并 bitmap
+            DST_SRAM_Table& existing = merged_sram_map[key];
+
+            // 将新条目的 bitmap 位合并到现有条目中（避免重复）
+            for (size_t bit_idx : entry.bitmap) {
+                if (std::find(existing.bitmap.begin(), existing.bitmap.end(), bit_idx) == existing.bitmap.end()) {
+                    existing.bitmap.push_back(bit_idx);
+                }
+            }
+
+            // 记录 Action 冲突（如果需要）
+            if (existing.Action != entry.Action) {
+                std::cerr << "[WARN] DST_SRAM Action mismatch for key ("
+                         << key.first << ", " << key.second << "): '"
+                         << existing.Action << "' vs '" << entry.Action << "'\n";
+            }
+        } else {
+            // 首次出现的 key，直接添加
+            merged_sram_map[key] = entry;
+        }
+    }
+
+    // 将合并后的结果转回 vector
+    dst_sram_table.clear();
+    for (auto& [key, entry] : merged_sram_map) {
+        dst_sram_table.push_back(entry);
+    }
+
+    // 再次排序以保证输出顺序
     std::sort(dst_sram_table.begin(), dst_sram_table.end(), [](const DST_SRAM_Table &a, const DST_SRAM_Table &b){
         if (a.GroupID2 != b.GroupID2) return a.GroupID2 < b.GroupID2;
         return a.SP_Quotient < b.SP_Quotient;
@@ -676,7 +713,7 @@ void assign_blocks_to_dst_sram_tcam(const std::vector<BlockMeta_DST>& blocks,
     }
     dsram.close();
 
-    std::cerr << "[INFO] DST Tables exported. TCAM entries=" << dst_tcam_table.size() << ", SRAM entries=" << dst_sram_table.size() << "\n";
+    std::cerr << "[INFO] DST Tables exported. TCAM entries=" << dst_tcam_table.size() << ", SRAM entries (after dedup)=" << dst_sram_table.size() << "\n";
 }
 
 
@@ -709,35 +746,35 @@ void output_sram_tcam_tables(
             if (a_is_single_point != b_is_single_point) {
                 return a_is_single_point; // a 是单点时返回 true（排在前面）
             }
-            
+
             // 如果都是单点，按GroupID2排序，然后按bin_prefix排序
             if (a_is_single_point && b_is_single_point) {
                 if (a.GroupID2 != b.GroupID2) return a.GroupID2 < b.GroupID2;
                 return a.bin_prefix < b.bin_prefix;
             }
-            
+
             // 如果都是范围，判断是否为超长范围（全*或前缀<=3个固定位）
-            bool a_is_full_wildcard = (a.bin_prefix.size() == 16 && 
+            bool a_is_full_wildcard = (a.bin_prefix.size() == 16 &&
                                        a.bin_prefix.find_first_not_of('*') == std::string::npos);
-            bool b_is_full_wildcard = (b.bin_prefix.size() == 16 && 
+            bool b_is_full_wildcard = (b.bin_prefix.size() == 16 &&
                                        b.bin_prefix.find_first_not_of('*') == std::string::npos);
             int a_fixed_len = prefix_fixed_len(a.bin_prefix);
             int b_fixed_len = prefix_fixed_len(b.bin_prefix);
             bool a_is_long_range = a_is_full_wildcard || (a_fixed_len <= 3);
             bool b_is_long_range = b_is_full_wildcard || (b_fixed_len <= 3);
-            
+
             // 超长范围放在最后
             if (a_is_long_range != b_is_long_range) {
                 return !a_is_long_range;  // a不是超长范围时返回true（a排在前面）
             }
-            
+
             // 如果都是超长范围，全*放在最后
             if (a_is_long_range && b_is_long_range) {
                 if (a_is_full_wildcard != b_is_full_wildcard) {
                     return !a_is_full_wildcard;  // a不是全*时返回true（a排在前面）
                 }
             }
-            
+
             // 普通范围或都是超长范围（但都是全*或都不是全*），先按GroupID2排序，再按bin_prefix排序
             if (a.GroupID2 != b.GroupID2) return a.GroupID2 < b.GroupID2;
             return a.bin_prefix < b.bin_prefix;
@@ -961,18 +998,18 @@ DST_Port_Type classify_dst_port_type(uint32_t dst_lo, uint32_t dst_hi) {
     if (dst_lo == 0 && dst_hi == 65535) {
         return DST_Port_Type::WILDCARD;
     }
-    
+
     // 判断是否为点（单个点值）
     if (dst_lo == dst_hi) {
         return DST_Port_Type::POINT;
     }
-    
+
     // 判断是否为长区间：1025-65535 或 5001-65535
-    if ((dst_lo == 1025 && dst_hi == 65535) || 
+    if ((dst_lo == 1025 && dst_hi == 65535) ||
         (dst_lo == 5001 && dst_hi == 65535)) {
         return DST_Port_Type::LONG_RANGE;
     }
-    
+
     // 其他情况为短区间
     return DST_Port_Type::SHORT_RANGE;
 }
@@ -1054,7 +1091,7 @@ void create_Table_for_port(
     const vector<PortRule>& /* port_table */,
     const vector<IPRule>& /* merged_ip_table */,
     std::map<std::tuple<std::vector<int>, int, int, int, int>, MergedItem>& mateifno
-){  
+){
     vector<Mate_SRC_LIST> mate_src;
     vector<Mate_DST_LIST> mate_dst;
 
@@ -1151,7 +1188,7 @@ void Search_Rmax_Intersection_per_proto(
         if (rmax_ids.size() <= 1) {
             continue;
         }
-        
+
         // 可选：全局 Rmax 检测（如你需要）
         bool has_global_rmax = false;
         for (size_t rmax_id : rmax_ids) {
@@ -1194,12 +1231,12 @@ void Search_Rmax_Intersection_per_proto(
                 // 4. 构造交集 cell
                     IntersectionCell cell;
                     cell.proto = proto;
-                    
+
                     cell.src_lo = std::max(rmax1.src_ip_lo, rmax2.src_ip_lo);
                     cell.src_hi = std::min(rmax1.src_ip_hi, rmax2.src_ip_hi);
                     cell.dst_lo = std::max(rmax1.dst_ip_lo, rmax2.dst_ip_lo);
                     cell.dst_hi = std::min(rmax1.dst_ip_hi, rmax2.dst_ip_hi);
-                    
+
                 // 注意：这里存的是 rmax_id，不是 rule index
                 cell.rmax_id = id1; // 或根据你后续逻辑决定
                 cell.rule_indices = {id1, id2};
@@ -1220,7 +1257,7 @@ void Search_Rmax_Intersection_per_proto(
     cout << "[DEBUG] Generated " << total_intersections << " Rmax intersections" << endl;
 }
 
-void Split_SrcPort_Per_GID(int gid, 
+void Split_SrcPort_Per_GID(int gid,
     std::vector<MergedItem*>& items,
     std::vector<MergedItem>& src_out_items,
     int& next_idx,  // ★ 每个 G-ID 内部使用的局部 idx 计数器（从 0 开始）
@@ -1230,7 +1267,7 @@ void Split_SrcPort_Per_GID(int gid,
 
     // ================================
     // Step 0: 按是否为 0–65535 分类
-    // ================================    
+    // ================================
     std::vector<MergedItem*> full_range_items;
     std::vector<MergedItem*> normal_items;
 
@@ -1249,12 +1286,12 @@ void Split_SrcPort_Per_GID(int gid,
     // 用于存储动态分配的切分条目（需要在函数结束前释放）
     static thread_local std::vector<std::unique_ptr<MergedItem>> split_items_storage;
     split_items_storage.clear();
-    
+
     if (!full_range_items.empty() && !normal_items.empty()) {
         // 检测是否有长 SRC 区间（只考虑真正的长区间，不是 0-65535）
         const uint32_t LONG_SRC_THRESHOLD = 1024;
         std::vector<MergedItem*> long_src_items;
-        
+
         for (auto* item : normal_items) {
             uint32_t src_range = item->src_hi - item->src_lo + 1;
             // 只有真正的长区间（非全覆盖）才需要处理
@@ -1262,21 +1299,21 @@ void Split_SrcPort_Per_GID(int gid,
                 long_src_items.push_back(item);
             }
         }
-        
+
         // 如果存在长 SRC 区间，对 full_range_items 进行 SRC 原子切分
         if (!long_src_items.empty()) {
             // 收集边界点：0, 65536 + 所有长 SRC 区间的边界
             std::set<uint32_t> src_boundaries;
             src_boundaries.insert(0);
             src_boundaries.insert(65536);
-            
+
             for (auto* item : long_src_items) {
                 src_boundaries.insert(item->src_lo);
                 if (item->src_hi + 1 <= 65535) {
                     src_boundaries.insert(item->src_hi + 1);
                 }
             }
-            
+
             // 生成 SRC 原子段
             std::vector<std::pair<uint32_t, uint32_t>> src_segments;
             auto seg_it = src_boundaries.begin();
@@ -1289,27 +1326,27 @@ void Split_SrcPort_Per_GID(int gid,
                     src_segments.emplace_back(seg_lo, seg_hi);
                 }
             }
-            
+
             // ★ 修正：只要存在长 SRC 区间，就对所有 full_range_items 进行 SRC 切分
             // 因为 SRC=0-65535 必然与任何长 SRC 区间（如 1024-65535）重叠
             // 切分后的条目直接输出，不参与后续的 DST 原子化处理
             // 这样可以保留原始的 DST 值（如 DST=13 保持为 13）
             std::vector<MergedItem> split_output_items;  // 切分后直接输出的条目
-            
+
             for (auto* full_item : full_range_items) {
                 for (auto& [seg_lo, seg_hi] : src_segments) {
                     MergedItem split_item = *full_item;
                     split_item.src_lo = seg_lo;
                     split_item.src_hi = seg_hi;
                     split_item.idx_list = {0};  // 将在 Handle_Port_Hiding_Problem 中重新分配
-                    
+
                     split_output_items.push_back(std::move(split_item));
                 }
             }
-            
+
             // 清空 full_range_items，所有条目都已切分
             full_range_items.clear();
-            
+
             // 如果 normal_items 为空（只有 full_range_items 和长 SRC 区间），直接返回切分结果
             // 检查 normal_items 中是否只剩下长 SRC 区间
             std::vector<MergedItem*> non_long_normal_items;
@@ -1320,7 +1357,7 @@ void Split_SrcPort_Per_GID(int gid,
                     non_long_normal_items.push_back(item);
                 }
             }
-            
+
             if (non_long_normal_items.empty()) {
                 // 只有长 SRC 区间，直接返回切分结果 + 长 SRC 区间的条目
                 for (auto& item : split_output_items) {
@@ -1332,7 +1369,7 @@ void Split_SrcPort_Per_GID(int gid,
                 }
                 return;
             }
-            
+
             // 否则，将切分结果暂存，后续在 src_out_items 中添加
             // 这样可以保留原始的 DST 值
             for (auto& item : split_output_items) {
@@ -1369,7 +1406,7 @@ void Split_SrcPort_Per_GID(int gid,
                 }
             }
         }
-        
+
         if (!need_dst_split_for_full_range) {
             for (auto* it : items)
                 src_out_items.push_back(*it);
@@ -1486,26 +1523,26 @@ void Split_SrcPort_Per_GID(int gid,
 
     for (auto& [seg_lo, seg_hi] : src_segments) {
         std::vector<MergedItem*> covered;
-    
+
         // 普通区间
         for (auto* it : normal_items) {
             if (it->src_lo <= seg_lo && it->src_hi >= seg_hi)
                 covered.push_back(it);
         }
-    
+
         // ★ 修复：0-65535 不应该参与拆分，应该单独处理
         // 不在这里添加 full_range_items，它们会在最后单独添加
-    
+
         if (covered.empty())
             continue;
-    
+
         // ================================
         // 合并覆盖相同的连续区间
         // ================================
         // ★ 修复：为每个 (SRC区间, 覆盖规则集合) 分配唯一的 idx
         // 如果覆盖相同，使用相同的 idx；否则分配新的 idx
         int assigned_idx;
-        
+
         // 检查是否与前一段覆盖相同
         if (!temp_segments.empty() && covers_equal(temp_segments.back().covered_items, covered)) {
             // 与前一段覆盖相同 → 扩展前一段，使用相同的 idx
@@ -1526,7 +1563,7 @@ void Split_SrcPort_Per_GID(int gid,
         // 2. 对这些 DST 区间进行原子化分割（类似 SRC 的原子化分割）
         // 3. 为每个 DST 原子区间选择覆盖它的规则中优先级最高的 action
         // 4. 最后合并相邻的、action 相同的 DST 区间（在 Step 8 中完成）
-        
+
         // Step 5.1: 收集所有覆盖当前 SRC 段的规则的 DST 区间端点
         std::set<uint32_t> dst_cut_points;
         for (auto* orig : seg.covered_items) {
@@ -1537,7 +1574,7 @@ void Split_SrcPort_Per_GID(int gid,
             if (orig->dst_hi + 1 <= 65535)
                 dst_cut_points.insert(orig->dst_hi + 1);
         }
-        
+
         // Step 5.2: 生成 DST 原子区间（类似 SRC 的原子化分割）
         std::vector<std::pair<uint32_t, uint32_t>> dst_segments;
         auto dst_cp_it = dst_cut_points.begin();
@@ -1545,12 +1582,12 @@ void Split_SrcPort_Per_GID(int gid,
             uint32_t dst_seg_lo = *dst_cp_it;
             ++dst_cp_it;
             if (dst_cp_it == dst_cut_points.end()) break;
-            
+
             uint32_t dst_seg_hi = *dst_cp_it - 1;
             if (dst_seg_lo <= dst_seg_hi)
                 dst_segments.emplace_back(dst_seg_lo, dst_seg_hi);
         }
-        
+
         // Step 5.3: 为每个 DST 原子区间选择最高优先级的动作
         for (auto& [dst_seg_lo, dst_seg_hi] : dst_segments) {
             // 收集所有覆盖当前 DST 原子区间的规则
@@ -1560,16 +1597,16 @@ void Split_SrcPort_Per_GID(int gid,
                     covering_items.push_back(orig);
                 }
             }
-            
+
             if (covering_items.empty())
                 continue;
-            
+
             // 选择优先级最高的动作（priority 越小优先级越高，lower priority value = higher priority）
             // 在 ACL 规则中，规则编号越小（priority 越小），优先级越高（先匹配）
             std::string best_action = "";
             uint32_t best_priority = UINT32_MAX;  // 初始化为最大值，寻找最小的 priority
             std::vector<int> best_initnum_list;
-            
+
             for (auto* orig : covering_items) {
                 // 从 port_table 中获取优先级（通过 initnum_list 中的 rid）
                 uint32_t min_priority = UINT32_MAX;
@@ -1580,7 +1617,7 @@ void Split_SrcPort_Per_GID(int gid,
                             min_priority = prio;
                     }
                 }
-                
+
                 // 选择优先级最高的规则的动作（priority 越小优先级越高）
                 if (min_priority < best_priority) {
                     best_priority = min_priority;
@@ -1595,13 +1632,13 @@ void Split_SrcPort_Per_GID(int gid,
                     best_initnum_list.assign(initnum_set.begin(), initnum_set.end());
                 }
             }
-            
+
             // 如果没有找到优先级信息，使用第一个规则的动作
             if (best_priority == UINT32_MAX && !covering_items.empty()) {
                 best_action = covering_items[0]->action;
                 best_initnum_list = covering_items[0]->initnum_list;
             }
-            
+
             // 创建新的 MergedItem
             MergedItem final_item;
             final_item.group_ids = seg.covered_items[0]->group_ids;  // 使用第一个规则的 group_ids
@@ -1612,11 +1649,11 @@ void Split_SrcPort_Per_GID(int gid,
             final_item.idx_list = {seg.assigned_idx};
             final_item.initnum_list = best_initnum_list;
             final_item.action = best_action;
-            
+
             src_out_items.push_back(std::move(final_item));
         }
     }
-    
+
     // ================================
     // Step 8: 合并相同 SRC 区间内相邻且 action 相同的 DST 区间
     // ================================
@@ -1635,30 +1672,30 @@ void Split_SrcPort_Per_GID(int gid,
                 if (a.dst_lo != b.dst_lo) return a.dst_lo < b.dst_lo;
                 return a.dst_hi < b.dst_hi;
             });
-        
+
         std::vector<MergedItem> merged_items;
         merged_items.reserve(src_out_items.size());
-        
+
         for (size_t i = 0; i < src_out_items.size(); ++i) {
             if (merged_items.empty()) {
                 merged_items.push_back(src_out_items[i]);
                 continue;
             }
-            
+
             auto& last = merged_items.back();
             const auto& curr = src_out_items[i];
-            
+
             // 检查是否可以合并：
             // 1. 相同的 SRC 区间
             // 2. 相同的 idx_list
             // 3. 相同的 action
             // 4. DST 区间相邻（last.dst_hi + 1 == curr.dst_lo）
-            bool can_merge = 
+            bool can_merge =
                 (last.src_lo == curr.src_lo && last.src_hi == curr.src_hi) &&
                 (last.idx_list == curr.idx_list) &&
                 (last.action == curr.action) &&
                 (last.dst_hi + 1 == curr.dst_lo);
-            
+
             if (can_merge) {
                 // 合并：扩展 DST 区间，合并 initnum_list
                 last.dst_hi = curr.dst_hi;
@@ -1673,10 +1710,10 @@ void Split_SrcPort_Per_GID(int gid,
                 merged_items.push_back(curr);
             }
         }
-        
+
         src_out_items = std::move(merged_items);
     }
-    
+
     // ================================
     // ★ 修复 Bug 2：为 SRC=0-65535 的条目进行 DST 原子切割
     // 处理 DST 区间重叠问题（如 DST=10-20 与 DST=15-25）
@@ -1692,7 +1729,7 @@ void Split_SrcPort_Per_GID(int gid,
                 normal_dst_items.push_back(full_item);
             }
         }
-        
+
         // 如果没有需要切割的 DST 区间（都是完全通配符），直接添加
         if (normal_dst_items.empty()) {
             for (auto* full_item : full_dst_items) {
@@ -1708,7 +1745,7 @@ void Split_SrcPort_Per_GID(int gid,
             const uint32_t LONG_RANGE_THRESHOLD = 1024;  // 定义长区间的阈值
             std::vector<MergedItem*> short_dst_items;    // 短区间，需要原子切割
             std::vector<MergedItem*> long_dst_items;     // 长区间，保留不切割
-            
+
             for (auto* item : normal_dst_items) {
                 uint32_t range_size = item->dst_hi - item->dst_lo + 1;
                 if (range_size >= LONG_RANGE_THRESHOLD) {
@@ -1717,25 +1754,25 @@ void Split_SrcPort_Per_GID(int gid,
                     short_dst_items.push_back(item);
                 }
             }
-            
+
             // 收集所有短区间的 DST 边界点，进行原子切割
             // 使用与 SRC 原子切割相同的逻辑：收集所有边界点，然后生成原子区间
             std::set<uint32_t> dst_cut_points;
             for (auto* item : short_dst_items) {
                 uint32_t L = item->dst_lo;
                 uint32_t H = item->dst_hi;
-                
+
                 // 左端点
                 dst_cut_points.insert(L);
                 if (L + 1 <= H)
                     dst_cut_points.insert(L + 1);
-                
+
                 // 右端点
                 dst_cut_points.insert(H);
                 if (H + 1 <= 65535)
                     dst_cut_points.insert(H + 1);
             }
-            
+
             // 生成 DST 原子区间（与 SRC 原子切割相同的逻辑）- 仅针对短区间
             std::vector<std::pair<uint32_t, uint32_t>> dst_segments;
             if (!dst_cut_points.empty()) {
@@ -1744,13 +1781,13 @@ void Split_SrcPort_Per_GID(int gid,
                     uint32_t seg_lo = *cp_it;
                     ++cp_it;
                     if (cp_it == dst_cut_points.end()) break;
-                    
+
                     uint32_t seg_hi = *cp_it - 1;
                     if (seg_lo <= seg_hi)
                         dst_segments.emplace_back(seg_lo, seg_hi);
                 }
             }
-            
+
             // 为每个 DST 原子区间选择最高优先级的动作（仅针对短区间）
             int local_full_idx = 0;
             for (auto& [dst_seg_lo, dst_seg_hi] : dst_segments) {
@@ -1761,16 +1798,16 @@ void Split_SrcPort_Per_GID(int gid,
                         covering_items.push_back(item);
                     }
                 }
-                
+
                 if (covering_items.empty())
                     continue;
-                
+
                 // 选择优先级最高的动作（priority 越小优先级越高）
                 std::string best_action = "";
                 uint32_t best_priority = UINT32_MAX;
                 std::vector<int> best_initnum_list;
                 std::vector<int> best_group_ids;
-                
+
                 for (auto* orig : covering_items) {
                     uint32_t min_priority = UINT32_MAX;
                     for (int initnum : orig->initnum_list) {
@@ -1780,7 +1817,7 @@ void Split_SrcPort_Per_GID(int gid,
                                 min_priority = prio;
                         }
                     }
-                    
+
                     if (min_priority < best_priority) {
                         best_priority = min_priority;
                         best_action = orig->action;
@@ -1794,13 +1831,13 @@ void Split_SrcPort_Per_GID(int gid,
                         best_initnum_list.assign(initnum_set.begin(), initnum_set.end());
                     }
                 }
-                
+
                 if (best_priority == UINT32_MAX && !covering_items.empty()) {
                     best_action = covering_items[0]->action;
                     best_initnum_list = covering_items[0]->initnum_list;
                     best_group_ids = covering_items[0]->group_ids;
                 }
-                
+
                 // 创建新的 MergedItem
                 MergedItem final_item;
                 final_item.group_ids = best_group_ids.empty() ? covering_items[0]->group_ids : best_group_ids;
@@ -1811,10 +1848,10 @@ void Split_SrcPort_Per_GID(int gid,
                 final_item.idx_list = {local_full_idx};  // 将在 Handle_Port_Hiding_Problem 中重新分配
                 final_item.initnum_list = best_initnum_list;
                 final_item.action = best_action;
-                
+
                 src_out_items.push_back(std::move(final_item));
             }
-            
+
             // 合并相邻的、action 相同的 DST 区间（针对 SRC=0-65535 的条目）
             // 先收集刚添加的 SRC=0-65535 条目
             std::vector<MergedItem> full_src_items_to_merge;
@@ -1826,7 +1863,7 @@ void Split_SrcPort_Per_GID(int gid,
                     other_items.push_back(std::move(item));
                 }
             }
-            
+
             // 对 SRC=0-65535 的条目按 DST 排序并合并
             if (!full_src_items_to_merge.empty()) {
                 std::sort(full_src_items_to_merge.begin(), full_src_items_to_merge.end(),
@@ -1835,18 +1872,18 @@ void Split_SrcPort_Per_GID(int gid,
                         if (a.dst_lo != b.dst_lo) return a.dst_lo < b.dst_lo;
                         return a.dst_hi < b.dst_hi;
                     });
-                
+
                 std::vector<MergedItem> merged_full_items;
                 for (auto& item : full_src_items_to_merge) {
                     if (merged_full_items.empty()) {
                         merged_full_items.push_back(std::move(item));
                         continue;
                     }
-                    
+
                     auto& last = merged_full_items.back();
-                    bool can_merge = (last.action == item.action) && 
+                    bool can_merge = (last.action == item.action) &&
                                      (last.dst_hi + 1 == item.dst_lo);
-                    
+
                     if (can_merge) {
                         last.dst_hi = item.dst_hi;
                         std::set<int> initnum_set(last.initnum_list.begin(), last.initnum_list.end());
@@ -1858,7 +1895,7 @@ void Split_SrcPort_Per_GID(int gid,
                         merged_full_items.push_back(std::move(item));
                     }
                 }
-                
+
                 // 重新组合
                 src_out_items.clear();
                 for (auto& item : other_items) {
@@ -1870,14 +1907,14 @@ void Split_SrcPort_Per_GID(int gid,
             } else {
                 src_out_items = std::move(other_items);
             }
-            
+
             // ★ 添加长区间（不切割，保留原样，优先级低于短区间切割结果）
             for (auto* long_item : long_dst_items) {
                 MergedItem long_copy = *long_item;
                 long_copy.idx_list = {0};  // 将在 Handle_Port_Hiding_Problem 中重新分配
                 src_out_items.push_back(std::move(long_copy));
             }
-            
+
             // 最后添加 DST=0-65535 的完全通配符条目（优先级最低）
             for (auto* full_item : full_dst_items) {
                 MergedItem full_copy = *full_item;
@@ -1948,14 +1985,14 @@ void Handle_Port_Hiding_Problem(std::map<std::tuple<std::vector<int>, int, int, 
         // 1. SRC=0-65535 且 DST!=0-65535 的条目：使用统一的 idx（分配一个新的全局 idx，确保所有这样的条目共享同一个 idx）
         // 2. SRC=0-65535 且 DST=0-65535 的条目：也使用相同的 idx（与其他 SRC=0-65535 条目相同），但优先级最低（在输出时排在最后）
         int wildcard_src_idx = -1;  // SRC=0-65535 的统一 idx（包括 DST=0-65535 的条目）
-        
+
         // 先处理 SRC=0-65535 且 DST!=0-65535 的条目
         for (auto& item : src_split_items) {
             bool is_full_src = (item.src_lo == 0 && item.src_hi == 65535);
             bool is_full_dst = (item.dst_lo == 0 && item.dst_hi == 65535);
             if (!is_full_src || is_full_dst)
                 continue;
-            
+
             // 为第一个 SRC=0-65535 且 DST!=0-65535 的条目分配一个新的统一 idx
             if (wildcard_src_idx == -1) {
                 // 分配一个新的全局 idx，确保所有 SRC=0-65535 的条目（包括 DST=0-65535）共享同一个 idx
@@ -1963,14 +2000,14 @@ void Handle_Port_Hiding_Problem(std::map<std::tuple<std::vector<int>, int, int, 
             }
             item.idx_list = {wildcard_src_idx};
         }
-        
+
         // 再处理 SRC=0-65535 且 DST=0-65535 的条目（使用相同的 idx，但优先级最低）
         for (auto& item : src_split_items) {
             bool is_full_src = (item.src_lo == 0 && item.src_hi == 65535);
             bool is_full_dst = (item.dst_lo == 0 && item.dst_hi == 65535);
             if (!is_full_src || !is_full_dst)
                 continue;
-            
+
             // 使用与其他 SRC=0-65535 条目相同的 idx
             if (wildcard_src_idx == -1) {
                 // 如果没有其他 SRC=0-65535 条目，分配一个新的 idx
@@ -1989,12 +2026,12 @@ void Handle_Port_Hiding_Problem(std::map<std::tuple<std::vector<int>, int, int, 
                 bool b_is_full_dst = (b.dst_lo == 0 && b.dst_hi == 65535);
                 bool a_is_long_range = is_long_range_dst(a.dst_lo, a.dst_hi);
                 bool b_is_long_range = is_long_range_dst(b.dst_lo, b.dst_hi);
-                
+
                 // 如果一个是完全通配符，另一个不是，完全通配符排在后面
                 if (a_is_full_dst != b_is_full_dst) {
                     return !a_is_full_dst;  // DST=0-65535 的排在后面
                 }
-                
+
                 // 如果都不是完全通配符，但一个是长范围，另一个不是，长范围排在后面
                 if (!a_is_full_dst && !b_is_full_dst) {
                     if (a_is_long_range != b_is_long_range) {
@@ -2009,14 +2046,14 @@ void Handle_Port_Hiding_Problem(std::map<std::tuple<std::vector<int>, int, int, 
                         }
                     }
                 }
-                
+
                 // 如果都是或都不是长范围/完全通配符，按原来的顺序（src_lo, src_hi, dst_lo, dst_hi）
                 if (a.src_lo != b.src_lo) return a.src_lo < b.src_lo;
                 if (a.src_hi != b.src_hi) return a.src_hi < b.src_hi;
                 if (a.dst_lo != b.dst_lo) return a.dst_lo < b.dst_lo;
                 return a.dst_hi < b.dst_hi;
             });
-        
+
         for (auto& item : sorted_items) {
             auto key = std::make_tuple(item.group_ids, item.src_lo, item.src_hi,
                                        item.dst_lo, item.dst_hi);
@@ -2041,7 +2078,7 @@ void bulid_coverset_for_cell(vector<IntersectionCell>& intersections,
                 // 1) proto 必须一致
                 if (rule.proto != cell.proto)
                     continue;
-                
+
                 // 2) 检查规则是否被 cell 覆盖（即规则的 IP 范围在 cell 的 IP 范围内）
                 // cell 覆盖 rule：cell.src_lo <= rule.src_ip_lo && rule.src_ip_hi <= cell.src_hi
                 // cell 覆盖 rule：cell.dst_lo <= rule.dst_ip_lo && rule.dst_ip_hi <= cell.dst_hi
@@ -2051,9 +2088,9 @@ void bulid_coverset_for_cell(vector<IntersectionCell>& intersections,
                 // 3) dst 被 cell 覆盖
                 if (cell.dst_lo > rule.dst_ip_lo || rule.dst_ip_hi > cell.dst_hi)
                     continue;
-                
+
                 cell.cover_set.push_back(i);
-            }       
+            }
         }
     };
 
@@ -2066,16 +2103,20 @@ void bulid_coverset_for_cell(vector<IntersectionCell>& intersections,
 //   与 Part_C（最小顶点覆盖）不同，Selective 直接按分数排序截取，
 //   更灵活地控制分流比例和代价。
 void classify_rules_Selective(
-    const vector<IntersectionCell>& intersections,
-    const vector<IntersectionCell>& Rmax_intersections,
-    const vector<IPRule>& merged_ip_table,
-    const vector<PortRule>& port_table,
-    int select_percentage,
-    vector<ClassifyEntry>& First_table,
-    std::unordered_set<size_t>& classified_merged_ids)
+const vector<IntersectionCell>& intersections,
+const vector<IntersectionCell>& Rmax_intersections,
+const vector<IPRule>& merged_ip_table,
+const vector<PortRule>& port_table,
+int select_percentage,
+vector<ClassifyEntry>& First_table,
+std::unordered_set<size_t>& classified_merged_ids,
+const std::string& ruleset_path)
 {
     First_table.clear();
     classified_merged_ids.clear();
+    const bool debug_fw4_anomaly =
+        ruleset_path.find("fw4_100k_0.9") != std::string::npos ||
+        ruleset_path.find("fw4_50k_16_0.5") != std::string::npos;
 
     // Phase 1: 收集冲突 mid 及其 cell_count
     vector<const IntersectionCell*> all_cells;
@@ -2095,43 +2136,142 @@ void classify_rules_Selective(
         return;
     }
 
-    // Phase 2: 按 cell_count 降序排序，取 top-K%
-    struct MidEntry { size_t mid; size_t cell_count; };
-    vector<MidEntry> sorted_mids;
-    for (const auto& [mid, cnt] : mid_cell_count)
-        sorted_mids.push_back({mid, cnt});
-    sort(sorted_mids.begin(), sorted_mids.end(),
-         [](const MidEntry& a, const MidEntry& b) { return a.cell_count > b.cell_count; });
+    // ★ 建立 rid → PortRule 的 O(1) 查找表（供 Phase 2 评分 + Phase 3 展开共用）
+    unordered_map<uint32_t, const PortRule*> rid_to_port;
+    rid_to_port.reserve(port_table.size());
+    for (const auto& pr : port_table)
+        rid_to_port[pr.rid] = &pr;
 
-    size_t k = max((size_t)1, sorted_mids.size() * select_percentage / 100);
-    for (size_t i = 0; i < k && i < sorted_mids.size(); ++i)
-        classified_merged_ids.insert(sorted_mids[i].mid);
+    // Phase 2: 基于冲突图度数的迭代贪心分流
+    // 将 mid 间冲突建模为图：两个 mid 同现于至少一个 cell → 连边
+    // score(mid) = degree(mid) × port_count(mid)
+    // 每轮选最高分 mid 分流，移除后更新邻居度数，直到 score 降至动态阈值以下
+    // 动态阈值 = 初始平均 score × 0.5
 
-    // Phase 3: 展开为五元组
+    // 构建邻接表：mid → 与之共同出现过的其他 mid 集合
+    unordered_map<size_t, unordered_set<size_t>> neighbors;
+    for (const auto* cell : all_cells) {
+        const auto& ri = cell->rule_indices;
+        for (size_t i = 0; i < ri.size(); ++i) {
+            if (ri[i] >= merged_ip_table.size()) continue;
+            for (size_t j = i + 1; j < ri.size(); ++j) {
+                if (ri[j] >= merged_ip_table.size()) continue;
+                neighbors[ri[i]].insert(ri[j]);
+                neighbors[ri[j]].insert(ri[i]);
+            }
+        }
+    }
+
+    // 初始化各 mid 的 port_count / degree / score
+    unordered_map<size_t, size_t> port_count_map, degree_map, score_map;
+    for (const auto& [mid, _] : mid_cell_count) {
+        size_t pc = merged_ip_table[mid].merged_R.size();
+        size_t d  = neighbors.count(mid) ? neighbors.at(mid).size() : 0;
+        port_count_map[mid] = pc;
+        degree_map[mid]     = d;
+        score_map[mid]      = d * pc;
+    }
+
+    // 动态阈值：初始平均 score × 0.5
+    double sum_score = 0.0;
+    for (const auto& [mid, s] : score_map) sum_score += static_cast<double>(s);
+    double threshold = score_map.empty() ? 0.0 : (sum_score / score_map.size()) * 0.05;
+
+    size_t init_score_max = score_map.empty() ? 0 :
+        std::max_element(score_map.begin(), score_map.end(),
+            [](const auto& a, const auto& b){ return a.second < b.second; })->second;
+
+    size_t rounds = 0;
+    while (!score_map.empty()) {
+        // 找当前最高分 mid
+        auto max_it = std::max_element(score_map.begin(), score_map.end(),
+            [](const auto& a, const auto& b){ return a.second < b.second; });
+        if (max_it == score_map.end() || static_cast<double>(max_it->second) <= threshold)
+            break;
+
+        size_t M = max_it->first;
+        classified_merged_ids.insert(M);
+        ++rounds;
+
+        // 更新所有邻居的度数和评分（邻居中已被选走的跳过）
+        if (neighbors.count(M)) {
+            for (size_t N : neighbors.at(M)) {
+                if (!neighbors.count(N)) continue;
+                neighbors[N].erase(M);
+                size_t new_d     = neighbors[N].size();
+                degree_map[N]    = new_d;
+                if (score_map.count(N))
+                    score_map[N] = new_d * port_count_map[N];
+            }
+            neighbors.erase(M);
+        }
+        score_map.erase(M);
+        degree_map.erase(M);
+    }
+
+    cout << "[Selective] Iterative greedy: selected=" << classified_merged_ids.size()
+        << " rounds=" << rounds
+        << ", init_max_score=" << init_score_max
+        << ", threshold=" << threshold << "\n";
+
+    // Phase 3: 展开为五元组（使用 rid_to_port 查找表，O(1) 替换线性搜索）
     std::set<size_t> final_sorted_mids(classified_merged_ids.begin(),
                                         classified_merged_ids.end());
+    std::unordered_set<size_t> inserted_orig_rule_ids;
+    inserted_orig_rule_ids.reserve(port_table.size());
+    size_t duplicate_insert_attempts = 0;
+    size_t debug_insert_lines = 0;
+    constexpr size_t kDebugInsertLimit = 100;
+
     for (size_t mid : final_sorted_mids) {
         const IPRule& ip = merged_ip_table[mid];
         for (size_t orig_rid : ip.merged_R) {
-            auto it = std::find_if(port_table.begin(), port_table.end(),
-                [orig_rid](const PortRule& pr) { return pr.rid == orig_rid; });
-            if (it == port_table.end()) continue;
+            auto it = rid_to_port.find(static_cast<uint32_t>(orig_rid));
+            if (it == rid_to_port.end()) continue;
+            const PortRule* pr = it->second;
+
+            const size_t before_size = First_table.size();
+            const bool inserted = inserted_orig_rule_ids.insert(orig_rid).second;
+            if (!inserted) {
+                ++duplicate_insert_attempts;
+                if (debug_fw4_anomaly) {
+                    cout << "[five_tuple_debug] duplicate original rule_id skipped: "
+                         << orig_rid << ", mid=" << mid
+                         << ", first_table_size=" << before_size << "\n";
+                }
+                continue;
+            }
 
             ClassifyEntry entry;
+            entry.original_rule_id = orig_rid;
             entry.src_ip_lo      = ip.src_ip_lo;
             entry.src_ip_hi      = ip.src_ip_hi;
             entry.dst_ip_lo      = ip.dst_ip_lo;
             entry.dst_ip_hi      = ip.dst_ip_hi;
             entry.proto          = ip.proto;
-            entry.src_port_lo    = it->src_port_lo;
-            entry.src_port_hi    = it->src_port_hi;
-            entry.dst_port_lo    = it->dst_port_lo;
-            entry.dst_port_hi    = it->dst_port_hi;
-            entry.Action         = it->action;
+            entry.src_port_lo    = pr->src_port_lo;
+            entry.src_port_hi    = pr->src_port_hi;
+            entry.dst_port_lo    = pr->dst_port_lo;
+            entry.dst_port_hi    = pr->dst_port_hi;
+            entry.Action         = pr->action;
+            entry.original_rule_text = pr->raw_line;
             First_table.push_back(entry);
+
+            if (debug_fw4_anomaly && debug_insert_lines < kDebugInsertLimit) {
+                cout << "[five_tuple_debug] insert original rule_id=" << orig_rid
+                     << ", mid=" << mid
+                     << ", first_table_size " << before_size
+                     << " -> " << First_table.size() << "\n";
+                ++debug_insert_lines;
+            }
         }
     }
 
+    cout << "[five_tuple_debug] original_rules=" << port_table.size()
+         << ", selected_merged_rules=" << classified_merged_ids.size()
+         << ", first_table_raw_rules=" << First_table.size()
+         << ", unique_original_rule_ids=" << inserted_orig_rule_ids.size()
+         << ", duplicate_insert_attempts=" << duplicate_insert_attempts << "\n";
 }
 
 // ★ 将 First_table 写入文件（五元组大表）
@@ -2239,16 +2379,64 @@ static vector<pair<uint16_t, uint16_t>> port_range_to_ternary(uint16_t lo, uint1
 
 void write_five_tuple_table(
     const vector<ClassifyEntry>& First_table,
-    const std::string& filename)
+    const std::string& filename,
+    size_t original_rule_count,
+    const std::string& ruleset_path)
 {
-    std::ofstream ofs(filename);
-    if (!ofs.is_open()) {
+    std::ofstream raw_ofs(filename);
+    if (!raw_ofs.is_open()) {
         cerr << "[ERROR] Cannot open file: " << filename << endl;
         return;
     }
 
-    // Header
-    ofs << std::left
+    const std::string tcam_filename = "src/output/five_tuple_tcam_table.txt";
+    std::ofstream tcam_ofs(tcam_filename);
+    if (!tcam_ofs.is_open()) {
+        cerr << "[ERROR] Cannot open file: " << tcam_filename << endl;
+        return;
+    }
+
+    const bool debug_fw4_anomaly =
+        ruleset_path.find("fw4_100k_0.9") != std::string::npos ||
+        ruleset_path.find("fw4_50k_16_0.5") != std::string::npos;
+
+    std::unordered_map<size_t, size_t> raw_rule_id_counts;
+    raw_rule_id_counts.reserve(First_table.size());
+    for (const auto& e : First_table) {
+        raw_rule_id_counts[e.original_rule_id]++;
+    }
+
+    raw_ofs << std::left
+        << std::setw(10) << "RuleID"
+        << std::setw(14) << "SrcIP_Lo"
+        << std::setw(14) << "SrcIP_Hi"
+        << std::setw(14) << "DstIP_Lo"
+        << std::setw(14) << "DstIP_Hi"
+        << std::setw(8)  << "Proto"
+        << std::setw(12) << "SrcPort_Lo"
+        << std::setw(12) << "SrcPort_Hi"
+        << std::setw(12) << "DstPort_Lo"
+        << std::setw(12) << "DstPort_Hi"
+        << "Action" << "\n";
+
+    for (const auto& e : First_table) {
+        raw_ofs << std::left
+            << std::setw(10) << e.original_rule_id
+            << std::setw(14) << e.src_ip_lo
+            << std::setw(14) << e.src_ip_hi
+            << std::setw(14) << e.dst_ip_lo
+            << std::setw(14) << e.dst_ip_hi
+            << std::setw(8)  << (int)e.proto
+            << std::setw(12) << e.src_port_lo
+            << std::setw(12) << e.src_port_hi
+            << std::setw(12) << e.dst_port_lo
+            << std::setw(12) << e.dst_port_hi
+            << e.Action << "\n";
+    }
+    raw_ofs.close();
+
+    // Header for the hardware-installable ternary TCAM table.
+    tcam_ofs << std::left
         << std::setw(10) << "Priority"
         << std::setw(22) << "SrcIP"
         << std::setw(22) << "DstIP"
@@ -2260,6 +2448,8 @@ void write_five_tuple_table(
         << "Action" << "\n";
 
     size_t entry_count = 0;
+    std::unordered_map<size_t, size_t> expanded_rule_id_counts;
+    expanded_rule_id_counts.reserve(First_table.size());
 
     for (const auto& e : First_table) {
         // IP range → CIDR 列表（使用修复版，正确处理 start=0）
@@ -2282,7 +2472,7 @@ void write_five_tuple_table(
                         snprintf(dp_val,  sizeof(dp_val),  "0x%04X", dp.first);
                         snprintf(dp_mask, sizeof(dp_mask), "0x%04X", dp.second);
 
-                        ofs << std::left
+                        tcam_ofs << std::left
                             << std::setw(10) << entry_count
                             << std::setw(22) << sc
                             << std::setw(22) << dc
@@ -2294,23 +2484,91 @@ void write_five_tuple_table(
                             << e.Action << "\n";
 
                         entry_count++;
+                        expanded_rule_id_counts[e.original_rule_id]++;
                     }
                 }
             }
         }
     }
 
-    ofs.close();
-    cout << "[OUTPUT] 5-tuple table written to: " << filename
+    tcam_ofs.close();
+
+    size_t duplicate_raw_rule_ids = 0;
+    std::unordered_map<size_t, std::string> rule_id_to_text;
+    rule_id_to_text.reserve(First_table.size());
+    for (const auto& e : First_table) {
+        rule_id_to_text.emplace(e.original_rule_id, e.original_rule_text);
+    }
+    for (const auto& [rule_id, count] : raw_rule_id_counts) {
+        if (count > 1) duplicate_raw_rule_ids++;
+    }
+
+    vector<pair<size_t, size_t>> expanded_counts(expanded_rule_id_counts.begin(),
+                                                 expanded_rule_id_counts.end());
+    sort(expanded_counts.begin(), expanded_counts.end(),
+         [](const auto& a, const auto& b) {
+             if (a.second != b.second) return a.second > b.second;
+             return a.first < b.first;
+         });
+
+    cout << "[OUTPUT] five_tuple_table written to: " << filename
+         << " (" << First_table.size() << " raw classified rules, "
+         << raw_rule_id_counts.size() << " unique original rule_ids)\n";
+    cout << "[OUTPUT] 5-tuple TCAM table written to: " << tcam_filename
          << " (" << entry_count << " TCAM entries, expanded from "
          << First_table.size() << " classified rules)\n";
+    cout << "[five_tuple_debug] original_rules=" << original_rule_count
+         << ", classified_raw_rules=" << First_table.size()
+         << ", unique_original_rule_ids=" << raw_rule_id_counts.size()
+         << ", duplicate_rule_ids=" << duplicate_raw_rule_ids
+         << ", expanded_tcam_entries=" << entry_count << "\n";
+    cout << "[OUTPUT] five_tuple_table_unique_rule_count: "
+         << raw_rule_id_counts.size() << "\n";
+
+    if (original_rule_count > 0 && raw_rule_id_counts.size() > original_rule_count) {
+        cerr << "[ASSERT] five_tuple_table_unique_rule_count="
+             << raw_rule_id_counts.size()
+             << " exceeds original_rule_count=" << original_rule_count << "\n";
+    }
+    if (original_rule_count > 0 && First_table.size() > original_rule_count) {
+        cerr << "[ASSERT] five_tuple_table raw classified rules="
+             << First_table.size()
+             << " exceeds original_rule_count=" << original_rule_count << "\n";
+    }
+
+    if (debug_fw4_anomaly || entry_count > First_table.size()) {
+        cout << "[five_tuple_debug] expanded entries are CIDR/ternary TCAM rows, "
+             << "not unique original rules. Top expanded rule_ids:";
+        const size_t limit = std::min<size_t>(10, expanded_counts.size());
+        for (size_t i = 0; i < limit; ++i) {
+            cout << " rule_id=" << expanded_counts[i].first
+                 << " entries=" << expanded_counts[i].second;
+        }
+        cout << "\n";
+    }
+
+    if (duplicate_raw_rule_ids > 0) {
+        cout << "[five_tuple_debug] duplicate original rule_ids:";
+        size_t printed = 0;
+        for (const auto& [rule_id, count] : raw_rule_id_counts) {
+            if (count <= 1) continue;
+            cout << " rule_id=" << rule_id << " count=" << count;
+            auto text_it = rule_id_to_text.find(rule_id);
+            if (text_it != rule_id_to_text.end()) {
+                cout << " raw=\"" << text_it->second << "\"";
+            }
+            if (++printed >= 20) break;
+        }
+        cout << "\n";
+    }
 }
 
 void load_and_create_IP_table(vector<IPRule>& ip_table,
-    vector<PortRule>& port_table, 
+    vector<PortRule>& port_table,
     vector<IPRule>& merged_ip_table,
     std::map<std::tuple<std::vector<int>, int, int, int, int>, MergedItem>& mateinfo,
-    int select_percentage)
+    int select_percentage,
+    const std::string& ruleset_path)
 {
 
     // ================================================================
@@ -2355,11 +2613,12 @@ void load_and_create_IP_table(vector<IPRule>& ip_table,
         classify_rules_Selective(intersections_1, Rmax_intersections_1,
             merged_ip_table, port_table,
             select_percentage,
-            First_table, classified_merged_ids);
+            First_table, classified_merged_ids, ruleset_path);
 
         //7) 输出五元组大表
         if (!First_table.empty()) {
-            write_five_tuple_table(First_table, "src/output/five_tuple_table.txt");
+            write_five_tuple_table(First_table, "src/output/five_tuple_table.txt",
+                                   port_table.size(), ruleset_path);
         }
 
         //8) ★ 从 merged_ip_table 中移除已分流的条目（方案B：直接过滤 merged 级）
@@ -2394,11 +2653,11 @@ void load_and_create_IP_table(vector<IPRule>& ip_table,
 
     //2.5) Create Rmax_intersection_cells
     Search_Rmax_Intersection_per_proto(Rmax_merged_ip_table, Rmax_intersections);
-    
+
     //2.6) Reorder Rmax table and get index mapping
     std::unordered_map<size_t, size_t> old_to_new_idx;
     Reorder_merged_ip_table(Rmax_merged_ip_table, RO_merged_ip_table, old_to_new_idx);
-    
+
     //2.7) Update rmax_id in Rmax_intersections to use new indices
     for (auto& cell : Rmax_intersections) {
         if (cell.rmax_id != SIZE_MAX) {
@@ -2408,16 +2667,16 @@ void load_and_create_IP_table(vector<IPRule>& ip_table,
             }
         }
     }
-    
+
     //3) per-protocol elementary intervals (half-open endpoints)
     map<uint8_t, vector<uint32_t>> src_intervals_per_proto;
     map<uint8_t, vector<uint32_t>> dst_intervals_per_proto;
     build_elementary_intervals_per_proto(merged_ip_table,
         src_intervals_per_proto, dst_intervals_per_proto);
-        
+
     //4) find intersection cells (per-proto)
     vector<size_t> rmax_rule_ids;
-    find_intersections_per_proto(merged_ip_table, src_intervals_per_proto, 
+    find_intersections_per_proto(merged_ip_table, src_intervals_per_proto,
         dst_intervals_per_proto, intersections, rmax_rule_ids);
 
     //5) Update rmax_id in intersections to use new indices
@@ -2432,13 +2691,13 @@ void load_and_create_IP_table(vector<IPRule>& ip_table,
 
     //6) merge intersection cells + merged IP table into final table
     vector<FinalIPRule> final_ip_table;
-    merge_cells_and_ip_table(RO_merged_ip_table, intersections, Rmax_intersections, final_ip_table);    
+    merge_cells_and_ip_table(RO_merged_ip_table, intersections, Rmax_intersections, final_ip_table);
 
     bulid_coverset_for_cell(intersections, Rmax_intersections, merged_ip_table);
 
     //7) transfer rule into mask type
     Create_Metainfo_for_port(port_table, merged_ip_table, intersections, Rmax_intersections, final_ip_table, RO_merged_ip_table, old_to_new_idx, mateinfo);
-    
+
     //8) Handling Port Hiding Problem Within the Same G-ID
     Handle_Port_Hiding_Problem(mateinfo, port_table);
 
